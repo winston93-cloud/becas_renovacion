@@ -296,14 +296,22 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 18px 22px;
-  padding-top: calc(18px + env(safe-area-inset-top, 0px));
+  padding: 14px 16px;
+  padding-top: calc(14px + env(safe-area-inset-top, 0px));
+}
+
+@media (min-width: 640px) {
+  .home-top {
+    padding: 18px 22px;
+    padding-top: calc(18px + env(safe-area-inset-top, 0px));
+  }
 }
 
 .home-brand-mark {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
 }
 
 .home-brand-kicker {
@@ -325,18 +333,20 @@ body {
 }
 
 .home-main {
-  width: min(980px, calc(100% - 28px));
+  width: min(980px, calc(100% - 20px));
   margin: 0 auto;
   flex: 1;
   display: grid;
-  align-items: center;
-  gap: 28px;
-  padding: 12px 0 40px;
+  align-items: start;
+  gap: 20px;
+  padding: 8px 0 28px;
 }
 
 @media (min-width: 900px) {
   .home-main {
+    width: min(980px, calc(100% - 32px));
     grid-template-columns: 1.05fr 0.95fr;
+    align-items: center;
     gap: 40px;
     padding: 24px 0 56px;
   }
@@ -345,14 +355,14 @@ body {
 .home-hero {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
 }
 
 .home-hero-title {
   margin: 0;
   font-family: var(--font-display);
   font-weight: 600;
-  font-size: clamp(2.6rem, 7vw, 4.2rem);
+  font-size: clamp(2.15rem, 10vw, 4.2rem);
   line-height: 0.94;
   letter-spacing: -0.035em;
   color: var(--color-primary);
@@ -370,23 +380,30 @@ body {
 .home-hero-lead {
   margin: 0;
   max-width: 28rem;
-  font-size: 1.05rem;
+  font-size: 0.98rem;
   line-height: 1.55;
   color: var(--color-text-secondary);
+}
+
+@media (min-width: 640px) {
+  .home-hero-lead {
+    font-size: 1.05rem;
+  }
 }
 
 .home-hero-meta {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 4px;
+  margin-top: 2px;
 }
 
 .home-photo {
   position: relative;
-  margin: 14px 0 0;
-  width: min(100%, 420px);
-  border-radius: 16px;
+  margin: 8px 0 0;
+  width: 100%;
+  max-width: none;
+  border-radius: 14px;
   overflow: hidden;
   border: 1px solid rgba(36, 52, 72, 0.12);
   box-shadow:
@@ -413,15 +430,30 @@ body {
   display: block;
   width: 100%;
   height: auto;
-  aspect-ratio: 16 / 10;
+  aspect-ratio: 3 / 2;
   object-fit: cover;
-  object-position: center 32%;
+  object-position: center 30%;
 }
 
 @media (min-width: 900px) {
   .home-photo {
-    width: 100%;
     max-width: 440px;
+    border-radius: 16px;
+  }
+
+  .home-photo-img {
+    aspect-ratio: 16 / 10;
+  }
+}
+
+/* En móvil: formulario primero (menos scroll para entrar). */
+@media (max-width: 899px) {
+  .home-panel {
+    order: -1;
+  }
+
+  .home-hero-meta {
+    display: none;
   }
 }
 
@@ -431,7 +463,7 @@ body {
   gap: 6px;
   padding: 6px 11px;
   border-radius: 999px;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 700;
   color: var(--color-primary);
   background: rgba(255, 253, 249, 0.72);
@@ -440,9 +472,9 @@ body {
 
 .home-panel {
   position: relative;
-  border-radius: 22px;
-  padding: 22px 18px;
-  background: rgba(255, 253, 249, 0.86);
+  border-radius: 18px;
+  padding: 18px 14px;
+  background: rgba(255, 253, 249, 0.9);
   border: 1px solid rgba(36, 52, 72, 0.1);
   box-shadow: var(--shadow-card);
   backdrop-filter: blur(10px);
@@ -460,6 +492,7 @@ body {
 
 @media (min-width: 640px) {
   .home-panel {
+    border-radius: 22px;
     padding: 28px 26px;
   }
 }
@@ -467,37 +500,52 @@ body {
 .home-panel-title {
   margin: 0 0 4px;
   font-family: var(--font-display);
-  font-size: 1.45rem;
+  font-size: clamp(1.25rem, 4vw, 1.45rem);
   font-weight: 600;
   letter-spacing: -0.02em;
 }
 
 .home-panel-sub {
-  margin: 0 0 20px;
-  font-size: 0.92rem;
+  margin: 0 0 16px;
+  font-size: 0.9rem;
   line-height: 1.5;
   color: var(--color-text-secondary);
+}
+
+@media (min-width: 640px) {
+  .home-panel-sub {
+    margin-bottom: 20px;
+    font-size: 0.92rem;
+  }
 }
 
 .home-flow-card {
   position: relative;
   display: flex;
-  min-height: 5.4rem;
+  min-height: 4.85rem;
   cursor: pointer;
   touch-action: manipulation;
   user-select: none;
   align-items: flex-start;
   gap: 12px;
-  border-radius: 16px;
+  border-radius: 14px;
   border: 1px solid var(--color-border);
   background: rgba(255, 253, 249, 0.7);
-  padding: 14px;
+  padding: 12px;
   transition:
     border-color var(--transition),
     background var(--transition),
     box-shadow var(--transition),
     transform var(--transition);
   -webkit-tap-highlight-color: transparent;
+}
+
+@media (min-width: 640px) {
+  .home-flow-card {
+    min-height: 5.4rem;
+    border-radius: 16px;
+    padding: 14px;
+  }
 }
 
 .home-flow-card:hover {
@@ -540,14 +588,29 @@ body {
   color: #fff;
 }
 
+.home-panel .ui-control {
+  min-height: 48px;
+}
+
+.home-panel button[type='submit'] {
+  min-height: 48px;
+}
+
 .home-footer {
-  padding: 12px 22px calc(16px + env(safe-area-inset-bottom, 0px));
+  padding: 12px 16px calc(14px + env(safe-area-inset-bottom, 0px));
   display: flex;
   justify-content: space-between;
   gap: 10px;
   flex-wrap: wrap;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   color: color-mix(in srgb, var(--color-text-secondary) 85%, transparent);
+}
+
+@media (min-width: 640px) {
+  .home-footer {
+    padding: 12px 22px calc(16px + env(safe-area-inset-bottom, 0px));
+    font-size: 0.75rem;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

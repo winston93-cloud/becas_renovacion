@@ -255,6 +255,7 @@ export default function HomePage() {
               width={640}
               height={400}
               className="home-photo-img"
+              sizes="(max-width: 899px) 100vw, 440px"
               priority
             />
           </figure>
