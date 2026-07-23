@@ -11,6 +11,7 @@
  * 2026-07-23 - Home editorial: marca Winston primero + panel de acceso.
  */
 import { FormEvent, useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, RefreshCw, ShieldCheck, UserPlus } from 'lucide-react';
 import { Alert, Button, Input, Label, Modal } from '@/components/ui';
@@ -247,6 +248,16 @@ export default function HomePage() {
             <span className="home-chip">Solicitud nueva</span>
             <span className="home-chip">Documentos en línea</span>
           </div>
+          <figure className="home-photo">
+            <Image
+              src="/images/winston-comunidad.jpg"
+              alt="Comunidad estudiantil Winston"
+              width={280}
+              height={280}
+              className="home-photo-img"
+              priority
+            />
+          </figure>
         </section>
 
         <section className="home-panel ui-enter ui-enter-delay-2">

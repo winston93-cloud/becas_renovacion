@@ -382,6 +382,49 @@ body {
   margin-top: 4px;
 }
 
+.home-photo {
+  position: relative;
+  margin: 10px 0 0;
+  width: min(220px, 68vw);
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(36, 52, 72, 0.12);
+  box-shadow:
+    0 14px 34px rgba(36, 40, 28, 0.12),
+    0 1px 0 rgba(255, 253, 249, 0.55) inset;
+  transform: rotate(-1.25deg);
+  isolation: isolate;
+}
+
+.home-photo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    165deg,
+    rgba(255, 253, 249, 0.18) 0%,
+    transparent 42%,
+    rgba(20, 35, 63, 0.18) 100%
+  );
+  mix-blend-mode: soft-light;
+}
+
+.home-photo-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  object-fit: cover;
+  object-position: center 28%;
+}
+
+@media (min-width: 900px) {
+  .home-photo {
+    width: min(240px, 100%);
+  }
+}
+
 .home-chip {
   display: inline-flex;
   align-items: center;
