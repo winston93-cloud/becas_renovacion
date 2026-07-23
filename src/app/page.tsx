@@ -252,8 +252,8 @@ export default function HomePage() {
             <Image
               src="/images/winston-comunidad.jpg"
               alt="Comunidad estudiantil Winston"
-              width={280}
-              height={280}
+              width={640}
+              height={400}
               className="home-photo-img"
               priority
             />
