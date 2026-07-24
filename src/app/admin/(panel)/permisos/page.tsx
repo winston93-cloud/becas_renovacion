@@ -74,11 +74,9 @@ export default function AdminPermisosPage() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="font-[family-name:var(--font-display)] text-2xl text-primary">
-          Permisos de solicitud
-        </h2>
-        <p className="text-sm text-text-secondary">
+      <div className="admin-hero">
+        <h2>Permisos de solicitud</h2>
+        <p>
           Autoriza a un alumno a llenar solicitud de beca nueva en el portal.
         </p>
       </div>

@@ -58,16 +58,14 @@ function ListInner() {
 
   return (
     <div className="space-y-4">
+      <div className="admin-hero">
+        <h2>Renovaciones</h2>
+        <p>
+          Ciclo {cicloLabel || '…'} · {items.length} registro(s)
+        </p>
+      </div>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h2 className="font-[family-name:var(--font-display)] text-2xl text-primary">
-            Renovaciones
-          </h2>
-          <p className="text-sm text-text-secondary">
-            Ciclo {cicloLabel || '…'} · {items.length} registro(s)
-          </p>
-        </div>
-        <div className="w-full sm:w-56">
+        <div className="w-full sm:ml-auto sm:w-56">
           <Select
             value={estado}
             onChange={(e) => setEstado(e.target.value)}
@@ -98,7 +96,7 @@ function ListInner() {
           <Link
             key={it.id}
             href={`/admin/renovaciones/${it.id}`}
-            className="block rounded-xl border border-border bg-card p-4"
+            className="admin-mobile-card"
           >
             <p className="font-semibold text-primary">{it.alumno.nombre}</p>
             <p className="text-sm text-text-secondary">
@@ -119,36 +117,33 @@ function ListInner() {
         ))}
       </div>
 
-      <div className="hidden overflow-x-auto rounded-xl border border-border md:block">
-        <table className="w-full min-w-[640px] text-left text-sm">
-          <thead className="bg-bg text-text-secondary">
+      <div className="admin-panel-card hidden overflow-x-auto md:block">
+        <table className="admin-table">
+          <thead>
             <tr>
-              <th className="px-3 py-2 font-medium">No. Control</th>
-              <th className="px-3 py-2 font-medium">Alumno</th>
-              <th className="px-3 py-2 font-medium">Grado</th>
-              <th className="px-3 py-2 font-medium">Estado</th>
-              <th className="px-3 py-2 font-medium">Enviado</th>
+              <th>No. Control</th>
+              <th>Alumno</th>
+              <th>Grado</th>
+              <th>Estado</th>
+              <th>Enviado</th>
             </tr>
           </thead>
           <tbody>
             {items.map((it) => (
-              <tr
-                key={it.id}
-                className="border-t border-border hover:bg-bg/60"
-              >
-                <td className="px-3 py-2">
+              <tr key={it.id}>
+                <td>
                   <Link
                     href={`/admin/renovaciones/${it.id}`}
-                    className="font-medium text-primary underline-offset-2 hover:underline"
+                    className="font-semibold text-primary underline-offset-2 hover:underline"
                   >
                     {it.alumno.alumno_ref}
                   </Link>
                 </td>
-                <td className="px-3 py-2">{it.alumno.nombre}</td>
-                <td className="px-3 py-2">
+                <td>{it.alumno.nombre}</td>
+                <td>
                   {it.alumno.grado ?? '—'} / {it.alumno.grupo}
                 </td>
-                <td className="px-3 py-2">
+                <td>
                   <div className="flex flex-wrap gap-1">
                     {it.verificado ? (
                       <Badge variant="success">Verificada</Badge>
@@ -162,7 +157,7 @@ function ListInner() {
                     ) : null}
                   </div>
                 </td>
-                <td className="px-3 py-2 text-text-secondary">
+                <td className="text-text-secondary">
                   {it.correo_enviado_en
                     ? new Date(it.correo_enviado_en).toLocaleString('es-MX')
                     : '—'}

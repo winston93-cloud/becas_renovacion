@@ -1,18 +1,27 @@
 'use client';
 
 /**
- * 2026-07-24 - Shell del panel Control Escolar (nav + logout).
+ * 2026-07-24 - Shell Control Escolar con atmósfera y nav premium.
  */
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
+import {
+  ClipboardCheck,
+  FilePlus2,
+  Home,
+  KeyRound,
+  LogOut,
+  RefreshCw,
+  Shield,
+} from 'lucide-react';
 import { Button } from '@/components/ui';
 
 const NAV = [
-  { href: '/admin', label: 'Inicio', exact: true },
-  { href: '/admin/renovaciones', label: 'Renovaciones' },
-  { href: '/admin/solicitudes', label: 'Solicitudes' },
-  { href: '/admin/permisos', label: 'Permisos' },
+  { href: '/admin', label: 'Inicio', exact: true, icon: Home },
+  { href: '/admin/renovaciones', label: 'Renovaciones', icon: RefreshCw },
+  { href: '/admin/solicitudes', label: 'Solicitudes', icon: FilePlus2 },
+  { href: '/admin/permisos', label: 'Permisos', icon: KeyRound },
 ];
 
 type Props = {
@@ -31,49 +40,66 @@ export function AdminShell({ children, label }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-bg">
-      <header className="border-b border-border bg-card">
-        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
-              Instituto Winston Churchill
-            </p>
-            <h1 className="font-[family-name:var(--font-display)] text-xl text-primary">
-              Control Escolar · Becas
-            </h1>
-            {label ? (
-              <p className="mt-0.5 text-sm text-text-secondary">{label}</p>
-            ) : null}
+    <div className="admin-shell">
+      <div className="admin-shell-atmosphere" aria-hidden>
+        <div className="admin-orb admin-orb--a" />
+        <div className="admin-orb admin-orb--b" />
+        <div className="home-grain" />
+      </div>
+
+      <header className="admin-header">
+        <div className="admin-header-inner">
+          <div className="admin-header-top">
+            <div className="admin-brand-row">
+              <div className="admin-brand-mark" aria-hidden>
+                <Shield size={20} />
+              </div>
+              <div className="min-w-0">
+                <p className="admin-brand-kicker">
+                  Instituto Winston Churchill
+                </p>
+                <h1 className="admin-brand-title">Control Escolar · Becas</h1>
+                {label ? (
+                  <span className="admin-level-chip">
+                    <ClipboardCheck size={12} aria-hidden />
+                    {label}
+                  </span>
+                ) : null}
+              </div>
+            </div>
+            <Button type="button" variant="ghost" onClick={logout}>
+              <span className="inline-flex items-center gap-2">
+                <LogOut size={15} aria-hidden />
+                Cerrar sesión
+              </span>
+            </Button>
           </div>
-          <Button type="button" variant="ghost" onClick={logout}>
-            Cerrar sesión
-          </Button>
+
+          <nav className="admin-nav" aria-label="Secciones del panel">
+            {NAV.map((item) => {
+              const active = item.exact
+                ? pathname === item.href
+                : pathname.startsWith(item.href);
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={[
+                    'admin-nav-link',
+                    active ? 'is-active' : '',
+                  ].join(' ')}
+                >
+                  <Icon size={15} aria-hidden />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
         </div>
-        <nav className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-4 pb-3 sm:px-6">
-          {NAV.map((item) => {
-            const active = item.exact
-              ? pathname === item.href
-              : pathname.startsWith(item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={[
-                  'shrink-0 rounded-lg px-3 py-2 text-sm font-medium transition',
-                  active
-                    ? 'bg-primary text-white'
-                    : 'text-text-secondary hover:bg-bg hover:text-primary',
-                ].join(' ')}
-              >
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
       </header>
-      <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
-        {children}
-      </main>
+
+      <main className="admin-main">{children}</main>
     </div>
   );
 }

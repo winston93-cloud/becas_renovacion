@@ -1,17 +1,34 @@
 'use client';
 
 /**
- * 2026-07-24 - Login Control Escolar (estilo AgendaW: nivel + clave).
+ * 2026-07-24 - Login Control Escolar con atmósfera editorial Winston.
  */
 import { FormEvent, Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { Baby, GraduationCap, KeyRound, School, ShieldCheck } from 'lucide-react';
 import { Alert, Button, Input, Label } from '@/components/ui';
 import { ADMIN_ROLES, type AdminRole } from '@/lib/admin-roles';
 
-const ROLES = Object.entries(ADMIN_ROLES).map(([value, meta]) => ({
-  value: value as AdminRole,
-  label: meta.label,
-}));
+const ROLE_META: Record<
+  AdminRole,
+  { label: string; hint: string; icon: typeof Baby }
+> = {
+  ce_mk: {
+    label: ADMIN_ROLES.ce_mk.label,
+    hint: 'Niveles 1 y 2',
+    icon: Baby,
+  },
+  ce_pri: {
+    label: ADMIN_ROLES.ce_pri.label,
+    hint: 'Nivel 3',
+    icon: School,
+  },
+  ce_sec: {
+    label: ADMIN_ROLES.ce_sec.label,
+    hint: 'Nivel 4',
+    icon: GraduationCap,
+  },
+};
 
 function AdminLoginForm() {
   const router = useRouter();
@@ -47,78 +64,101 @@ function AdminLoginForm() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-sm sm:p-8">
-      <div className="mb-6 text-center">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
-          Instituto Winston Churchill
-        </p>
-        <h1 className="mt-2 font-[family-name:var(--font-display)] text-2xl text-primary">
-          Control Escolar
-        </h1>
-        <p className="mt-2 text-sm text-text-secondary">
-          Elige tu nivel e ingresa la clave de acceso
-        </p>
-      </div>
+    <div className="admin-login-card">
+      <p className="admin-login-kicker">
+        <ShieldCheck size={14} aria-hidden />
+        Acceso staff
+      </p>
+      <h1 className="admin-login-title">Control Escolar</h1>
+      <p className="admin-login-lead">
+        Panel de becas Winston. Elige tu nivel e ingresa la clave asignada.
+      </p>
 
-      <form onSubmit={onSubmit} className="space-y-5">
+      <form onSubmit={onSubmit} className="mt-7 space-y-5">
         <div>
-          <Label>Nivel</Label>
-          <div className="mt-2 grid gap-2">
-            {ROLES.map((r) => (
-              <button
-                key={r.value}
-                type="button"
-                onClick={() => {
-                  setRole(r.value);
-                  setError(null);
-                }}
-                className={[
-                  'rounded-xl border px-4 py-3 text-left text-sm font-medium transition',
-                  role === r.value
-                    ? 'border-primary bg-primary text-white'
-                    : 'border-border bg-bg text-primary hover:border-primary/40',
-                ].join(' ')}
-              >
-                {r.label}
-              </button>
-            ))}
+          <Label>Nivel escolar</Label>
+          <div className="admin-role-grid mt-2">
+            {(Object.keys(ROLE_META) as AdminRole[]).map((value, i) => {
+              const meta = ROLE_META[value];
+              const Icon = meta.icon;
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  className={[
+                    'admin-role-btn',
+                    role === value ? 'is-active' : '',
+                    `ui-enter ui-enter-delay-${i + 1}`,
+                  ].join(' ')}
+                  onClick={() => {
+                    setRole(value);
+                    setError(null);
+                  }}
+                >
+                  <span className="admin-role-icon" aria-hidden>
+                    <Icon size={18} />
+                  </span>
+                  <span className="admin-role-copy">
+                    <strong>{meta.label}</strong>
+                    <span>{meta.hint}</span>
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        <div>
+        <div className="ui-enter ui-enter-delay-4">
           <Label htmlFor="admin-pin">Clave de acceso</Label>
-          <Input
-            id="admin-pin"
-            type="password"
-            value={pin}
-            onChange={(e) => setPin(e.target.value)}
-            placeholder="••••••••••"
-            autoComplete="current-password"
-            disabled={!role}
-            className="mt-2"
-          />
+          <div className="relative mt-2">
+            <KeyRound
+              size={16}
+              className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-text-secondary"
+              aria-hidden
+            />
+            <Input
+              id="admin-pin"
+              type="password"
+              value={pin}
+              onChange={(e) => setPin(e.target.value)}
+              placeholder="••••••••••"
+              autoComplete="current-password"
+              disabled={!role}
+              className="pl-10"
+            />
+          </div>
         </div>
 
         {error ? <Alert variant="error">{error}</Alert> : null}
 
         <Button
           type="submit"
-          className="w-full"
+          className="w-full min-h-12"
           disabled={loading || !role || !pin}
         >
-          {loading ? 'Verificando…' : 'Entrar'}
+          {loading ? 'Verificando…' : 'Entrar al panel'}
         </Button>
       </form>
+
+      <p className="mt-6 text-center text-xs text-text-secondary">
+        Instituto Winston Churchill · Solo personal autorizado
+      </p>
     </div>
   );
 }
 
 export default function AdminLoginPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-bg px-4 py-10">
+    <div className="admin-login-page">
+      <div className="home-atmosphere" aria-hidden>
+        <div className="home-orb home-orb--a" />
+        <div className="home-orb home-orb--b" />
+        <div className="home-orb home-orb--c" />
+        <div className="home-grain" />
+      </div>
       <Suspense
         fallback={
-          <div className="rounded-2xl border border-border bg-card p-8 text-sm text-text-secondary">
+          <div className="admin-login-card text-sm text-text-secondary">
             Cargando…
           </div>
         }
