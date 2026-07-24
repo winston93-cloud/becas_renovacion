@@ -58,3 +58,5 @@ next-env.d.ts
 
 # local git recovery
 .git.bak*
+# admin PIN plaintext (never commit)
+.admin-pins.local.json
