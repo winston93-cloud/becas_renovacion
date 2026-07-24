@@ -1338,6 +1338,13 @@ body {
   line-height: 1.2;
 }
 
+.ui-modal-date-time {
+  margin: 0.4rem 0 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #7a6230;
+}
+
 .ui-modal-hint {
   margin: 0.85rem 0 0;
   font-size: 0.88rem;

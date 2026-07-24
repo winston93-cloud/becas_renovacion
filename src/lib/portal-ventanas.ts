@@ -1,6 +1,6 @@
 /**
  * 2026-07-22 - Ventanas de apertura/cierre del Portal de Becas.
- * Zona: America/Ciudad_Juarez (calendario local, día inclusive).
+ * 2026-07-24 - Zona America/Mexico_City; apertura a las 09:00.
  */
 
 export type FlujoPortal = 'renovacion' | 'solicitud';
@@ -16,28 +16,52 @@ export type PortalStatus = {
 // 2026-07-22 - Apertura corregida a julio (no junio)
 export const APERTURA_PORTAL = { y: 2026, m: 7, d: 27 } as const;
 
+/** Hora de apertura en CDMX (09:00). */
+export const HORA_APERTURA_CDMX = 9;
+
 /** Cierre de renovación (inclusive, fin del día). Solicitud no cierra. */
 export const CIERRE_RENOVACION = { y: 2026, m: 8, d: 17 } as const;
 
-const TZ = 'America/Ciudad_Juarez';
+const TZ = 'America/Mexico_City';
 
-/** Fecha local Y-M-D en la zona del Instituto. */
-export function fechaLocalParts(now: Date = new Date()): {
+/** Fecha/hora local en CDMX. */
+export function fechaHoraLocalParts(now: Date = new Date()): {
   y: number;
   m: number;
   d: number;
+  h: number;
+  min: number;
 } {
   const parts = new Intl.DateTimeFormat('en-CA', {
     timeZone: TZ,
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
   }).formatToParts(now);
 
   const get = (type: string) =>
     Number(parts.find((p) => p.type === type)?.value || 0);
 
-  return { y: get('year'), m: get('month'), d: get('day') };
+  return {
+    y: get('year'),
+    m: get('month'),
+    d: get('day'),
+    h: get('hour'),
+    min: get('minute'),
+  };
+}
+
+/** Fecha local Y-M-D en CDMX. */
+export function fechaLocalParts(now: Date = new Date()): {
+  y: number;
+  m: number;
+  d: number;
+} {
+  const { y, m, d } = fechaHoraLocalParts(now);
+  return { y, m, d };
 }
 
 function cmpFecha(
@@ -68,10 +92,20 @@ export function formatPortalFechaEs(f: {
   return formatFechaEs(f);
 }
 
+/** True si ya pasó la hora de apertura el día de apertura (o días posteriores). */
+function yaPasoHoraApertura(now: Date): boolean {
+  const local = fechaHoraLocalParts(now);
+  const cmp = cmpFecha(local, APERTURA_PORTAL);
+  if (cmp > 0) return true;
+  if (cmp < 0) return false;
+  return local.h > HORA_APERTURA_CDMX ||
+    (local.h === HORA_APERTURA_CDMX && local.min >= 0);
+}
+
 /**
  * Estado de la ventana según el trámite.
- * Renovación: [APERTURA_PORTAL, CIERRE_RENOVACION].
- * Solicitud: desde APERTURA_PORTAL sin cierre.
+ * Renovación: [APERTURA_PORTAL 09:00 CDMX, CIERRE_RENOVACION fin del día].
+ * Solicitud: desde APERTURA_PORTAL 09:00 CDMX sin cierre.
  */
 export function getPortalStatus(
   flujo: FlujoPortal,
@@ -80,13 +114,14 @@ export function getPortalStatus(
   const hoy = fechaLocalParts(now);
   const aperturaLabel = formatFechaEs(APERTURA_PORTAL);
   const cierreRenLabel = formatFechaEs(CIERRE_RENOVACION);
+  const horaLabel = `${String(HORA_APERTURA_CDMX).padStart(2, '0')}:00`;
 
-  if (cmpFecha(hoy, APERTURA_PORTAL) < 0) {
+  if (!yaPasoHoraApertura(now)) {
     return {
       open: false,
       codigo: 'PORTAL_CERRADO',
       titulo: 'Portal cerrado',
-      mensaje: `El Portal de Becas abrirá el ${aperturaLabel}. Por favor intente a partir de esa fecha.`,
+      mensaje: `El Portal de Becas abrirá el ${aperturaLabel} a las ${horaLabel} (hora de la CDMX). Por favor intente a partir de esa fecha y hora.`,
     };
   }
 

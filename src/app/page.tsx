@@ -22,6 +22,7 @@ import {
 import {
   APERTURA_PORTAL,
   CIERRE_RENOVACION,
+  HORA_APERTURA_CDMX,
   formatPortalFechaEs,
   getPortalStatus,
 } from '@/lib/portal-ventanas';type Flujo = 'renovacion' | 'solicitud';
@@ -447,16 +448,20 @@ export default function HomePage() {
           <>
             <p>
               El trámite aún no está disponible. El Portal de Becas abre en la
-              fecha indicada (hora Ciudad Juárez).
+              fecha y hora indicadas (hora de la CDMX).
             </p>
             <div className="ui-modal-date-card">
               <p className="ui-modal-date-label">Apertura</p>
               <p className="ui-modal-date-value">
                 {formatPortalFechaEs(APERTURA_PORTAL)}
               </p>
+              <p className="ui-modal-date-time">
+                a las {String(HORA_APERTURA_CDMX).padStart(2, '0')}:00 a.m. ·
+                hora de la CDMX
+              </p>
             </div>
             <p className="ui-modal-hint">
-              Vuelva a intentarlo a partir de ese día. Mientras tanto puede
+              Vuelva a intentarlo a partir de ese momento. Mientras tanto puede
               preparar documentos y datos del alumno.
             </p>
           </>
