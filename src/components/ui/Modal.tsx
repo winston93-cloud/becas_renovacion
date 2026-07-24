@@ -1,11 +1,14 @@
 'use client';
 
 /**
- * 2026-07-17 - Modal accesible para avisos del portal (sin jerga técnica).
+ * 2026-07-17 - Modal accesible para avisos del portal.
+ * 2026-07-24 - Variantes notice/warning con más presencia visual.
  */
 import { useEffect, useId, type ReactNode } from 'react';
 import { X } from 'lucide-react';
 import { Button } from './Button';
+
+type Tone = 'default' | 'notice' | 'warning';
 
 type Props = {
   open: boolean;
@@ -15,6 +18,12 @@ type Props = {
   primaryLabel?: string;
   onPrimary?: () => void;
   secondaryLabel?: string;
+  /** Estilo visual del aviso. */
+  tone?: Tone;
+  /** Icono opcional en el encabezado. */
+  icon?: ReactNode;
+  /** Texto corto encima del título (ej. Aviso del portal). */
+  eyebrow?: string;
 };
 
 export function Modal({
@@ -25,6 +34,9 @@ export function Modal({
   primaryLabel,
   onPrimary,
   secondaryLabel = 'Entendido',
+  tone = 'default',
+  icon,
+  eyebrow,
 }: Props) {
   const titleId = useId();
 
@@ -44,6 +56,13 @@ export function Modal({
 
   if (!open) return null;
 
+  const toneClass =
+    tone === 'notice'
+      ? 'ui-modal--notice'
+      : tone === 'warning'
+        ? 'ui-modal--warning'
+        : '';
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -51,7 +70,7 @@ export function Modal({
     >
       <button
         type="button"
-        className="absolute inset-0 bg-[#0B173A]/45 transition duration-[180ms]"
+        className="ui-modal-backdrop absolute inset-0"
         aria-label="Cerrar"
         onClick={onClose}
       />
@@ -59,33 +78,46 @@ export function Modal({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="ui-fade-in relative z-10 w-full max-w-md rounded-[14px] border border-border bg-card p-6 shadow-card sm:p-7"
+        className={['ui-modal', toneClass, 'ui-enter'].filter(Boolean).join(' ')}
       >
-        <div className="mb-4 flex items-start justify-between gap-3">
-          <h2
-            id={titleId}
-            className="text-lg font-semibold tracking-tight text-text"
-          >
-            {title}
-          </h2>
+        <div className="ui-modal-accent" aria-hidden />
+
+        <div className="ui-modal-header">
+          <div className="ui-modal-heading">
+            {icon ? (
+              <span className="ui-modal-icon" aria-hidden>
+                {icon}
+              </span>
+            ) : null}
+            <div className="min-w-0">
+              {eyebrow ? <p className="ui-modal-eyebrow">{eyebrow}</p> : null}
+              <h2 id={titleId} className="ui-modal-title">
+                {title}
+              </h2>
+            </div>
+          </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-[10px] p-1.5 text-text-secondary transition hover:bg-bg hover:text-text"
+            className="ui-modal-close"
             aria-label="Cerrar diálogo"
           >
             <X className="h-4 w-4" aria-hidden />
           </button>
         </div>
-        <div className="text-sm leading-relaxed text-text-secondary">
-          {children}
-        </div>
-        <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <Button variant="secondary" onClick={onClose} className="sm:min-w-[7rem]">
+
+        <div className="ui-modal-body">{children}</div>
+
+        <div className="ui-modal-actions">
+          <Button
+            variant={primaryLabel && onPrimary ? 'secondary' : 'primary'}
+            onClick={onClose}
+            className="sm:min-w-[8rem]"
+          >
             {secondaryLabel}
           </Button>
           {primaryLabel && onPrimary ? (
-            <Button onClick={onPrimary} className="sm:min-w-[7rem]">
+            <Button onClick={onPrimary} className="sm:min-w-[8rem]">
               {primaryLabel}
             </Button>
           ) : null}

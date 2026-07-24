@@ -59,6 +59,15 @@ function formatFechaEs(f: { y: number; m: number; d: number }): string {
   }).format(dt);
 }
 
+/** Etiqueta legible de apertura/cierre (para UI). */
+export function formatPortalFechaEs(f: {
+  y: number;
+  m: number;
+  d: number;
+}): string {
+  return formatFechaEs(f);
+}
+
 /**
  * Estado de la ventana según el trámite.
  * Renovación: [APERTURA_PORTAL, CIERRE_RENOVACION].

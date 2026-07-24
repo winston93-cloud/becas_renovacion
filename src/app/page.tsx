@@ -13,15 +13,18 @@
 import { FormEvent, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, RefreshCw, ShieldCheck, UserPlus } from 'lucide-react';
+import { ArrowRight, CalendarClock, RefreshCw, ShieldCheck, UserPlus } from 'lucide-react';
 import { Alert, Button, Input, Label, Modal } from '@/components/ui';
 import {
   fetchConAcceso,
   saveAccesoSession,
 } from '@/lib/acceso-session';
-import { getPortalStatus } from '@/lib/portal-ventanas';
-
-type Flujo = 'renovacion' | 'solicitud';
+import {
+  APERTURA_PORTAL,
+  CIERRE_RENOVACION,
+  formatPortalFechaEs,
+  getPortalStatus,
+} from '@/lib/portal-ventanas';type Flujo = 'renovacion' | 'solicitud';
 
 type AccesoEstado =
   | 'puede_solicitar'
@@ -42,12 +45,17 @@ export default function HomePage() {
   const [modalVentana, setModalVentana] = useState<{
     titulo: string;
     mensaje: string;
+    codigo?: string;
   } | null>(null);
 
   function assertVentanaAbierta(flujoCheck: Flujo): boolean {
     const status = getPortalStatus(flujoCheck);
     if (status.open) return true;
-    setModalVentana({ titulo: status.titulo, mensaje: status.mensaje });
+    setModalVentana({
+      titulo: status.titulo,
+      mensaje: status.mensaje,
+      codigo: status.codigo,
+    });
     return false;
   }
 
@@ -429,8 +437,45 @@ export default function HomePage() {
         title={modalVentana?.titulo || 'Portal cerrado'}
         onClose={() => setModalVentana(null)}
         secondaryLabel="Entendido"
+        tone={
+          modalVentana?.codigo === 'RENOVACION_CERRADA' ? 'warning' : 'notice'
+        }
+        eyebrow="Aviso del portal"
+        icon={<CalendarClock className="h-5 w-5" strokeWidth={2.25} />}
       >
-        <p>{modalVentana?.mensaje}</p>
+        {modalVentana?.codigo === 'PORTAL_CERRADO' ? (
+          <>
+            <p>
+              El trámite aún no está disponible. El Portal de Becas abre en la
+              fecha indicada (hora Ciudad Juárez).
+            </p>
+            <div className="ui-modal-date-card">
+              <p className="ui-modal-date-label">Apertura</p>
+              <p className="ui-modal-date-value">
+                {formatPortalFechaEs(APERTURA_PORTAL)}
+              </p>
+            </div>
+            <p className="ui-modal-hint">
+              Vuelva a intentarlo a partir de ese día. Mientras tanto puede
+              preparar documentos y datos del alumno.
+            </p>
+          </>
+        ) : modalVentana?.codigo === 'RENOVACION_CERRADA' ? (
+          <>
+            <p>{modalVentana?.mensaje}</p>
+            <div className="ui-modal-date-card">
+              <p className="ui-modal-date-label">Cierre de renovación</p>
+              <p className="ui-modal-date-value">
+                {formatPortalFechaEs(CIERRE_RENOVACION)}
+              </p>
+            </div>
+            <p className="ui-modal-hint">
+              Para orientación, acuda al área de becas del Instituto.
+            </p>
+          </>
+        ) : (
+          <p>{modalVentana?.mensaje}</p>
+        )}
       </Modal>
 
       <Modal
@@ -445,6 +490,9 @@ export default function HomePage() {
         onPrimary={() => {
           void irARenovacion();
         }}
+        tone="notice"
+        eyebrow="Orientación"
+        icon={<RefreshCw className="h-5 w-5" strokeWidth={2.25} />}
       >
         <p>
           Este alumno ya tiene historial de beca en el Instituto (sin importar
