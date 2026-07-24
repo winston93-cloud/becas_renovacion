@@ -87,16 +87,16 @@ export function emailToByNivel(
   return null;
 }
 
-/** 2026-07-16 - Copia oculta fija a sistemas (override: BECAS_EMAIL_BCC). */
+/** 2026-07-24 - Copia oculta a desarrollo (override: BECAS_EMAIL_BCC). */
 export function emailBccSistemas(): string {
   return (
-    process.env.BECAS_EMAIL_BCC?.trim() || 'sistemas3@winston93.edu.mx'
+    process.env.BECAS_EMAIL_BCC?.trim() || 'desarrollo@winston93.edu.mx'
   );
 }
 
 /**
  * 2026-07-17 - To + BCC; omite BCC si coincide con To (modo prueba).
- * 2026-07-22 - Producción: To por nivel + BCC sistemas3.
+ * 2026-07-24 - Producción: To por nivel + BCC desarrollo@.
  */
 export function resolveBecasMailRecipients(
   nivel: number | null | undefined

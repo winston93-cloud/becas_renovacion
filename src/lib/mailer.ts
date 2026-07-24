@@ -1,5 +1,7 @@
 /**
- * 2026-07-16 - Transporte SMTP con Nodemailer (gratis vía servidor institucional).
+ * 2026-07-16 - Transporte SMTP con Nodemailer.
+ * 2026-07-24 - Remitente = mismo buzón de correos masivos (servicios_admin):
+ *              avisos_no-replay@winston93.edu.mx (Gmail SMTP).
  * Server-only. Credenciales solo por variables de entorno.
  */
 import nodemailer from 'nodemailer';
@@ -18,7 +20,7 @@ export function getMailFrom(): string {
   return (
     process.env.SMTP_FROM?.trim() ||
     process.env.SMTP_USER?.trim() ||
-    'avisos@winston93.edu.mx'
+    'avisos_no-replay@winston93.edu.mx'
   );
 }
 
@@ -74,7 +76,7 @@ export async function sendMail(options: {
   subject: string;
   html: string;
   replyTo?: string;
-  // 2026-07-16 - BCC a sistemas en finalizar renovación
+  // 2026-07-24 - BCC a desarrollo en finalizar renovación
   bcc?: string | string[];
   attachments?: MailAttachment[];
 }): Promise<{ messageId: string }> {
