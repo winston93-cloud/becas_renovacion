@@ -27,11 +27,11 @@ const TIPO_LABELS: Record<string, string> = {
   curp_tutor: 'CURP del papá o mamá',
   constancia_no_adeudo: 'Constancia de no adeudo',
   carta_buena_conducta: 'Carta de buena conducta',
+  boleta: 'Boleta SEP del ciclo escolar',
+  comp_inscripcion: 'Comprobante(s) de pago de inscripción completa',
+  ingresos: 'Comprobante(s) de ingresos de un mes (padre, madre y/o tutor)',
+  domicilio: 'Comprobante de domicilio (teléfono, agua o luz)',
   boleta_interna: 'Última boleta interna',
-  ingresos: 'Comprobante(s) de ingresos',
-  domicilio: 'Comprobante de domicilio',
-  boleta: 'Boleta',
-  comp_inscripcion: 'Comprobante de inscripción',
 };
 
 export function labelDocumentoTipo(tipo: string): string {

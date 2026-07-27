@@ -29,8 +29,13 @@ export type Hermano = {
   colegiatura_mensual: number | null;
 };
 
-// 2026-07-17 - Catálogo por nivel/trámite (reemplaza ingresos|domicilio|boleta|comp_inscripcion)
+// 2026-07-27 - Renovación: ingresos|domicilio|boleta|comp_inscripcion (circular).
+// Solicitud nueva: acta/CURP/etc.
 export type DocumentoTipo =
+  | 'ingresos'
+  | 'domicilio'
+  | 'boleta'
+  | 'comp_inscripcion'
   | 'acta_nacimiento'
   | 'curp'
   | 'curp_tutor'

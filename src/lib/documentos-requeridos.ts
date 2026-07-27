@@ -1,6 +1,7 @@
 /**
  * 2026-07-17 - Documentos requeridos según trámite (solicitud/renovación)
  * y grupo escolar (maternal/kinder 1 vs kinder 2+).
+ * 2026-07-27 - Renovación: vuelve al checklist de la circular (4 PDFs).
  */
 import type { DocumentoTipo } from '@/lib/types';
 
@@ -18,6 +19,15 @@ export function esMaternalOKinder1(
   return false;
 }
 
+/** Circular renovación: 4 adjuntos (legacy PHP / comunicado institucional). */
+const RENOVACION_CIRCULAR: DocumentoTipo[] = [
+  'ingresos',
+  'domicilio',
+  'boleta',
+  'comp_inscripcion',
+];
+
+/** Solicitud nueva: expediente de ingreso. */
 const BASE_NUEVO_INGRESO: DocumentoTipo[] = [
   'acta_nacimiento',
   'curp',
@@ -30,6 +40,11 @@ const EXTRA_KINDER2: DocumentoTipo[] = [
 ];
 
 const LABELS: Record<DocumentoTipo, string> = {
+  ingresos:
+    'Comprobante(s) de ingresos de un mes (padre, madre y/o tutor)',
+  domicilio: 'Comprobante de domicilio (teléfono, agua o luz)',
+  boleta: 'Boleta SEP del ciclo escolar',
+  comp_inscripcion: 'Comprobante(s) de pago de inscripción completa',
   acta_nacimiento: 'Acta de nacimiento',
   curp: 'CURP del alumno',
   curp_tutor: 'CURP del papá o mamá',
@@ -40,6 +55,10 @@ const LABELS: Record<DocumentoTipo, string> = {
 
 /** Columna boolean en becas_renovacion / becas_solicitud (mismo slug). */
 export const DOCUMENTO_FLAG_COLUMN: Record<DocumentoTipo, string> = {
+  ingresos: 'ingresos',
+  domicilio: 'domicilio',
+  boleta: 'boleta',
+  comp_inscripcion: 'comp_inscripcion',
   acta_nacimiento: 'acta_nacimiento',
   curp: 'curp',
   curp_tutor: 'curp_tutor',
@@ -49,6 +68,10 @@ export const DOCUMENTO_FLAG_COLUMN: Record<DocumentoTipo, string> = {
 };
 
 export const TODOS_DOCUMENTO_TIPOS: DocumentoTipo[] = [
+  'ingresos',
+  'domicilio',
+  'boleta',
+  'comp_inscripcion',
   'acta_nacimiento',
   'curp',
   'curp_tutor',
@@ -62,21 +85,22 @@ export function labelDocRequerido(tipo: DocumentoTipo): string {
 }
 
 /**
+ * Renovación: 4 PDFs de la circular (todos los niveles).
  * Solicitud (nuevo ingreso): 3 base; +2 si Kinder 2+.
- * Renovación (reingreso): lo de solicitud + boleta_interna.
  */
 export function docsRequeridos(opts: {
   flujo: FlujoDocumentos;
   nivel: number | null | undefined;
   grado: number | null | undefined;
 }): DocumentoTipo[] {
+  if (opts.flujo === 'renovacion') {
+    return [...RENOVACION_CIRCULAR];
+  }
+
   const maternalKinder1 = esMaternalOKinder1(opts.nivel, opts.grado);
   const list: DocumentoTipo[] = [...BASE_NUEVO_INGRESO];
   if (!maternalKinder1) {
     list.push(...EXTRA_KINDER2);
-  }
-  if (opts.flujo === 'renovacion') {
-    list.push('boleta_interna');
   }
   return list;
 }

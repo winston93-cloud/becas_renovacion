@@ -336,21 +336,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const mamaVive = Boolean(body.mama?.familiar_vive);
-    const papaVive = Boolean(body.papa?.familiar_vive);
-    if (mamaVive && (body.ingreso_mensual_madre == null || Number(body.ingreso_mensual_madre) <= 0)) {
-      return NextResponse.json(
-        { error: 'Si la madre vive, el ingreso mensual es obligatorio.' },
-        { status: 400 }
-      );
-    }
-    if (papaVive && (body.ingreso_mensual_padre == null || Number(body.ingreso_mensual_padre) <= 0)) {
-      return NextResponse.json(
-        { error: 'Si el padre vive, el ingreso mensual es obligatorio.' },
-        { status: 400 }
-      );
-    }
-
     const admin = getInsforgeAdmin();
     // 2026-07-16 - Guardar renovación contra el ciclo de beca a renovar (anterior)
     const ciclo = getCicloBecaARenovar();

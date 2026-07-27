@@ -52,8 +52,8 @@ export default function TabsFormulario({ data, onSaved }: Props) {
   const [mamaTel, setMamaTel] = useState(data.mama?.familiar_tel || '');
   const [mamaCel, setMamaCel] = useState(data.mama?.familiar_cel || '');
   const [mamaEmail, setMamaEmail] = useState(data.mama?.familiar_email || '');
-  const [ingresoMadre, setIngresoMadre] = useState('');
-  // 2026-07-16 - Ingresos no se precargan ni persisten (política de privacidad)
+  const [ingresoMadre, setIngresoMadre] = useState('0');
+  // 2026-07-27 - Ingreso opcional; default 0 (no se almacena en BD)
 
   const [papaNombre, setPapaNombre] = useState(
     `${data.papa?.familiar_app || ''} ${data.papa?.familiar_apm || ''} ${data.papa?.familiar_nombre || ''}`.trim()
@@ -64,8 +64,8 @@ export default function TabsFormulario({ data, onSaved }: Props) {
   const [papaTel, setPapaTel] = useState(data.papa?.familiar_tel || '');
   const [papaCel, setPapaCel] = useState(data.papa?.familiar_cel || '');
   const [papaEmail, setPapaEmail] = useState(data.papa?.familiar_email || '');
-  const [ingresoPadre, setIngresoPadre] = useState('');
-  // 2026-07-16 - Ingresos solo viajan en el POST para el PDF de solicitud
+  const [ingresoPadre, setIngresoPadre] = useState('0');
+  // 2026-07-27 - Ingreso opcional; default 0 (solo va al PDF)
 
   const [otraBeca, setOtraBeca] = useState(Boolean(data.renovacion?.otra_beca));
   const [otraBecaPct, setOtraBecaPct] = useState(
@@ -117,8 +117,10 @@ export default function TabsFormulario({ data, onSaved }: Props) {
 
       const payload: RenovacionPayload = {
         alumno_id: data.alumno.id,
-        ingreso_mensual_padre: ingresoPadre ? Number(ingresoPadre) : null,
-        ingreso_mensual_madre: ingresoMadre ? Number(ingresoMadre) : null,
+        ingreso_mensual_padre:
+          ingresoPadre.trim() === '' ? 0 : Number(ingresoPadre) || 0,
+        ingreso_mensual_madre:
+          ingresoMadre.trim() === '' ? 0 : Number(ingresoMadre) || 0,
         motivo,
         casa_tipo: casaTipo,
         otra_beca: otraBeca,
@@ -310,15 +312,14 @@ export default function TabsFormulario({ data, onSaved }: Props) {
               </Select>
             </div>
             <div>
-              <Label htmlFor="ingresoPadre" required>
-                Ingreso mensual
-              </Label>
+              <Label htmlFor="ingresoPadre">Ingreso mensual (opcional)</Label>
               <Input
                 id="ingresoPadre"
                 type="number"
                 min={0}
                 value={ingresoPadre}
                 onChange={(e) => setIngresoPadre(e.target.value)}
+                placeholder="0"
               />
               {/* 2026-07-16 - Leyenda de privacidad: sueldo no se almacena */}
               <p className="mt-1.5 text-xs leading-relaxed text-text-secondary">
@@ -393,15 +394,14 @@ export default function TabsFormulario({ data, onSaved }: Props) {
               </Select>
             </div>
             <div>
-              <Label htmlFor="ingresoMadre" required>
-                Ingreso mensual
-              </Label>
+              <Label htmlFor="ingresoMadre">Ingreso mensual (opcional)</Label>
               <Input
                 id="ingresoMadre"
                 type="number"
                 min={0}
                 value={ingresoMadre}
                 onChange={(e) => setIngresoMadre(e.target.value)}
+                placeholder="0"
               />
               {/* 2026-07-16 - Leyenda de privacidad: sueldo no se almacena */}
               <p className="mt-1.5 text-xs leading-relaxed text-text-secondary">
