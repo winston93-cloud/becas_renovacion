@@ -457,7 +457,7 @@ export async function POST(request: NextRequest) {
       casa_tipo: body.casa_tipo || null,
       otra_beca: Boolean(body.otra_beca),
       otra_beca_porcentaje: body.otra_beca_porcentaje,
-      observaciones: body.observaciones || null,
+      observaciones: body.observaciones?.trim() || null,
       solicitud: true,
     };
 

@@ -511,12 +511,13 @@ export default function TabsFormulario({ data, onSaved }: Props) {
             </div>
 
             <div>
-              <Label htmlFor="observaciones">Observaciones</Label>
+              <Label htmlFor="observaciones">Observaciones (opcional)</Label>
               <Textarea
                 id="observaciones"
                 rows={2}
                 value={observaciones}
                 onChange={(e) => setObservaciones(e.target.value)}
+                placeholder="Opcional"
               />
             </div>
 
