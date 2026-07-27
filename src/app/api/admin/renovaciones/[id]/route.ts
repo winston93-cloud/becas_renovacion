@@ -3,7 +3,10 @@ import { assertNivelPermitido, requireAdmin } from '@/lib/admin-auth';
 import { getInsforgeAdmin } from '@/lib/insforge-server';
 import { mapAlumnoRow } from '@/lib/admin-queries';
 import { docsRequeridos, labelDocRequerido } from '@/lib/documentos-requeridos';
-import { getSchoolCycleLabel } from '@/lib/ciclo-escolar';
+import {
+  getCurrentSchoolCycle,
+  getSchoolCycleLabel,
+} from '@/lib/ciclo-escolar';
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -65,7 +68,7 @@ export async function GET(_request: NextRequest, ctx: Ctx) {
       renovacion: {
         id: String(ren.id),
         ciclo_escolar: Number(ren.ciclo_escolar),
-        ciclo_label: getSchoolCycleLabel(Number(ren.ciclo_escolar)),
+        ciclo_label: getSchoolCycleLabel(getCurrentSchoolCycle()),
         motivo: ren.motivo || null,
         casa_tipo: ren.casa_tipo || null,
         observaciones: ren.observaciones || null,

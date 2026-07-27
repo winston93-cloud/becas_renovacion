@@ -6,6 +6,7 @@ import {
 } from '@/lib/admin-queries';
 import {
   getCicloBecaARenovar,
+  getCurrentSchoolCycle,
   getSchoolCycleLabel,
 } from '@/lib/ciclo-escolar';
 
@@ -28,9 +29,13 @@ export async function GET(request: NextRequest) {
       estado,
     });
 
+    // Etiqueta visible = ciclo destino (calendario), no el ciclo de origen de la beca.
+    const cicloDestino = getCurrentSchoolCycle();
+
     return NextResponse.json({
       ciclo,
-      ciclo_label: getSchoolCycleLabel(ciclo),
+      ciclo_label: getSchoolCycleLabel(cicloDestino),
+      titulo: `Renovación de becas ${getSchoolCycleLabel(cicloDestino)}`,
       total: rows.length,
       items: rows,
     });

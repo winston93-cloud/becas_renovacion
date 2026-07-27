@@ -15,6 +15,7 @@ import { Alert, Card } from '@/components/ui';
 
 type Dash = {
   label: string;
+  titulo_renovacion?: string;
   ciclo_renovacion_label: string;
   ciclo_solicitud_label: string;
   renovaciones: {
@@ -121,8 +122,9 @@ export default function AdminDashboardPage() {
         </p>
         <h2>Resumen · {data.label}</h2>
         <p>
-          Renovaciones ciclo {data.ciclo_renovacion_label} · Solicitudes ciclo{' '}
-          {data.ciclo_solicitud_label}
+          {data.titulo_renovacion ||
+            `Renovación de becas ${data.ciclo_solicitud_label}`}{' '}
+          · Solicitudes {data.ciclo_solicitud_label}
         </p>
       </div>
 

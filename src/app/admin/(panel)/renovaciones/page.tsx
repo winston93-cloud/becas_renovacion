@@ -24,7 +24,7 @@ function ListInner() {
   const sp = useSearchParams();
   const [estado, setEstado] = useState(sp.get('estado') || 'enviadas');
   const [items, setItems] = useState<Item[]>([]);
-  const [cicloLabel, setCicloLabel] = useState('');
+  const [titulo, setTitulo] = useState('Renovación de becas');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -41,7 +41,12 @@ function ListInner() {
         if (!res.ok) throw new Error(json.error || 'Error');
         if (!cancelled) {
           setItems(json.items || []);
-          setCicloLabel(json.ciclo_label || '');
+          setTitulo(
+            json.titulo ||
+              (json.ciclo_label
+                ? `Renovación de becas ${json.ciclo_label}`
+                : 'Renovación de becas')
+          );
         }
       } catch (err) {
         if (!cancelled) {
@@ -61,7 +66,11 @@ function ListInner() {
       <div className="admin-hero">
         <h2>Renovaciones</h2>
         <p>
-          Ciclo {cicloLabel || '…'} · {items.length} registro(s)
+          {titulo} · {items.length} registro(s)
+        </p>
+        <p className="text-xs text-text-secondary">
+          Abra el No. de control para revisar documentos y marcar como
+          verificada o autorizada.
         </p>
       </div>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -126,6 +135,7 @@ function ListInner() {
               <th>Grado</th>
               <th>Estado</th>
               <th>Enviado</th>
+              <th>Acción</th>
             </tr>
           </thead>
           <tbody>
@@ -161,6 +171,14 @@ function ListInner() {
                   {it.correo_enviado_en
                     ? new Date(it.correo_enviado_en).toLocaleString('es-MX')
                     : '—'}
+                </td>
+                <td>
+                  <Link
+                    href={`/admin/renovaciones/${it.id}`}
+                    className="font-semibold text-primary underline-offset-2 hover:underline"
+                  >
+                    Revisar →
+                  </Link>
                 </td>
               </tr>
             ))}

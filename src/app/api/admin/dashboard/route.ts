@@ -36,7 +36,8 @@ export async function GET() {
       label: auth.admin.label,
       niveles: auth.admin.niveles,
       ciclo_renovacion: cicloRen,
-      ciclo_renovacion_label: getSchoolCycleLabel(cicloRen),
+      ciclo_renovacion_label: getSchoolCycleLabel(cicloSol),
+      titulo_renovacion: `Renovación de becas ${getSchoolCycleLabel(cicloSol)}`,
       ciclo_solicitud: cicloSol,
       ciclo_solicitud_label: getSchoolCycleLabel(cicloSol),
       renovaciones: {

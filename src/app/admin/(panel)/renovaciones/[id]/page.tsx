@@ -102,8 +102,8 @@ export default function RenovacionDetallePage({
           {a.nombre}
         </h2>
         <p className="text-sm text-text-secondary">
-          {a.alumno_ref} · {a.nivel_label} {a.grado ?? '—'} / {a.grupo} · Ciclo{' '}
-          {r.ciclo_label}
+          {a.alumno_ref} · {a.nivel_label} {a.grado ?? '—'} / {a.grupo} ·
+          Renovación de becas {r.ciclo_label}
         </p>
         <div className="mt-2 flex flex-wrap gap-1">
           {r.correo_enviado ? (
@@ -127,14 +127,21 @@ export default function RenovacionDetallePage({
       {error ? <Alert variant="error">{error}</Alert> : null}
 
       <Card className="space-y-3">
-        <h3 className="text-sm font-semibold text-primary">Acciones</h3>
+        <h3 className="text-sm font-semibold text-primary">
+          Acciones de Control Escolar
+        </h3>
+        <p className="text-xs text-text-secondary">
+          Revise los documentos y use estos botones para avanzar el trámite.
+        </p>
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           <Button
             type="button"
             disabled={saving}
             onClick={() => patch({ verificado: !r.verificado })}
           >
-            {r.verificado ? 'Quitar verificación' : 'Marcar verificada'}
+            {r.verificado
+              ? 'Quitar verificación'
+              : '✓ Marcar como verificada'}
           </Button>
           <Button
             type="button"
