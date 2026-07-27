@@ -123,8 +123,7 @@ export default function AdminDashboardPage() {
         <h2>Resumen · {data.label}</h2>
         <p>
           {data.titulo_renovacion ||
-            `Renovación de becas ${data.ciclo_solicitud_label}`}{' '}
-          · Solicitudes {data.ciclo_solicitud_label}
+            `Renovación de becas ${data.ciclo_solicitud_label}`}
         </p>
       </div>
 
