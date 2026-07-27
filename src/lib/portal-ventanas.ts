@@ -1,6 +1,7 @@
 /**
  * 2026-07-22 - Ventanas de apertura/cierre del Portal de Becas.
  * 2026-07-24 - Zona America/Mexico_City; apertura a las 09:00.
+ * 2026-07-27 - Apertura efectiva desde 00:00 del día de apertura (producción).
  */
 
 export type FlujoPortal = 'renovacion' | 'solicitud';
@@ -16,8 +17,8 @@ export type PortalStatus = {
 // 2026-07-22 - Apertura corregida a julio (no junio)
 export const APERTURA_PORTAL = { y: 2026, m: 7, d: 27 } as const;
 
-/** Hora de apertura en CDMX (09:00). */
-export const HORA_APERTURA_CDMX = 9;
+/** Hora de apertura en CDMX (00:00 = todo el día de apertura). */
+export const HORA_APERTURA_CDMX = 0;
 
 /** Cierre de renovación (inclusive, fin del día). Solicitud no cierra. */
 export const CIERRE_RENOVACION = { y: 2026, m: 8, d: 17 } as const;
@@ -104,8 +105,8 @@ function yaPasoHoraApertura(now: Date): boolean {
 
 /**
  * Estado de la ventana según el trámite.
- * Renovación: [APERTURA_PORTAL 09:00 CDMX, CIERRE_RENOVACION fin del día].
- * Solicitud: desde APERTURA_PORTAL 09:00 CDMX sin cierre.
+ * Renovación: [APERTURA_PORTAL 00:00 CDMX, CIERRE_RENOVACION fin del día].
+ * Solicitud: desde APERTURA_PORTAL 00:00 CDMX sin cierre.
  */
 export function getPortalStatus(
   flujo: FlujoPortal,
