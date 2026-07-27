@@ -1,8 +1,14 @@
 'use client';
 
-import { useEffect, useState, use } from 'react';
+import { useCallback, useEffect, useMemo, useState, use } from 'react';
 import Link from 'next/link';
 import { Alert, Badge, Button, Card } from '@/components/ui';
+import {
+  AdminDocumentosRevision,
+  docsListosParaVerificar,
+  type DocAdminItem,
+} from '@/app/admin/(panel)/components/AdminDocumentosRevision';
+import { normalizarRevisionEstado } from '@/lib/doc-revision';
 
 type Detail = {
   solicitud: {
@@ -23,7 +29,7 @@ type Detail = {
     grado: number | null;
     grupo: string;
   };
-  documentos: { id: string; tipo: string; label: string }[];
+  documentos: DocAdminItem[];
   docs_requeridos: { tipo: string; label: string }[];
 };
 
@@ -38,25 +44,42 @@ export default function SolicitudDetallePage({
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  async function load() {
-    setLoading(true);
+  const load = useCallback(async (opts?: { soft?: boolean }) => {
+    if (!opts?.soft) setLoading(true);
     setError(null);
     try {
       const res = await fetch(`/api/admin/solicitudes/${id}`);
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Error');
-      setData(json);
+      setData({
+        ...json,
+        documentos: (json.documentos || []).map(
+          (d: DocAdminItem & { revision_estado?: string }) => ({
+            ...d,
+            revision_estado: normalizarRevisionEstado(d.revision_estado),
+          })
+        ),
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error');
     } finally {
-      setLoading(false);
+      if (!opts?.soft) setLoading(false);
     }
-  }
+  }, [id]);
 
   useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+    void load();
+  }, [load]);
+
+  const refreshDocs = useCallback(() => load({ soft: true }), [load]);
+
+  const docsOk = useMemo(
+    () =>
+      data
+        ? docsListosParaVerificar(data.docs_requeridos, data.documentos)
+        : false,
+    [data]
+  );
 
   async function patch(body: {
     verificado?: boolean;
@@ -128,11 +151,19 @@ export default function SolicitudDetallePage({
 
       <Card className="space-y-3">
         <h3 className="text-sm font-semibold text-primary">Acciones</h3>
+        <p className="text-xs text-text-secondary">
+          Revise cada documento antes de marcar el expediente como verificado.
+        </p>
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           <Button
             type="button"
-            disabled={saving}
+            disabled={saving || (!s.verificado && !docsOk)}
             onClick={() => patch({ verificado: !s.verificado })}
+            title={
+              !s.verificado && !docsOk
+                ? 'Revise todos los documentos y márquelos OK primero'
+                : undefined
+            }
           >
             {s.verificado ? 'Quitar verificación' : 'Marcar verificada'}
           </Button>
@@ -145,6 +176,12 @@ export default function SolicitudDetallePage({
             {s.beca_autorizada ? 'Quitar autorización' : 'Autorizar beca'}
           </Button>
         </div>
+        {!s.verificado && !docsOk ? (
+          <p className="text-xs text-amber-800">
+            Aún no se puede verificar: faltan documentos por revisar o hay
+            alguno marcado como incorrecto.
+          </p>
+        ) : null}
       </Card>
 
       <Card className="space-y-2">
@@ -154,24 +191,12 @@ export default function SolicitudDetallePage({
         </p>
       </Card>
 
-      <Card className="space-y-2">
-        <h3 className="text-sm font-semibold text-primary">Documentos</h3>
-        <ul className="space-y-1 text-sm">
-          {data.docs_requeridos.map((d) => {
-            const ok =
-              s.flags_docs[d.tipo] ||
-              data.documentos.some((x) => x.tipo === d.tipo);
-            return (
-              <li key={d.tipo} className="flex justify-between gap-2">
-                <span>{d.label}</span>
-                <Badge variant={ok ? 'success' : 'pending'}>
-                  {ok ? 'Sí' : 'Falta'}
-                </Badge>
-              </li>
-            );
-          })}
-        </ul>
-      </Card>
+      <AdminDocumentosRevision
+        flujo="solicitud"
+        docsRequeridos={data.docs_requeridos}
+        documentos={data.documentos}
+        onChanged={refreshDocs}
+      />
     </div>
   );
 }

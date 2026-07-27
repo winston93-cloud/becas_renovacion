@@ -7,6 +7,8 @@ import {
   getCurrentSchoolCycle,
   getSchoolCycleLabel,
 } from '@/lib/ciclo-escolar';
+import { expedienteDocsTodosOk } from '@/lib/expediente-docs-ok';
+import { normalizarRevisionEstado } from '@/lib/doc-revision';
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -55,7 +57,9 @@ export async function GET(_request: NextRequest, ctx: Ctx) {
 
     const { data: docs } = await db.database
       .from('becas_documento')
-      .select('id, tipo, nombre_original, storage_key, subido_en')
+      .select(
+        'id, tipo, nombre_original, storage_key, subido_en, revision_estado, revision_nota, revisado_en, revisado_por'
+      )
       .eq('renovacion_id', id);
 
     const tipos = docsRequeridos({
@@ -89,6 +93,10 @@ export async function GET(_request: NextRequest, ctx: Ctx) {
         label: labelDocRequerido(d.tipo as never) || d.tipo,
         nombre_original: d.nombre_original,
         subido_en: d.subido_en,
+        revision_estado: normalizarRevisionEstado(d.revision_estado),
+        revision_nota: d.revision_nota || null,
+        revisado_en: d.revisado_en || null,
+        revisado_por: d.revisado_por || null,
       })),
       docs_requeridos: tipos.map((t) => ({
         tipo: t,
@@ -129,7 +137,7 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
 
     const { data: alumno } = await db.database
       .from('alumno')
-      .select('alumno_nivel')
+      .select('alumno_nivel, alumno_grado')
       .eq('alumno_id', Number(ren.alumno_id))
       .maybeSingle();
 
@@ -138,6 +146,18 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
 
     const patch: Record<string, unknown> = {};
     if (typeof body.verificado === 'boolean') {
+      if (body.verificado === true) {
+        const gate = await expedienteDocsTodosOk({
+          db,
+          flujo: 'renovacion',
+          expedienteId: id,
+          nivel: alumno?.alumno_nivel,
+          grado: alumno?.alumno_grado,
+        });
+        if (!gate.ok) {
+          return NextResponse.json({ error: gate.motivo }, { status: 400 });
+        }
+      }
       patch.verificado = body.verificado;
       patch.fecha_verificado = body.verificado
         ? new Date().toISOString()

@@ -11,6 +11,7 @@ import {
   DOCUMENTO_FLAG_COLUMN,
   TODOS_DOCUMENTO_TIPOS,
 } from '@/lib/documentos-requeridos';
+import { REVISION_AL_SUBIR } from '@/lib/doc-revision';
 
 export async function POST(request: NextRequest) {
   try {
@@ -104,6 +105,7 @@ export async function POST(request: NextRequest) {
       storage_url: uploadData?.url || null,
       nombre_original: file.name,
       subido_en: new Date().toISOString(),
+      ...REVISION_AL_SUBIR,
     };
 
     let documentoId: string;
