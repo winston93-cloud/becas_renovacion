@@ -6,6 +6,11 @@ import {
   mapAlumnoRow,
 } from '@/lib/admin-queries';
 import { getInsforgeAdmin } from '@/lib/insforge-server';
+import {
+  clientMetaFromRequest,
+  registrarAuditoria,
+} from '@/lib/admin-auditoria';
+import { nombreAlumnoAuditoria } from '@/lib/admin-auditoria-alumno';
 
 export async function GET(request: NextRequest) {
   try {
@@ -93,7 +98,7 @@ export async function PATCH(request: NextRequest) {
     const { data: alumno, error } = await db.database
       .from('alumno')
       .select(
-        'alumno_id, alumno_nivel, alumno_permiso_solicitud_beca, alumno_solicitud_acceso_enviada, alumno_solicitud_acceso_en'
+        'alumno_id, alumno_ref, alumno_app, alumno_apm, alumno_nombre, alumno_nivel, alumno_permiso_solicitud_beca, alumno_solicitud_acceso_enviada, alumno_solicitud_acceso_en'
       )
       .eq('alumno_id', alumnoId)
       .maybeSingle();
@@ -147,6 +152,24 @@ export async function PATCH(request: NextRequest) {
     if (upErr) {
       return NextResponse.json({ error: upErr.message }, { status: 500 });
     }
+
+    const meta = clientMetaFromRequest(request);
+    await registrarAuditoria(auth.admin, {
+      accion: permiso ? 'acceso.autorizar' : 'acceso.revocar',
+      entidad: 'acceso',
+      entidad_id: String(alumnoId),
+      alumno_id: Number(alumno.alumno_id),
+      alumno_ref: String(alumno.alumno_ref ?? ''),
+      alumno_nombre: nombreAlumnoAuditoria(alumno),
+      alumno_nivel: Number(alumno.alumno_nivel),
+      detalle: {
+        permiso_antes: yaTienePermiso,
+        permiso_despues: permiso,
+        pidio_acceso: pidioAcceso,
+        tuvo_pedido: tuvoPedido,
+      },
+      ...meta,
+    });
 
     return NextResponse.json({
       ok: true,

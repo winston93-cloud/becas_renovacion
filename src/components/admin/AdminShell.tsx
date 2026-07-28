@@ -13,6 +13,7 @@ import {
   KeyRound,
   LogOut,
   RefreshCw,
+  ScrollText,
   Shield,
 } from 'lucide-react';
 import { Button } from '@/components/ui';
@@ -22,6 +23,7 @@ const NAV = [
   { href: '/admin/renovaciones', label: 'Renovaciones', icon: RefreshCw },
   { href: '/admin/solicitudes', label: 'Solicitudes', icon: FilePlus2 },
   { href: '/admin/permisos', label: 'Permisos', icon: KeyRound },
+  { href: '/admin/auditoria', label: 'Bitácora', icon: ScrollText },
 ];
 
 type Props = {

@@ -6,6 +6,11 @@ import { docsRequeridos, labelDocRequerido } from '@/lib/documentos-requeridos';
 import { getSchoolCycleLabel } from '@/lib/ciclo-escolar';
 import { expedienteDocsTodosOk } from '@/lib/expediente-docs-ok';
 import { normalizarRevisionEstado } from '@/lib/doc-revision';
+import {
+  clientMetaFromRequest,
+  registrarAuditoria,
+} from '@/lib/admin-auditoria';
+import { nombreAlumnoAuditoria } from '@/lib/admin-auditoria-alumno';
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -132,7 +137,9 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
 
     const { data: alumno } = await db.database
       .from('alumno')
-      .select('alumno_nivel, alumno_grado')
+      .select(
+        'alumno_id, alumno_ref, alumno_app, alumno_apm, alumno_nombre, alumno_nivel, alumno_grado'
+      )
       .eq('alumno_id', Number(sol.alumno_id))
       .maybeSingle();
 
@@ -140,6 +147,7 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
     if (forbid) return forbid;
 
     const patch: Record<string, unknown> = {};
+    const accionesLog: string[] = [];
     if (typeof body.verificado === 'boolean') {
       if (body.verificado === true) {
         const gate = await expedienteDocsTodosOk({
@@ -157,9 +165,19 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
       patch.fecha_verificado = body.verificado
         ? new Date().toISOString()
         : null;
+      accionesLog.push(
+        body.verificado
+          ? 'solicitud.verificar'
+          : 'solicitud.quitar_verificacion'
+      );
     }
     if (typeof body.beca_autorizada === 'boolean') {
       patch.beca_autorizada = body.beca_autorizada;
+      accionesLog.push(
+        body.beca_autorizada
+          ? 'solicitud.autorizar'
+          : 'solicitud.quitar_autorizacion'
+      );
     }
 
     if (Object.keys(patch).length === 0) {
@@ -178,6 +196,21 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
 
     if (upErr) {
       return NextResponse.json({ error: upErr.message }, { status: 500 });
+    }
+
+    const meta = clientMetaFromRequest(request);
+    for (const accion of accionesLog) {
+      await registrarAuditoria(auth.admin, {
+        accion,
+        entidad: 'solicitud',
+        entidad_id: id,
+        alumno_id: alumno ? Number(alumno.alumno_id) : Number(sol.alumno_id),
+        alumno_ref: alumno?.alumno_ref != null ? String(alumno.alumno_ref) : null,
+        alumno_nombre: nombreAlumnoAuditoria(alumno),
+        alumno_nivel: alumno?.alumno_nivel != null ? Number(alumno.alumno_nivel) : null,
+        detalle: { cambios: patch, resultado: updated },
+        ...meta,
+      });
     }
 
     return NextResponse.json({ ok: true, solicitud: updated });

@@ -9,6 +9,11 @@ import {
   normalizarRevisionEstado,
   type RevisionEstadoDoc,
 } from '@/lib/doc-revision';
+import {
+  clientMetaFromRequest,
+  registrarAuditoria,
+} from '@/lib/admin-auditoria';
+import { nombreAlumnoAuditoria } from '@/lib/admin-auditoria-alumno';
 
 export async function PATCH(request: NextRequest) {
   try {
@@ -53,7 +58,7 @@ export async function PATCH(request: NextRequest) {
 
     const { data: doc, error: docErr } = await db.database
       .from(tabla)
-      .select(`id, ${fk}`)
+      .select(`id, tipo, ${fk}`)
       .eq('id', documentoId)
       .maybeSingle();
 
@@ -87,7 +92,9 @@ export async function PATCH(request: NextRequest) {
 
     const { data: alumno } = await db.database
       .from('alumno')
-      .select('alumno_nivel')
+      .select(
+        'alumno_id, alumno_ref, alumno_app, alumno_apm, alumno_nombre, alumno_nivel'
+      )
       .eq('alumno_id', Number(parent.alumno_id))
       .maybeSingle();
 
@@ -125,6 +132,33 @@ export async function PATCH(request: NextRequest) {
         .eq('id', parentId);
       if (!vErr) verificadoQuitado = true;
     }
+
+    const accionDoc =
+      revision_estado === 'ok'
+        ? 'documento.marcar_ok'
+        : revision_estado === 'incorrecto'
+          ? 'documento.marcar_incorrecto'
+          : 'documento.quitar_rechazo';
+
+    const meta = clientMetaFromRequest(request);
+    await registrarAuditoria(auth.admin, {
+      accion: accionDoc,
+      entidad: 'documento',
+      entidad_id: documentoId,
+      alumno_id: alumno ? Number(alumno.alumno_id) : Number(parent.alumno_id),
+      alumno_ref: alumno?.alumno_ref != null ? String(alumno.alumno_ref) : null,
+      alumno_nombre: nombreAlumnoAuditoria(alumno),
+      alumno_nivel: alumno?.alumno_nivel != null ? Number(alumno.alumno_nivel) : null,
+      detalle: {
+        flujo,
+        tipo: updated?.tipo ?? (doc as { tipo?: string }).tipo,
+        revision_estado,
+        revision_nota: nota,
+        expediente_id: parentId,
+        verificado_quitado: verificadoQuitado,
+      },
+      ...meta,
+    });
 
     return NextResponse.json({
       ok: true,

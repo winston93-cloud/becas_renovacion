@@ -13,6 +13,11 @@ import {
   ADMIN_ROLES,
 } from '@/lib/admin-roles';
 import { createAdminSessionValue } from '@/lib/admin-session';
+import {
+  clientMetaFromRequest,
+  registrarAuditoria,
+} from '@/lib/admin-auditoria';
+import { readAdminAuth } from '@/lib/admin-auth';
 
 export async function POST(request: Request) {
   try {
@@ -61,6 +66,21 @@ export async function POST(request: Request) {
       path: '/',
     });
 
+    const meta = clientMetaFromRequest(request);
+    await registrarAuditoria(
+      {
+        role,
+        label: ADMIN_ROLES[role].label,
+        niveles: ADMIN_ROLES[role].niveles,
+      },
+      {
+        accion: 'login',
+        entidad: 'sesion',
+        detalle: { role },
+        ...meta,
+      }
+    );
+
     return NextResponse.json({
       ok: true,
       role,
@@ -89,8 +109,17 @@ export async function GET() {
   });
 }
 
-export async function DELETE() {
+export async function DELETE(request: Request) {
+  const admin = await readAdminAuth();
   const jar = await cookies();
   jar.delete(ADMIN_COOKIE);
+  if (admin) {
+    const meta = clientMetaFromRequest(request);
+    await registrarAuditoria(admin, {
+      accion: 'logout',
+      entidad: 'sesion',
+      ...meta,
+    });
+  }
   return NextResponse.json({ ok: true });
 }
