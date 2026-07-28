@@ -38,7 +38,10 @@ export async function GET() {
     const accesoPendientes = pedidosAcceso.filter(
       (a) => a.acceso_enviada && !a.permiso_solicitud
     );
-    const accesoAutorizados = pedidosAcceso.filter((a) => a.permiso_solicitud);
+    // Solo cuentan autorizaciones con historial de pedido de acceso.
+    const accesoAutorizados = pedidosAcceso.filter(
+      (a) => a.permiso_solicitud && Boolean(a.acceso_enviada_en)
+    );
 
     return NextResponse.json({
       role: auth.admin.role,

@@ -92,7 +92,9 @@ export async function PATCH(request: NextRequest) {
     const db = getInsforgeAdmin();
     const { data: alumno, error } = await db.database
       .from('alumno')
-      .select('alumno_id, alumno_nivel')
+      .select(
+        'alumno_id, alumno_nivel, alumno_permiso_solicitud_beca, alumno_solicitud_acceso_enviada, alumno_solicitud_acceso_en'
+      )
       .eq('alumno_id', alumnoId)
       .maybeSingle();
 
@@ -109,18 +111,36 @@ export async function PATCH(request: NextRequest) {
     const forbid = assertNivelPermitido(auth.admin, alumno.alumno_nivel);
     if (forbid) return forbid;
 
+    const yaTienePermiso = Number(alumno.alumno_permiso_solicitud_beca) === 1;
+    const pidioAcceso = Number(alumno.alumno_solicitud_acceso_enviada) === 1;
+    const tuvoPedido =
+      pidioAcceso || Boolean(alumno.alumno_solicitud_acceso_en);
+
+    // Solo se puede abrir el formulario si la familia ya pidió acceso (correo).
+    if (permiso === true && !yaTienePermiso && !pidioAcceso) {
+      return NextResponse.json(
+        {
+          error:
+            'No se puede autorizar: este alumno aún no ha solicitado acceso desde el portal. Debe aparecer con la etiqueta «Pidió acceso».',
+          codigo: 'SIN_PEDIDO_ACCESO',
+        },
+        { status: 400 }
+      );
+    }
+
     const { data: updated, error: upErr } = await db.database
       .from('alumno')
       .update({
-        alumno_permiso_solicitud_beca: permiso,
+        alumno_permiso_solicitud_beca: permiso ? 1 : 0,
         // Si se autoriza, limpia bandera de “esperando respuesta”
+        // (conserva alumno_solicitud_acceso_en como historial del pedido).
         ...(permiso
-          ? { alumno_solicitud_acceso_enviada: false }
+          ? { alumno_solicitud_acceso_enviada: 0 }
           : {}),
       })
       .eq('alumno_id', alumnoId)
       .select(
-        'alumno_id, alumno_permiso_solicitud_beca, alumno_solicitud_acceso_enviada'
+        'alumno_id, alumno_permiso_solicitud_beca, alumno_solicitud_acceso_enviada, alumno_solicitud_acceso_en'
       )
       .maybeSingle();
 
@@ -128,7 +148,11 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: upErr.message }, { status: 500 });
     }
 
-    return NextResponse.json({ ok: true, alumno: updated });
+    return NextResponse.json({
+      ok: true,
+      alumno: updated,
+      tuvo_pedido_acceso: tuvoPedido,
+    });
   } catch (err) {
     const message =
       err instanceof Error ? err.message : 'Error al actualizar permiso.';

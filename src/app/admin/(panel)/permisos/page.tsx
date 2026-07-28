@@ -140,7 +140,15 @@ export default function AdminPermisosPage() {
             <Button
               type="button"
               variant={it.permiso_solicitud ? 'secondary' : 'primary'}
-              disabled={busyId === it.alumno_id}
+              disabled={
+                busyId === it.alumno_id ||
+                (!it.permiso_solicitud && !it.acceso_enviada)
+              }
+              title={
+                !it.permiso_solicitud && !it.acceso_enviada
+                  ? 'Solo se autoriza si la familia ya pidió acceso'
+                  : undefined
+              }
               onClick={() =>
                 setPermiso(it.alumno_id, !it.permiso_solicitud)
               }
