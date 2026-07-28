@@ -11,6 +11,7 @@ import {
   getCurrentSchoolCycle,
   getSchoolCycleLabel,
 } from '@/lib/ciclo-escolar';
+import { tieneBecaActivaCicloPasado } from '@/lib/beca-elegibilidad';
 import { sendMail } from '@/lib/mailer';
 import { signDocLink } from '@/lib/doc-download-token';
 import {
@@ -84,19 +85,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Defensa: no permitir finalizar si ya tiene beca
-    const { data: becaExistente } = await admin.database
-      .from('alumno_beca')
-      .select('alumno_beca_id')
-      .eq('alumno_id', solicitud.alumno_id)
-      .limit(1)
-      .maybeSingle();
-
-    if (becaExistente) {
+    // Defensa: beca activa del ciclo pasado → Renovación
+    const becaCicloPasado = await tieneBecaActivaCicloPasado(
+      admin.database,
+      Number(solicitud.alumno_id)
+    );
+    if (!becaCicloPasado.ok) {
+      return NextResponse.json({ error: becaCicloPasado.error }, { status: 500 });
+    }
+    if (becaCicloPasado.tiene) {
       return NextResponse.json(
         {
           error:
-            'Este alumno ya cuenta con un registro de beca. No se puede finalizar la solicitud nueva.',
+            'Este alumno tuvo beca el ciclo pasado. No se puede finalizar la solicitud nueva; use Renovación.',
           codigo: 'YA_TIENE_BECA',
         },
         { status: 403 }

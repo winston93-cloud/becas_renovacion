@@ -1,14 +1,16 @@
 /**
  * 2026-07-17 - API GET/POST solicitud de beca (nuevo ingreso).
- * Gate: alumno_permiso_solicitud_beca=1 y sin filas en alumno_beca.
+ * Gate: alumno_permiso_solicitud_beca=1 y sin beca activa del ciclo pasado.
  * Persistencia: alumno_detalles / alumno_familiar + becas_solicitud*.
  * PDF de formulario al guardar (ingresos solo en PDF, no en BD).
  * 2026-07-18 - SEP (gobierno) no se ofrece ni se acepta como beca deseada.
+ * 2026-07-28 - Historial antiguo (antepasado) no bloquea solicitud nueva.
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { getInsforgeAdmin } from '@/lib/insforge-server';
 import { forbidWrongAlumno, requireAcceso } from '@/lib/acceso-auth';
 import { getCurrentSchoolCycle, getSchoolCycleLabel } from '@/lib/ciclo-escolar';
+import { tieneBecaActivaCicloPasado } from '@/lib/beca-elegibilidad';
 import { esBecaNoTramitable, esConceptoTramitable } from '@/lib/becas-excluidas';
 import { assertPortalAbierto } from '@/lib/portal-ventanas';
 import { labelNivel } from '@/lib/email-renovacion';
@@ -143,27 +145,21 @@ async function assertSolicitudGate(
     };
   }
 
-  // 2026-07-17 - Cualquier registro en alumno_beca = ya realizó proceso de beca
-  const { data: becaExistente, error: becaErr } = await admin.database
-    .from('alumno_beca')
-    .select('alumno_beca_id')
-    .eq('alumno_id', alumnoId)
-    .limit(1)
-    .maybeSingle();
-
-  if (becaErr) {
+  // Solo beca activa del ciclo pasado → Renovación; antepasado = solicitud nueva.
+  const becaCicloPasado = await tieneBecaActivaCicloPasado(admin.database, alumnoId);
+  if (!becaCicloPasado.ok) {
     return {
       ok: false,
-      response: NextResponse.json({ error: becaErr.message }, { status: 500 }),
+      response: NextResponse.json({ error: becaCicloPasado.error }, { status: 500 }),
     };
   }
-  if (becaExistente) {
+  if (becaCicloPasado.tiene) {
     return {
       ok: false,
       response: NextResponse.json(
         {
           error:
-            'Este alumno ya cuenta con un registro de beca. El portal de solicitud por primera vez no está disponible. Use renovación si aplica.',
+            'Este alumno tuvo beca el ciclo pasado. El portal de solicitud nueva no aplica; use Renovación.',
           codigo: 'YA_TIENE_BECA',
           ciclo_escolar: ciclo,
           ciclo_label: getSchoolCycleLabel(ciclo),

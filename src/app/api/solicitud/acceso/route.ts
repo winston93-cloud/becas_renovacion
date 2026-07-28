@@ -1,6 +1,7 @@
 /**
  * 2026-07-17 - Estado y envío de “solicitar acceso” a beca nueva.
  * GET: consulta flags. POST: envía correo por nivel + marca alumno_solicitud_acceso_enviada.
+ * 2026-07-28 - ya_tiene_beca = beca activa del ciclo pasado (no historial antiguo).
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { getInsforgeAdmin } from '@/lib/insforge-server';
@@ -10,6 +11,7 @@ import {
   getCurrentSchoolCycle,
   getSchoolCycleLabel,
 } from '@/lib/ciclo-escolar';
+import { tieneBecaActivaCicloPasado } from '@/lib/beca-elegibilidad';
 import { sendMail } from '@/lib/mailer';
 import {
   labelNivel,
@@ -49,14 +51,13 @@ async function loadAlumnoAcceso(alumnoRef: number) {
     return { admin, alumno: null as null, estado: 'no_encontrado' as AccesoEstado };
   }
 
-  const { data: beca } = await admin.database
-    .from('alumno_beca')
-    .select('alumno_beca_id')
-    .eq('alumno_id', alumno.alumno_id)
-    .limit(1)
-    .maybeSingle();
-
-  if (beca) {
+  // Solo el ciclo pasado obliga a Renovación; beca antepasada = solicitud nueva.
+  const becaCicloPasado = await tieneBecaActivaCicloPasado(
+    admin.database,
+    Number(alumno.alumno_id)
+  );
+  if (!becaCicloPasado.ok) throw new Error(becaCicloPasado.error);
+  if (becaCicloPasado.tiene) {
     return { admin, alumno, estado: 'ya_tiene_beca' as AccesoEstado };
   }
 
@@ -80,7 +81,7 @@ function mensajePublico(estado: AccesoEstado): string {
     case 'autorizado':
       return 'Su acceso fue autorizado. Puede continuar con el formulario de solicitud.';
     case 'ya_tiene_beca':
-      return 'Este alumno ya tiene historial de beca. Su trámite correcto es Renovación, no Solicitud nueva.';
+      return 'Este alumno tuvo beca el ciclo pasado. Su trámite correcto es Renovación, no Solicitud nueva.';
     case 'no_encontrado':
       return 'No se encontró un alumno activo con ese número de control.';
   }

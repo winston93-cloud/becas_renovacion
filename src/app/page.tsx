@@ -4,7 +4,8 @@
  * 2026-07-16 - Home: acceso por No. de Control.
  * 2026-07-17 - Solicitud: pedir acceso / esperar / continuar con permiso.
  * 2026-07-17 - Renovación: validar beca del ciclo anterior ANTES de salir del home.
- * 2026-07-17 - Si hay historial en alumno_beca → modal: el trámite es Renovación.
+ * 2026-07-28 - Modal Renovación solo si hubo beca activa el ciclo pasado
+ *              (historial antepasado → puede Solicitud nueva).
  * 2026-07-18 - Radios nativos fiables en móvil.
  * 2026-07-22 - Requiere No. de Control + contraseña (alumno_clave), como el legacy.
  * 2026-07-22 - Ventanas de fechas: validar antes de cualquier petición.
@@ -308,7 +309,7 @@ export default function HomePage() {
                       Renovación
                     </span>
                     <span className="mt-1 block text-sm leading-snug text-text-secondary">
-                      Alumno con beca previa
+                      Beca del ciclo pasado
                     </span>
                   </span>
                 </label>
@@ -332,7 +333,7 @@ export default function HomePage() {
                       Solicitud nueva
                     </span>
                     <span className="mt-1 block text-sm leading-snug text-text-secondary">
-                      Primera vez en el programa
+                      Sin beca el ciclo pasado
                     </span>
                   </span>
                 </label>
@@ -500,13 +501,13 @@ export default function HomePage() {
         icon={<RefreshCw className="h-5 w-5" strokeWidth={2.25} />}
       >
         <p>
-          Este alumno ya tiene historial de beca en el Instituto (sin importar
-          si la beca está activa o cerrada).
+          Este alumno tuvo beca activa el ciclo pasado, por eso su trámite
+          correcto es Renovación.
         </p>
         <p className="mt-3">
           La <strong className="font-semibold text-text">Solicitud nueva</strong>{' '}
-          es solo para quienes tramitan beca por primera vez. En su caso debe
-          usar el trámite de{' '}
+          aplica cuando no hubo beca el ciclo pasado (aunque la haya tenido en
+          años anteriores). En su caso debe usar{' '}
           <strong className="font-semibold text-text">Renovación</strong>.
         </p>
       </Modal>

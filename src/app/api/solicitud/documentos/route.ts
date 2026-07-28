@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getInsforgeAdmin } from '@/lib/insforge-server';
 import { forbidWrongAlumno, requireAcceso } from '@/lib/acceso-auth';
 import { assertPortalAbierto } from '@/lib/portal-ventanas';
+import { tieneBecaActivaCicloPasado } from '@/lib/beca-elegibilidad';
 import type { DocumentoTipo } from '@/lib/types';
 import {
   DOCUMENTO_FLAG_COLUMN,
@@ -84,19 +85,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Defensa: revalidar que no tenga alumno_beca
-    const { data: becaExistente } = await admin.database
-      .from('alumno_beca')
-      .select('alumno_beca_id')
-      .eq('alumno_id', solicitud.alumno_id)
-      .limit(1)
-      .maybeSingle();
-
-    if (becaExistente) {
+    // Defensa: beca activa del ciclo pasado → debe ir a Renovación
+    const becaCicloPasado = await tieneBecaActivaCicloPasado(
+      admin.database,
+      Number(solicitud.alumno_id)
+    );
+    if (!becaCicloPasado.ok) {
+      return NextResponse.json({ error: becaCicloPasado.error }, { status: 500 });
+    }
+    if (becaCicloPasado.tiene) {
       return NextResponse.json(
         {
           error:
-            'Este alumno ya cuenta con un registro de beca. No se pueden subir documentos de solicitud nueva.',
+            'Este alumno tuvo beca el ciclo pasado. No se pueden subir documentos de solicitud nueva; use Renovación.',
           codigo: 'YA_TIENE_BECA',
         },
         { status: 403 }
