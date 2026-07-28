@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin-auth';
-import { listRenovaciones, listSolicitudes } from '@/lib/admin-queries';
+import {
+  listPedidosAccesoSolicitud,
+  listRenovaciones,
+  listSolicitudes,
+} from '@/lib/admin-queries';
 import {
   getCicloBecaARenovar,
   getCurrentSchoolCycle,
@@ -15,7 +19,7 @@ export async function GET() {
     const cicloRen = getCicloBecaARenovar();
     const cicloSol = getCurrentSchoolCycle();
 
-    const [renovaciones, solicitudes] = await Promise.all([
+    const [renovaciones, solicitudes, pedidosAcceso] = await Promise.all([
       listRenovaciones({
         admin: auth.admin,
         ciclo: cicloRen,
@@ -26,10 +30,15 @@ export async function GET() {
         ciclo: cicloSol,
         estado: 'todas',
       }),
+      listPedidosAccesoSolicitud(auth.admin),
     ]);
 
     const renEnviadas = renovaciones.filter((r) => r.correo_enviado);
     const solEnviadas = solicitudes.filter((s) => s.enviado);
+    const accesoPendientes = pedidosAcceso.filter(
+      (a) => a.acceso_enviada && !a.permiso_solicitud
+    );
+    const accesoAutorizados = pedidosAcceso.filter((a) => a.permiso_solicitud);
 
     return NextResponse.json({
       role: auth.admin.role,
@@ -51,6 +60,12 @@ export async function GET() {
         pendientes: solEnviadas.filter((s) => !s.verificado).length,
         verificadas: solEnviadas.filter((s) => s.verificado).length,
         autorizadas: solEnviadas.filter((s) => s.beca_autorizada).length,
+      },
+      /** Pedidos de acceso al formulario (antes de enviar la solicitud). */
+      accesos: {
+        pendientes: accesoPendientes.length,
+        autorizados: accesoAutorizados.length,
+        total: pedidosAcceso.length,
       },
     });
   } catch (err) {

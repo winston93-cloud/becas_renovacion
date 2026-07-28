@@ -77,7 +77,9 @@ export default function AdminPermisosPage() {
       <div className="admin-hero">
         <h2>Permisos de solicitud</h2>
         <p>
-          Autoriza a un alumno a llenar solicitud de beca nueva en el portal.
+          Aquí aparecen los pedidos de acceso del correo «Solicitud de acceso a
+          beca». Autoriza al alumno para que pueda llenar el formulario; la
+          solicitud enviada se ve después en la pestaña Solicitudes.
         </p>
       </div>
 

@@ -93,10 +93,33 @@ export function mapAlumnoRow(a: Record<string, unknown>) {
     nivel_label: labelNivel(nivel),
     grado: a.alumno_grado != null ? Number(a.alumno_grado) : null,
     grupo: labelGrupo(a.alumno_grupo as number | null),
-    permiso_solicitud: Boolean(a.alumno_permiso_solicitud_beca),
-    acceso_enviada: Boolean(a.alumno_solicitud_acceso_enviada),
+    permiso_solicitud: Number(a.alumno_permiso_solicitud_beca) === 1,
+    acceso_enviada: Number(a.alumno_solicitud_acceso_enviada) === 1,
     acceso_enviada_en: a.alumno_solicitud_acceso_en || null,
   };
+}
+
+/** Pedidos de acceso a beca nueva (flag en alumno), filtrados por nivel del rol. */
+export async function listPedidosAccesoSolicitud(admin: AdminAuth) {
+  const db = getInsforgeAdmin();
+  const { data, error } = await db.database
+    .from('alumno')
+    .select(SELECT_ALUMNO)
+    .neq('alumno_status', 0)
+    .in('alumno_nivel', admin.niveles)
+    .or(
+      'alumno_solicitud_acceso_enviada.eq.1,alumno_permiso_solicitud_beca.eq.1'
+    )
+    .limit(500);
+
+  if (error) throw new Error(error.message);
+  return (data || [])
+    .map(mapAlumnoRow)
+    .sort((a, b) => {
+      const ta = a.acceso_enviada_en ? Date.parse(String(a.acceso_enviada_en)) : 0;
+      const tb = b.acceso_enviada_en ? Date.parse(String(b.acceso_enviada_en)) : 0;
+      return tb - ta;
+    });
 }
 
 function applyEstadoRenovacionFilter(

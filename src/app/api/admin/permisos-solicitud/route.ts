@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { assertNivelPermitido, requireAdmin } from '@/lib/admin-auth';
-import { fetchAlumnosByNivel, mapAlumnoRow } from '@/lib/admin-queries';
+import {
+  fetchAlumnosByNivel,
+  listPedidosAccesoSolicitud,
+  mapAlumnoRow,
+} from '@/lib/admin-queries';
 import { getInsforgeAdmin } from '@/lib/insforge-server';
 
 export async function GET(request: NextRequest) {
@@ -12,32 +16,50 @@ export async function GET(request: NextRequest) {
     const q = (sp.get('q') || '').trim();
     const soloPendientes = sp.get('pendientes') !== '0' && !q;
 
-    let alumnos = await fetchAlumnosByNivel(auth.admin.niveles);
-
-    if (soloPendientes) {
-      alumnos = alumnos.filter(
-        (a) =>
-          Boolean(a.alumno_solicitud_acceso_enviada) ||
-          Boolean(a.alumno_permiso_solicitud_beca)
-      );
+    let items;
+    if (soloPendientes && !q) {
+      items = await listPedidosAccesoSolicitud(auth.admin);
+    } else {
+      let alumnos = await fetchAlumnosByNivel(auth.admin.niveles);
+      if (q) {
+        const needle = q.toLowerCase();
+        alumnos = alumnos.filter((a) => {
+          const ref = String(a.alumno_ref || '');
+          const nombre =
+            `${a.alumno_app || ''} ${a.alumno_apm || ''} ${a.alumno_nombre || ''}`.toLowerCase();
+          return ref.includes(needle) || nombre.includes(needle);
+        });
+      }
+      items = alumnos.map(mapAlumnoRow);
     }
 
-    if (q) {
-      const needle = q.toLowerCase();
-      alumnos = alumnos.filter((a) => {
-        const ref = String(a.alumno_ref || '');
-        const nombre =
-          `${a.alumno_app || ''} ${a.alumno_apm || ''} ${a.alumno_nombre || ''}`.toLowerCase();
-        return ref.includes(needle) || nombre.includes(needle);
-      });
-    }
-
-    const items = alumnos
-      .map(mapAlumnoRow)
-      .sort((a, b) => Number(a.alumno_ref) - Number(b.alumno_ref))
+    items = items
+      .sort((a, b) => {
+        // Primero quienes pidieron acceso y aún no tienen permiso
+        const pa =
+          a.acceso_enviada && !a.permiso_solicitud
+            ? 0
+            : a.acceso_enviada
+              ? 1
+              : 2;
+        const pb =
+          b.acceso_enviada && !b.permiso_solicitud
+            ? 0
+            : b.acceso_enviada
+              ? 1
+              : 2;
+        if (pa !== pb) return pa - pb;
+        return Number(a.alumno_ref) - Number(b.alumno_ref);
+      })
       .slice(0, 300);
 
-    return NextResponse.json({ total: items.length, items });
+    return NextResponse.json({
+      total: items.length,
+      pendientes_autorizar: items.filter(
+        (i) => i.acceso_enviada && !i.permiso_solicitud
+      ).length,
+      items,
+    });
   } catch (err) {
     const message =
       err instanceof Error ? err.message : 'Error al listar permisos.';

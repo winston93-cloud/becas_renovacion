@@ -8,6 +8,7 @@ import {
   Clock3,
   FilePlus2,
   Inbox,
+  KeyRound,
   RefreshCw,
   Sparkles,
 } from 'lucide-react';
@@ -29,6 +30,11 @@ type Dash = {
     pendientes: number;
     verificadas: number;
     autorizadas: number;
+  };
+  accesos?: {
+    pendientes: number;
+    autorizados: number;
+    total: number;
   };
 };
 
@@ -167,6 +173,38 @@ export default function AdminDashboardPage() {
             icon={Sparkles}
             tone="gold"
             delay={4}
+          />
+        </div>
+      </section>
+
+      <section>
+        <h3 className="admin-section-title">
+          <KeyRound size={14} aria-hidden />
+          Pedidos de acceso (beca nueva)
+        </h3>
+        <p className="mb-3 text-xs text-text-secondary">
+          Es el correo «Solicitud de acceso a beca». No es una solicitud
+          enviada: aquí autorizas para que puedan llenar el formulario. Luego
+          aparece en «Solicitudes nuevas».
+        </p>
+        <div className="admin-stat-grid">
+          <Stat
+            label="Pendientes de autorizar"
+            value={data.accesos?.pendientes ?? 0}
+            href="/admin/permisos"
+            hint="Familia pidió acceso; falta tu autorización"
+            icon={Clock3}
+            tone="warn"
+            delay={1}
+          />
+          <Stat
+            label="Ya autorizados"
+            value={data.accesos?.autorizados ?? 0}
+            href="/admin/permisos"
+            hint="Pueden continuar el formulario"
+            icon={KeyRound}
+            tone="ok"
+            delay={2}
           />
         </div>
       </section>
