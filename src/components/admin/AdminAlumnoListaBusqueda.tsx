@@ -13,7 +13,7 @@ import {
   useState,
   type KeyboardEvent,
 } from 'react';
-import { Search, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { Input } from '@/components/ui';
 
 export type AdminAlumnoListaItem = {
@@ -144,10 +144,6 @@ export function AdminAlumnoListaBusqueda({
         Buscar alumno
       </label>
       <div className="relative">
-        <Search
-          className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-secondary"
-          aria-hidden
-        />
         <Input
           ref={inputRef}
           id={`${listboxId}-input`}
@@ -156,7 +152,7 @@ export function AdminAlumnoListaBusqueda({
           disabled={disabled}
           value={query}
           placeholder={placeholder}
-          className="pl-9 pr-9"
+          className="pr-9"
           role="combobox"
           aria-expanded={mostrarLista}
           aria-controls={listboxId}
