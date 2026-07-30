@@ -1,9 +1,13 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { useCallback, useEffect, useMemo, useState, Suspense } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Alert, Badge, Card, Select } from '@/components/ui';
+import {
+  AdminAlumnoListaBusqueda,
+  type AdminAlumnoListaItem,
+} from '@/components/admin/AdminAlumnoListaBusqueda';
 
 type Item = {
   id: string;
@@ -21,18 +25,21 @@ type Item = {
 };
 
 function ListInner() {
+  const router = useRouter();
   const sp = useSearchParams();
   const [estado, setEstado] = useState(sp.get('estado') || 'enviadas');
   const [items, setItems] = useState<Item[]>([]);
   const [titulo, setTitulo] = useState('Renovación de becas');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [filtradosIds, setFiltradosIds] = useState<string[] | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);
       setError(null);
+      setFiltradosIds(null);
       try {
         const res = await fetch(
           `/api/admin/renovaciones?estado=${encodeURIComponent(estado)}`
@@ -61,12 +68,43 @@ function ListInner() {
     };
   }, [estado]);
 
+  const opcionesBusqueda = useMemo<AdminAlumnoListaItem[]>(
+    () =>
+      items.map((it) => ({
+        id: it.id,
+        alumno_ref: it.alumno.alumno_ref,
+        nombre: it.alumno.nombre,
+        meta: `${it.alumno.nivel_label} · ${it.alumno.grado ?? '—'} / ${it.alumno.grupo}`,
+      })),
+    [items]
+  );
+
+  const visibles = useMemo(() => {
+    if (!filtradosIds) return items;
+    const set = new Set(filtradosIds);
+    return items.filter((it) => set.has(it.id));
+  }, [items, filtradosIds]);
+
+  const onFilteredChange = useCallback((filtered: AdminAlumnoListaItem[]) => {
+    setFiltradosIds(filtered.map((f) => f.id));
+  }, []);
+
+  const onSelectAlumno = useCallback(
+    (id: string) => {
+      router.push(`/admin/renovaciones/${id}`);
+    },
+    [router]
+  );
+
   return (
     <div className="space-y-4">
       <div className="admin-hero">
         <h2>Renovaciones</h2>
         <p>
           {titulo} · {items.length} registro(s)
+          {filtradosIds && filtradosIds.length !== items.length
+            ? ` · mostrando ${visibles.length}`
+            : ''}
         </p>
         <p className="text-xs text-text-secondary">
           Abra el No. de control para revisar documentos y marcar como
@@ -74,7 +112,14 @@ function ListInner() {
         </p>
       </div>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div className="w-full sm:ml-auto sm:w-56">
+        <AdminAlumnoListaBusqueda
+          items={opcionesBusqueda}
+          disabled={loading || items.length === 0}
+          onSelect={onSelectAlumno}
+          onFilteredChange={onFilteredChange}
+          placeholder="Buscar por nombre o no. de control…"
+        />
+        <div className="w-full sm:w-56">
           <Select
             value={estado}
             onChange={(e) => setEstado(e.target.value)}
@@ -100,8 +145,14 @@ function ListInner() {
         </Card>
       ) : null}
 
+      {!loading && !error && items.length > 0 && visibles.length === 0 ? (
+        <Card className="text-sm text-text-secondary">
+          Ningún alumno de la lista coincide con la búsqueda.
+        </Card>
+      ) : null}
+
       <div className="space-y-2 md:hidden">
-        {items.map((it) => (
+        {visibles.map((it) => (
           <Link
             key={it.id}
             href={`/admin/renovaciones/${it.id}`}
@@ -139,7 +190,7 @@ function ListInner() {
             </tr>
           </thead>
           <tbody>
-            {items.map((it) => (
+            {visibles.map((it) => (
               <tr key={it.id}>
                 <td>
                   <Link
