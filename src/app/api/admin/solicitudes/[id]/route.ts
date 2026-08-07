@@ -11,6 +11,7 @@ import {
   registrarAuditoria,
 } from '@/lib/admin-auditoria';
 import { nombreAlumnoAuditoria } from '@/lib/admin-auditoria-alumno';
+import { syncAlumnoBecaPorAutorizacion } from '@/lib/sync-alumno-beca-autorizacion';
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -185,6 +186,21 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
         { error: 'Nada que actualizar.' },
         { status: 400 }
       );
+    }
+
+    if (typeof body.beca_autorizada === 'boolean') {
+      const sync = await syncAlumnoBecaPorAutorizacion({
+        db: db.database,
+        alumnoId: Number(sol.alumno_id),
+        autorizada: body.beca_autorizada,
+        porcentajeFallback:
+          sol.beca_porcentaje_deseado != null
+            ? Number(sol.beca_porcentaje_deseado)
+            : null,
+      });
+      if (!sync.ok) {
+        return NextResponse.json({ error: sync.error }, { status: 400 });
+      }
     }
 
     const { data: updated, error: upErr } = await db.database
