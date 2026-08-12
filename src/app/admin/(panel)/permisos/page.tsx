@@ -14,9 +14,16 @@ type Item = {
   acceso_enviada: boolean;
 };
 
+type EmailAvisoConfig = {
+  from: string;
+  to: string;
+  bcc: string | null;
+};
+
 export default function AdminPermisosPage() {
   const [q, setQ] = useState('');
   const [items, setItems] = useState<Item[]>([]);
+  const [emailAviso, setEmailAviso] = useState<EmailAvisoConfig | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<number | null>(null);
@@ -34,6 +41,13 @@ export default function AdminPermisosPage() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Error');
       setItems(json.items || []);
+      if (json.email_aviso?.to) {
+        setEmailAviso({
+          from: String(json.email_aviso.from || ''),
+          to: String(json.email_aviso.to),
+          bcc: json.email_aviso.bcc ? String(json.email_aviso.bcc) : null,
+        });
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error');
     } finally {
@@ -98,6 +112,21 @@ export default function AdminPermisosPage() {
         </p>
       </div>
 
+      {emailAviso ? (
+        <Alert variant="info" title="Aviso de acceso autorizado">
+          Al autorizar, el Instituto envía un correo oficial desde{' '}
+          <strong>{emailAviso.from || 'avisos_no-replay@winston93.edu.mx'}</strong>
+          {' '}hacia <strong>{emailAviso.to}</strong>
+          {emailAviso.bcc ? (
+            <>
+              {' '}
+              (copia oculta BCC: <strong>{emailAviso.bcc}</strong>)
+            </>
+          ) : null}
+          , indicando que ya puede ingresar al portal a solicitar la beca.
+        </Alert>
+      ) : null}
+
       <form
         onSubmit={onSearch}
         className="flex flex-col gap-2 sm:flex-row sm:items-end"
@@ -136,7 +165,7 @@ export default function AdminPermisosPage() {
             key={it.alumno_id}
             className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
           >
-            <div>
+            <div className="min-w-0">
               <p className="font-semibold text-primary">{it.nombre}</p>
               <p className="text-sm text-text-secondary">
                 {it.alumno_ref} · {it.nivel_label} {it.grado ?? '—'} /{' '}
@@ -152,10 +181,28 @@ export default function AdminPermisosPage() {
                   <Badge>Sin permiso</Badge>
                 )}
               </div>
+              {emailAviso && it.acceso_enviada && !it.permiso_solicitud ? (
+                <p className="mt-2 text-xs leading-relaxed text-text-secondary">
+                  Al autorizar, el aviso de acceso se enviará a:{' '}
+                  <span className="font-semibold text-primary">
+                    {emailAviso.to}
+                  </span>
+                  {emailAviso.bcc ? (
+                    <>
+                      {' '}
+                      · BCC:{' '}
+                      <span className="font-semibold text-primary">
+                        {emailAviso.bcc}
+                      </span>
+                    </>
+                  ) : null}
+                </p>
+              ) : null}
             </div>
             <Button
               type="button"
               variant={it.permiso_solicitud ? 'secondary' : 'primary'}
+              className="min-h-[44px] shrink-0"
               disabled={
                 busyId === it.alumno_id ||
                 (!it.permiso_solicitud && !it.acceso_enviada)

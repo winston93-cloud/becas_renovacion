@@ -73,12 +73,18 @@ export async function GET(request: NextRequest) {
       })
       .slice(0, 300);
 
+    const destinatarios = resolveAccesoAutorizadoMailTo();
     return NextResponse.json({
       total: items.length,
       pendientes_autorizar: items.filter(
         (i) => i.acceso_enviada && !i.permiso_solicitud
       ).length,
       items,
+      email_aviso: {
+        from: getMailFrom(),
+        to: destinatarios.to,
+        bcc: destinatarios.bcc || null,
+      },
     });
   } catch (err) {
     const message =
