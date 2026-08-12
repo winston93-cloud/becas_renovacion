@@ -8,6 +8,11 @@ import {
   AdminAlumnoListaBusqueda,
   type AdminAlumnoListaItem,
 } from '@/components/admin/AdminAlumnoListaBusqueda';
+import { AdminExportListaButtons } from '@/components/admin/AdminExportListaButtons';
+import {
+  etiquetaFiltroEstado,
+  type AdminExportRow,
+} from '@/lib/admin-export-lista';
 
 type Item = {
   id: string;
@@ -85,6 +90,22 @@ function ListInner() {
     return items.filter((it) => set.has(it.id));
   }, [items, filtradosIds]);
 
+  const exportRows = useMemo<AdminExportRow[]>(
+    () =>
+      visibles.map((it) => ({
+        alumno_ref: it.alumno.alumno_ref,
+        nombre: it.alumno.nombre,
+        nivel_label: it.alumno.nivel_label,
+        grado: it.alumno.grado,
+        grupo: it.alumno.grupo,
+        enviado: it.correo_enviado,
+        enviado_en: it.correo_enviado_en,
+        verificado: it.verificado,
+        beca_autorizada: it.beca_autorizada,
+      })),
+    [visibles]
+  );
+
   const onFilteredChange = useCallback((filtered: AdminAlumnoListaItem[]) => {
     setFiltradosIds(filtered.map((f) => f.id));
   }, []);
@@ -111,7 +132,7 @@ function ListInner() {
           verificada o autorizada.
         </p>
       </div>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <AdminAlumnoListaBusqueda
           items={opcionesBusqueda}
           disabled={loading || items.length === 0}
@@ -119,18 +140,27 @@ function ListInner() {
           onFilteredChange={onFilteredChange}
           placeholder="Buscar por nombre o no. de control…"
         />
-        <div className="w-full sm:w-56">
-          <Select
-            value={estado}
-            onChange={(e) => setEstado(e.target.value)}
-            aria-label="Filtrar estado"
-          >
-            <option value="enviadas">Enviadas</option>
-            <option value="pendientes">Pendientes de verificar</option>
-            <option value="verificadas">Verificadas</option>
-            <option value="autorizadas">Autorizadas</option>
-            <option value="todas">Todas (borradores incluidos)</option>
-          </Select>
+        <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-end sm:justify-end lg:w-auto">
+          <AdminExportListaButtons
+            flujo="renovacion"
+            titulo={titulo}
+            filtroLabel={etiquetaFiltroEstado(estado)}
+            rows={exportRows}
+            disabled={loading}
+          />
+          <div className="w-full sm:w-56">
+            <Select
+              value={estado}
+              onChange={(e) => setEstado(e.target.value)}
+              aria-label="Filtrar estado"
+            >
+              <option value="enviadas">Enviadas</option>
+              <option value="pendientes">Pendientes de verificar</option>
+              <option value="verificadas">Verificadas</option>
+              <option value="autorizadas">Autorizadas</option>
+              <option value="todas">Todas (borradores incluidos)</option>
+            </Select>
+          </div>
         </div>
       </div>
 

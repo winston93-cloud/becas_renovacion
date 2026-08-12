@@ -1,9 +1,14 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useMemo, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Alert, Badge, Card, Select } from '@/components/ui';
+import { AdminExportListaButtons } from '@/components/admin/AdminExportListaButtons';
+import {
+  etiquetaFiltroEstado,
+  type AdminExportRow,
+} from '@/lib/admin-export-lista';
 
 type Item = {
   id: string;
@@ -56,6 +61,26 @@ function ListInner() {
     };
   }, [estado]);
 
+  const titulo = cicloLabel
+    ? `Solicitudes nuevas · Ciclo ${cicloLabel}`
+    : 'Solicitudes nuevas';
+
+  const exportRows = useMemo<AdminExportRow[]>(
+    () =>
+      items.map((it) => ({
+        alumno_ref: it.alumno.alumno_ref,
+        nombre: it.alumno.nombre,
+        nivel_label: it.alumno.nivel_label,
+        grado: it.alumno.grado,
+        grupo: it.alumno.grupo,
+        enviado: it.enviado,
+        enviado_en: it.enviado_en,
+        verificado: it.verificado,
+        beca_autorizada: it.beca_autorizada,
+      })),
+    [items]
+  );
+
   return (
     <div className="space-y-4">
       <div className="admin-hero">
@@ -64,8 +89,15 @@ function ListInner() {
           Ciclo {cicloLabel || '…'} · {items.length} registro(s)
         </p>
       </div>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div className="w-full sm:ml-auto sm:w-56">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-end">
+        <AdminExportListaButtons
+          flujo="solicitud"
+          titulo={titulo}
+          filtroLabel={etiquetaFiltroEstado(estado)}
+          rows={exportRows}
+          disabled={loading}
+        />
+        <div className="w-full sm:w-56">
           <Select
             value={estado}
             onChange={(e) => setEstado(e.target.value)}
