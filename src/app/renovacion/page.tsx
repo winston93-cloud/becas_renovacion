@@ -171,7 +171,7 @@ function RenovacionContent() {
                             d.revision_estado === 'incorrecto'
                               ? {
                                   ...d,
-                                  revision_estado: 'pendiente',
+                                  revision_estado: 'reenviado',
                                   revision_nota: null,
                                 }
                               : d

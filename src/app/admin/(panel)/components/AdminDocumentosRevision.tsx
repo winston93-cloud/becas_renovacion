@@ -37,6 +37,7 @@ function badgeVariant(
 ): 'success' | 'pending' | 'primary' | 'neutral' {
   if (estado === 'ok') return 'success';
   if (estado === 'incorrecto') return 'pending';
+  if (estado === 'reenviado') return 'primary';
   if (estado === 'falta') return 'pending';
   return 'neutral';
 }
@@ -70,6 +71,7 @@ export function AdminDocumentosRevision({
   const resumen = useMemo(() => {
     let ok = 0;
     let incorrectos = 0;
+    let reenviados = 0;
     let pendientes = 0;
     let faltan = 0;
     for (const req of docsRequeridos) {
@@ -80,11 +82,20 @@ export function AdminDocumentosRevision({
       }
       if (doc.revision_estado === 'ok') ok += 1;
       else if (doc.revision_estado === 'incorrecto') incorrectos += 1;
+      else if (doc.revision_estado === 'reenviado') reenviados += 1;
       else pendientes += 1;
     }
     const total = docsRequeridos.length;
     const listosParaVerificar = ok === total && faltan === 0;
-    return { ok, incorrectos, pendientes, faltan, total, listosParaVerificar };
+    return {
+      ok,
+      incorrectos,
+      reenviados,
+      pendientes,
+      faltan,
+      total,
+      listosParaVerificar,
+    };
   }, [docsRequeridos, porTipo]);
 
   const cerrarVisor = useCallback(() => {
@@ -184,6 +195,9 @@ export function AdminDocumentosRevision({
             {resumen.incorrectos > 0
               ? ` · ${resumen.incorrectos} incorrecto(s)`
               : ''}
+            {resumen.reenviados > 0
+              ? ` · ${resumen.reenviados} reenviado(s)`
+              : ''}
             {resumen.pendientes > 0
               ? ` · ${resumen.pendientes} por revisar`
               : ''}
@@ -221,6 +235,12 @@ export function AdminDocumentosRevision({
                     {estado === 'incorrecto' && doc?.revision_nota ? (
                       <p className="text-xs text-amber-800">
                         Motivo: {doc.revision_nota}
+                      </p>
+                    ) : null}
+                    {estado === 'reenviado' ? (
+                      <p className="text-xs font-medium text-primary">
+                        El padre ya reenvió el documento corregido. Vuelva a
+                        revisarlo.
                       </p>
                     ) : null}
                   </div>

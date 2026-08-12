@@ -11,7 +11,7 @@ import {
   DOCUMENTO_FLAG_COLUMN,
   TODOS_DOCUMENTO_TIPOS,
 } from '@/lib/documentos-requeridos';
-import { REVISION_AL_SUBIR } from '@/lib/doc-revision';
+import { REVISION_AL_REENVIAR, REVISION_AL_SUBIR } from '@/lib/doc-revision';
 
 export async function POST(request: NextRequest) {
   try {
@@ -64,26 +64,26 @@ export async function POST(request: NextRequest) {
     if (wrong) return wrong;
 
     // Bloquear subidas si ya finalizó, salvo corrección de documentos incorrectos
-    if (renovacion.correo_enviado) {
-      const { data: existingForTipo } = await admin.database
-        .from('becas_documento')
-        .select('id, revision_estado')
-        .eq('renovacion_id', renovacionId)
-        .eq('tipo', tipo)
-        .maybeSingle();
-      if (
-        !existingForTipo ||
-        existingForTipo.revision_estado !== 'incorrecto'
-      ) {
-        return NextResponse.json(
-          {
-            error:
-              'Este alumno ya finalizó su renovación. Solo puede reemplazar documentos marcados como incorrectos.',
-            ya_registrado: true,
-          },
-          { status: 409 }
-        );
-      }
+    const { data: existingDoc } = await admin.database
+      .from('becas_documento')
+      .select('id, storage_key, revision_estado')
+      .eq('renovacion_id', renovacionId)
+      .eq('tipo', tipo)
+      .maybeSingle();
+
+    const esCorreccion =
+      Boolean(renovacion.correo_enviado) &&
+      existingDoc?.revision_estado === 'incorrecto';
+
+    if (renovacion.correo_enviado && !esCorreccion) {
+      return NextResponse.json(
+        {
+          error:
+            'Este alumno ya finalizó su renovación. Solo puede reemplazar documentos marcados como incorrectos.',
+          ya_registrado: true,
+        },
+        { status: 409 }
+      );
     }
 
     // 2026-07-16 - alumno_id es integer (FK a public.alumno)
@@ -101,12 +101,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { data: existingDoc } = await admin.database
-      .from('becas_documento')
-      .select('id, storage_key')
-      .eq('renovacion_id', renovacionId)
-      .eq('tipo', tipo)
-      .maybeSingle();
+    const revisionPatch = esCorreccion
+      ? REVISION_AL_REENVIAR
+      : REVISION_AL_SUBIR;
 
     const docRow = {
       renovacion_id: renovacionId,
@@ -116,7 +113,7 @@ export async function POST(request: NextRequest) {
       storage_url: uploadData?.url || null,
       nombre_original: file.name,
       subido_en: new Date().toISOString(),
-      ...REVISION_AL_SUBIR,
+      ...revisionPatch,
     };
 
     let documentoId: string;
@@ -155,6 +152,7 @@ export async function POST(request: NextRequest) {
       tipo,
       storage_key: docRow.storage_key,
       storage_url: docRow.storage_url,
+      revision_estado: revisionPatch.revision_estado,
       message: `Documento ${tipo} subido correctamente.`,
     });
   } catch (err) {

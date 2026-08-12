@@ -51,7 +51,7 @@ export type Documento = {
   nombre_original: string | null;
   subido_en: string;
   /** Estado de revisión admin (portal lo usa para correcciones). */
-  revision_estado?: 'pendiente' | 'ok' | 'incorrecto';
+  revision_estado?: 'pendiente' | 'ok' | 'incorrecto' | 'reenviado';
   revision_nota?: string | null;
 };
 

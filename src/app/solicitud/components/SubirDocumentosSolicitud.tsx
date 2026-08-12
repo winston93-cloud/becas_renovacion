@@ -180,7 +180,9 @@ export default function SubirDocumentosSolicitud({
           storage_url: (json.storage_url as string) || null,
           nombre_original: file.name,
           subido_en: new Date().toISOString(),
-          revision_estado: 'pendiente',
+          revision_estado:
+            (json.revision_estado as Documento['revision_estado']) ||
+            (modoCorreccion ? 'reenviado' : 'pendiente'),
           revision_nota: null,
         },
       }));
@@ -219,6 +221,7 @@ export default function SubirDocumentosSolicitud({
           const estado = uploaded?.revision_estado || null;
           const esOk = estado === 'ok';
           const esIncorrecto = estado === 'incorrecto';
+          const esReenviado = estado === 'reenviado';
           const fillPct = isUploading ? pct : uploaded ? 100 : 0;
           const enterDelay =
             index === 0
@@ -230,6 +233,7 @@ export default function SubirDocumentosSolicitud({
                   : 'ui-enter-delay-3';
           const puedeSubir =
             !esOk &&
+            !esReenviado &&
             (!modoCorreccion || esIncorrecto || !uploaded);
 
           return (
@@ -294,6 +298,8 @@ export default function SubirDocumentosSolicitud({
                         <Badge variant="success">Verificado</Badge>
                       ) : esIncorrecto ? (
                         <Badge variant="pending">Incorrecto</Badge>
+                      ) : esReenviado ? (
+                        <Badge variant="primary">Reenviado</Badge>
                       ) : uploaded && modoCorreccion ? (
                         <Badge variant="primary">Corregido · por revisar</Badge>
                       ) : uploaded ? (
@@ -353,6 +359,10 @@ export default function SubirDocumentosSolicitud({
                 ) : esOk ? (
                   <p className="text-xs text-success sm:text-right">
                     Ya verificado por Control Escolar
+                  </p>
+                ) : esReenviado ? (
+                  <p className="text-xs text-primary sm:text-right">
+                    Documento corregido reenviado
                   </p>
                 ) : null}
               </div>
