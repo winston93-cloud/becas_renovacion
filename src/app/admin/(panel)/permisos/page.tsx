@@ -1,6 +1,7 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { X } from 'lucide-react';
 import { Alert, Badge, Button, Card, Input, Label } from '@/components/ui';
 
 type Item = {
@@ -28,8 +29,11 @@ export default function AdminPermisosPage() {
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<number | null>(null);
   const [okMsg, setOkMsg] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const reqSeq = useRef(0);
 
-  async function load(query = q) {
+  const load = useCallback(async (query: string) => {
+    const seq = ++reqSeq.current;
     setLoading(true);
     setError(null);
     try {
@@ -40,6 +44,7 @@ export default function AdminPermisosPage() {
       );
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Error');
+      if (seq !== reqSeq.current) return;
       setItems(json.items || []);
       if (json.email_aviso?.to) {
         setEmailAviso({
@@ -49,21 +54,20 @@ export default function AdminPermisosPage() {
         });
       }
     } catch (err) {
+      if (seq !== reqSeq.current) return;
       setError(err instanceof Error ? err.message : 'Error');
     } finally {
-      setLoading(false);
+      if (seq === reqSeq.current) setLoading(false);
     }
-  }
-
-  useEffect(() => {
-    load('');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function onSearch(e: FormEvent) {
-    e.preventDefault();
-    load(q);
-  }
+  // Carga inicial + búsqueda dinámica (debounce), sin botón Buscar.
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      void load(q);
+    }, q.trim() ? 280 : 0);
+    return () => window.clearTimeout(t);
+  }, [q, load]);
 
   async function setPermiso(alumnoId: number, permiso: boolean) {
     setBusyId(alumnoId);
@@ -127,24 +131,35 @@ export default function AdminPermisosPage() {
         </Alert>
       ) : null}
 
-      <form
-        onSubmit={onSearch}
-        className="flex flex-col gap-2 sm:flex-row sm:items-end"
-      >
-        <div className="flex-1">
-          <Label htmlFor="q">Buscar No. Control o nombre</Label>
+      <div className="w-full max-w-md">
+        <Label htmlFor="q">Buscar No. Control o nombre</Label>
+        <div className="relative mt-1">
           <Input
+            ref={inputRef}
             id="q"
+            type="search"
+            autoComplete="off"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Ej. 12345"
-            className="mt-1"
+            placeholder="Escriba para filtrar…"
+            className="min-h-[44px] pr-9"
+            aria-label="Buscar alumno por número de control o nombre"
           />
+          {q ? (
+            <button
+              type="button"
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-text-secondary hover:text-primary"
+              aria-label="Limpiar búsqueda"
+              onClick={() => {
+                setQ('');
+                inputRef.current?.focus();
+              }}
+            >
+              <X className="h-4 w-4" aria-hidden />
+            </button>
+          ) : null}
         </div>
-        <Button type="submit" disabled={loading}>
-          Buscar
-        </Button>
-      </form>
+      </div>
 
       {error ? <Alert variant="error">{error}</Alert> : null}
       {okMsg ? <Alert variant="success">{okMsg}</Alert> : null}
