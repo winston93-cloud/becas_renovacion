@@ -147,3 +147,47 @@ export function buildSolicitudEmailHtml(
               </p>`
   );
 }
+
+export type EmailAccesoAutorizadoData = EmailSolicitudInteresData & {
+  portalUrl: string;
+};
+
+/** Aviso a la familia: acceso autorizado para solicitar beca nueva. */
+export function buildAccesoAutorizadoEmailSubject(
+  data: EmailAccesoAutorizadoData
+): string {
+  return `Acceso autorizado al Portal de Becas — ${data.alumnoNombre} (${data.alumnoRef})`;
+}
+
+export function buildAccesoAutorizadoEmailHtml(
+  data: EmailAccesoAutorizadoData
+): string {
+  const portal = escapeHtml(data.portalUrl);
+  return wrapEmail(
+    'Acceso autorizado al Portal de Becas',
+    `
+              <p style="margin:0 0 16px;font-size:14px;line-height:1.55;color:#5E6C84;">
+                Por medio del presente, el <strong style="color:#16213E;">Instituto Winston Churchill</strong>
+                le informa de manera oficial que su solicitud de acceso al Portal de Becas
+                ha sido <strong style="color:#1F6B4A;">autorizada</strong>.
+              </p>
+              <p style="margin:0 0 16px;font-size:14px;line-height:1.55;color:#5E6C84;">
+                Ya puede ingresar al portal con el número de control y la contraseña escolar
+                del alumno para completar el formulario de <strong style="color:#16213E;">solicitud de beca por primera vez</strong>
+                correspondiente al ciclo ${escapeHtml(data.cicloLabel)}.
+              </p>
+              <table role="presentation" width="100%" style="font-size:14px;line-height:1.6;">
+                ${academicRows(data)}
+              </table>
+              <p style="margin:22px 0 12px;text-align:center;">
+                <a href="${portal}" style="display:inline-block;background:#0B173A;color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;padding:12px 22px;border-radius:10px;">
+                  Ingresar al Portal de Becas
+                </a>
+              </p>
+              <p style="margin:0;padding:12px 14px;background:#EAF0FA;border-radius:8px;font-size:13px;line-height:1.5;color:#0B173A;">
+                Conserve este correo como comprobante de autorización. Si no solicitó este acceso,
+                comuníquese con Control Escolar / área de becas del Instituto.
+              </p>`
+  );
+}
+

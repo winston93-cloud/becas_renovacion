@@ -11,6 +11,21 @@ import {
   registrarAuditoria,
 } from '@/lib/admin-auditoria';
 import { nombreAlumnoAuditoria } from '@/lib/admin-auditoria-alumno';
+import { sendMail, getMailFrom } from '@/lib/mailer';
+import {
+  getCurrentSchoolCycle,
+  getSchoolCycleLabel,
+} from '@/lib/ciclo-escolar';
+import { labelNivel } from '@/lib/email-renovacion';
+import { labelGrupo } from '@/lib/label-grupo';
+import {
+  buildAccesoAutorizadoEmailHtml,
+  buildAccesoAutorizadoEmailSubject,
+} from '@/lib/email-solicitud';
+import {
+  portalBecasPublicUrl,
+  resolveAccesoAutorizadoMailTo,
+} from '@/lib/email-acceso-autorizado';
 
 export async function GET(request: NextRequest) {
   try {
@@ -98,7 +113,7 @@ export async function PATCH(request: NextRequest) {
     const { data: alumno, error } = await db.database
       .from('alumno')
       .select(
-        'alumno_id, alumno_ref, alumno_app, alumno_apm, alumno_nombre, alumno_nivel, alumno_permiso_solicitud_beca, alumno_solicitud_acceso_enviada, alumno_solicitud_acceso_en'
+        'alumno_id, alumno_ref, alumno_app, alumno_apm, alumno_nombre, alumno_nivel, alumno_grado, alumno_grupo, alumno_permiso_solicitud_beca, alumno_solicitud_acceso_enviada, alumno_solicitud_acceso_en'
       )
       .eq('alumno_id', alumnoId)
       .maybeSingle();
@@ -153,6 +168,59 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: upErr.message }, { status: 500 });
     }
 
+
+    // Aviso institucional a la familia (remitente = correo masivo de servicios).
+    let emailAviso: { ok: boolean; messageId?: string; to?: string; error?: string } | null =
+      null;
+    if (permiso === true && !yaTienePermiso) {
+      const nombreCompleto = [
+        alumno.alumno_app,
+        alumno.alumno_apm,
+        alumno.alumno_nombre,
+      ]
+        .map((p) => (p != null ? String(p).trim() : ''))
+        .filter(Boolean)
+        .join(' ');
+      const nivel =
+        alumno.alumno_nivel != null ? Number(alumno.alumno_nivel) : null;
+      const grado =
+        alumno.alumno_grado != null ? String(alumno.alumno_grado) : '—';
+      const grupo = labelGrupo(alumno.alumno_grupo as number | null);
+      const emailData = {
+        alumnoNombre: nombreCompleto || 'Sin nombre',
+        alumnoRef: String(alumno.alumno_ref),
+        nivelLabel: labelNivel(nivel),
+        gradoGrupo: `${grado} / ${grupo}`,
+        cicloLabel: getSchoolCycleLabel(getCurrentSchoolCycle()),
+        portalUrl: portalBecasPublicUrl(),
+      };
+      const recipients = resolveAccesoAutorizadoMailTo();
+      try {
+        const sent = await sendMail({
+          to: recipients.to,
+          bcc: recipients.bcc,
+          replyTo:
+            process.env.BECAS_EMAIL_REPLY_TO?.trim() ||
+            process.env.BECAS_EMAIL_TO?.trim() ||
+            recipients.to,
+          subject: buildAccesoAutorizadoEmailSubject(emailData),
+          html: buildAccesoAutorizadoEmailHtml(emailData),
+        });
+        emailAviso = {
+          ok: true,
+          messageId: sent.messageId,
+          to: recipients.to,
+        };
+      } catch (mailErr) {
+        emailAviso = {
+          ok: false,
+          to: recipients.to,
+          error:
+            mailErr instanceof Error ? mailErr.message : 'Error SMTP',
+        };
+      }
+    }
+
     const meta = clientMetaFromRequest(request);
     await registrarAuditoria(auth.admin, {
       accion: permiso ? 'acceso.autorizar' : 'acceso.revocar',
@@ -167,6 +235,8 @@ export async function PATCH(request: NextRequest) {
         permiso_despues: permiso,
         pidio_acceso: pidioAcceso,
         tuvo_pedido: tuvoPedido,
+        email_aviso: emailAviso,
+        remitente: getMailFrom(),
       },
       ...meta,
     });
@@ -175,6 +245,7 @@ export async function PATCH(request: NextRequest) {
       ok: true,
       alumno: updated,
       tuvo_pedido_acceso: tuvoPedido,
+      email_aviso: emailAviso,
     });
   } catch (err) {
     const message =

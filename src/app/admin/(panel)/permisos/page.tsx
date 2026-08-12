@@ -20,6 +20,7 @@ export default function AdminPermisosPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<number | null>(null);
+  const [okMsg, setOkMsg] = useState<string | null>(null);
 
   async function load(query = q) {
     setLoading(true);
@@ -53,6 +54,7 @@ export default function AdminPermisosPage() {
   async function setPermiso(alumnoId: number, permiso: boolean) {
     setBusyId(alumnoId);
     setError(null);
+    setOkMsg(null);
     try {
       const res = await fetch('/api/admin/permisos-solicitud', {
         method: 'PATCH',
@@ -64,6 +66,19 @@ export default function AdminPermisosPage() {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'No se pudo guardar.');
+      if (permiso && json.email_aviso?.ok) {
+        setOkMsg(
+          `Acceso autorizado. Se envió el aviso oficial a ${json.email_aviso.to || 'la familia'}.`
+        );
+      } else if (permiso && json.email_aviso && !json.email_aviso.ok) {
+        setOkMsg(
+          `Acceso autorizado, pero el correo no se pudo enviar: ${json.email_aviso.error || 'error SMTP'}.`
+        );
+      } else if (permiso) {
+        setOkMsg('Acceso autorizado.');
+      } else {
+        setOkMsg('Permiso revocado.');
+      }
       await load(q);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error');
@@ -103,6 +118,7 @@ export default function AdminPermisosPage() {
       </form>
 
       {error ? <Alert variant="error">{error}</Alert> : null}
+      {okMsg ? <Alert variant="success">{okMsg}</Alert> : null}
       {loading ? (
         <Card className="text-sm text-text-secondary">Cargando…</Card>
       ) : null}
