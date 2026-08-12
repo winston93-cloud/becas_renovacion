@@ -23,8 +23,10 @@ import {
   buildAccesoAutorizadoEmailSubject,
 } from '@/lib/email-solicitud';
 import {
+  esAlumnoPruebaAcceso,
+  fetchEmailsPadresPorAlumnos,
   portalBecasPublicUrl,
-  resolveAccesoAutorizadoMailTo,
+  resolveAccesoAutorizadoDestinatarios,
 } from '@/lib/email-acceso-autorizado';
 
 export async function GET(request: NextRequest) {
@@ -73,17 +75,41 @@ export async function GET(request: NextRequest) {
       })
       .slice(0, 300);
 
-    const destinatarios = resolveAccesoAutorizadoMailTo();
+    const db = getInsforgeAdmin();
+    const emailsByAlumno = await fetchEmailsPadresPorAlumnos(
+      db.database,
+      items.map((i) => Number(i.alumno_id))
+    );
+
+    const itemsConCorreo = items.map((i) => {
+      const esPrueba = esAlumnoPruebaAcceso({
+        alumno_ref: i.alumno_ref,
+        alumno_app: null,
+        alumno_apm: null,
+        alumno_nombre: i.nombre,
+      });
+      // nombre completo "JUAN PRUEBA PRUEBA" también detecta prueba
+      const emails = esPrueba
+        ? [
+            process.env.BECAS_EMAIL_ACCESO_FAMILIA?.trim() ||
+              'isc.escobedo@gmail.com',
+          ]
+        : emailsByAlumno.get(Number(i.alumno_id)) || [];
+      return {
+        ...i,
+        emails_aviso: emails,
+        es_prueba: esPrueba,
+      };
+    });
+
     return NextResponse.json({
-      total: items.length,
-      pendientes_autorizar: items.filter(
+      total: itemsConCorreo.length,
+      pendientes_autorizar: itemsConCorreo.filter(
         (i) => i.acceso_enviada && !i.permiso_solicitud
       ).length,
-      items,
+      items: itemsConCorreo,
       email_aviso: {
         from: getMailFrom(),
-        to: destinatarios.to,
-        bcc: destinatarios.bcc || null,
       },
     });
   } catch (err) {
@@ -200,30 +226,46 @@ export async function PATCH(request: NextRequest) {
         cicloLabel: getSchoolCycleLabel(getCurrentSchoolCycle()),
         portalUrl: portalBecasPublicUrl(),
       };
-      const recipients = resolveAccesoAutorizadoMailTo();
-      try {
-        const sent = await sendMail({
-          to: recipients.to,
-          bcc: recipients.bcc,
-          replyTo:
-            process.env.BECAS_EMAIL_REPLY_TO?.trim() ||
-            process.env.BECAS_EMAIL_TO?.trim() ||
-            recipients.to,
-          subject: buildAccesoAutorizadoEmailSubject(emailData),
-          html: buildAccesoAutorizadoEmailHtml(emailData),
-        });
-        emailAviso = {
-          ok: true,
-          messageId: sent.messageId,
-          to: recipients.to,
-        };
-      } catch (mailErr) {
+      const recipients = await resolveAccesoAutorizadoDestinatarios({
+        db: db.database,
+        alumno_id: Number(alumno.alumno_id),
+        alumno_ref: alumno.alumno_ref,
+        alumno_app: alumno.alumno_app as string | null,
+        alumno_apm: alumno.alumno_apm as string | null,
+        alumno_nombre: alumno.alumno_nombre as string | null,
+      });
+
+      if (recipients.sin_correo || recipients.to.length === 0) {
         emailAviso = {
           ok: false,
-          to: recipients.to,
+          to: undefined,
           error:
-            mailErr instanceof Error ? mailErr.message : 'Error SMTP',
+            'No hay correo de padre/madre registrado para este alumno.',
         };
+      } else {
+        try {
+          const sent = await sendMail({
+            to: recipients.to,
+            replyTo:
+              process.env.BECAS_EMAIL_REPLY_TO?.trim() ||
+              process.env.BECAS_EMAIL_TO?.trim() ||
+              recipients.to[0],
+            subject: buildAccesoAutorizadoEmailSubject(emailData),
+            html: buildAccesoAutorizadoEmailHtml(emailData),
+          });
+          emailAviso = {
+            ok: true,
+            messageId: sent.messageId,
+            to: recipients.to.join(', '),
+          };
+        } catch (mailErr) {
+          emailAviso = {
+            ok: false,
+            to: recipients.to.join(', '),
+            error:
+              mailErr instanceof Error ? mailErr.message : 'Error SMTP',
+          };
+        }
       }
     }
 
