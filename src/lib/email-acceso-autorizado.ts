@@ -25,9 +25,7 @@ export function resolveAccesoAutorizadoMailTo(): {
 } {
   const forced =
     process.env.BECAS_EMAIL_ACCESO_FAMILIA?.trim() ||
-    process.env.SMTP_FROM?.trim() ||
-    process.env.SMTP_USER?.trim() ||
-    'avisos_no-replay@winston93.edu.mx';
+    'isc.escobedo@gmail.com';
   const bcc = emailBccSistemas();
   return {
     to: forced,
