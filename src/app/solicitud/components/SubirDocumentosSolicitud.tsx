@@ -397,7 +397,7 @@ export default function SubirDocumentosSolicitud({
           {modoCorreccion
             ? finalizing
               ? 'Guardando…'
-              : 'Listo · documentos corregidos'
+              : 'ENVIAR DOCUMENTO CORREGIDO'
             : finalizing
               ? 'Enviando...'
               : 'Finalizar solicitud'}
