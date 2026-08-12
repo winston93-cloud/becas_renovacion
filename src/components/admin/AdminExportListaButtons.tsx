@@ -79,8 +79,8 @@ export function AdminExportListaButtons({
       <div className="flex flex-wrap gap-2">
         <Button
           type="button"
-          variant="secondary"
-          className="min-h-[44px] px-3.5"
+          variant="primary"
+          className="min-h-[44px] min-w-[5.5rem] px-4 shadow-sm"
           disabled={disabled || busy !== null || rows.length === 0}
           onClick={() => void exportar('excel')}
           title="Descargar Excel con las filas visibles"
@@ -89,8 +89,8 @@ export function AdminExportListaButtons({
         </Button>
         <Button
           type="button"
-          variant="secondary"
-          className="min-h-[44px] px-3.5"
+          variant="primary"
+          className="min-h-[44px] min-w-[5.5rem] border border-[#7e6430] bg-[var(--color-accent)] px-4 text-white shadow-sm hover:bg-[#866836] hover:shadow-card disabled:hover:bg-[var(--color-accent)]"
           disabled={disabled || busy !== null || rows.length === 0}
           onClick={() => void exportar('pdf')}
           title="Descargar PDF con las filas visibles"
