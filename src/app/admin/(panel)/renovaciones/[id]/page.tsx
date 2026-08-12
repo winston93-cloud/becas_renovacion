@@ -2,12 +2,18 @@
 
 import { useCallback, useEffect, useMemo, useState, use } from 'react';
 import Link from 'next/link';
-import { Alert, Badge, Button, Card } from '@/components/ui';
+import { Alert, Button, Card } from '@/components/ui';
 import {
   AdminDocumentosRevision,
   docsListosParaVerificar,
   type DocAdminItem,
 } from '@/app/admin/(panel)/components/AdminDocumentosRevision';
+import {
+  AdminExpedienteHeader,
+  BadgeAutorizada,
+  BadgeEnviada,
+  BadgeVerificada,
+} from '@/components/admin/AdminExpedienteHeader';
 import { normalizarRevisionEstado } from '@/lib/doc-revision';
 
 type Detail = {
@@ -29,6 +35,11 @@ type Detail = {
     grado: number | null;
     grupo: string;
   };
+  beca: {
+    beca_id: number | null;
+    beca_clase: string | null;
+    beca_porcentaje: number | null;
+  } | null;
   documentos: DocAdminItem[];
   docs_requeridos: { tipo: string; label: string }[];
 };
@@ -109,7 +120,7 @@ export default function RenovacionDetallePage({
   if (error && !data) return <Alert variant="error">{error}</Alert>;
   if (!data) return null;
 
-  const { renovacion: r, alumno: a } = data;
+  const { renovacion: r, alumno: a, beca } = data;
 
   return (
     <div className="space-y-4">
@@ -120,32 +131,21 @@ export default function RenovacionDetallePage({
         ← Volver al listado
       </Link>
 
-      <div>
-        <h2 className="font-[family-name:var(--font-display)] text-2xl text-primary">
-          {a.nombre}
-        </h2>
-        <p className="text-sm text-text-secondary">
-          {a.alumno_ref} · {a.nivel_label} {a.grado ?? '—'} / {a.grupo} ·
-          Renovación de becas {r.ciclo_label}
-        </p>
-        <div className="mt-2 flex flex-wrap gap-1">
-          {r.correo_enviado ? (
-            <Badge variant="success">Enviada</Badge>
-          ) : (
-            <Badge>Borrador</Badge>
-          )}
-          {r.verificado ? (
-            <Badge variant="success">Verificada</Badge>
-          ) : (
-            <Badge variant="pending">Sin verificar</Badge>
-          )}
-          {r.beca_autorizada ? (
-            <Badge variant="primary">Autorizada</Badge>
-          ) : (
-            <Badge>Sin autorizar</Badge>
-          )}
-        </div>
-      </div>
+      <AdminExpedienteHeader
+        nombre={a.nombre}
+        alumnoRef={a.alumno_ref}
+        metaLinea={`${a.nivel_label} ${a.grado ?? '—'} / ${a.grupo} · Renovación de becas ${r.ciclo_label}`}
+        badges={
+          <>
+            <BadgeEnviada enviada={r.correo_enviado} />
+            <BadgeVerificada verificada={r.verificado} />
+            <BadgeAutorizada autorizada={r.beca_autorizada} />
+          </>
+        }
+        becaLabel="Beca a renovar"
+        tipoBeca={beca?.beca_clase ?? null}
+        porcentajeBeca={beca?.beca_porcentaje ?? null}
+      />
 
       {error ? <Alert variant="error">{error}</Alert> : null}
 

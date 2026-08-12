@@ -5,6 +5,7 @@ import { mapAlumnoRow } from '@/lib/admin-queries';
 import { docsRequeridos, labelDocRequerido } from '@/lib/documentos-requeridos';
 import {
   getCurrentSchoolCycle,
+  getCicloBecaARenovar,
   getSchoolCycleLabel,
 } from '@/lib/ciclo-escolar';
 import { expedienteDocsTodosOk } from '@/lib/expediente-docs-ok';
@@ -74,6 +75,30 @@ export async function GET(_request: NextRequest, ctx: Ctx) {
       grado: alumno.alumno_grado,
     });
 
+    // Beca del ciclo origen (la que se está renovando).
+    const cicloBecaOrigen = getCicloBecaARenovar();
+    const { data: becaRow } = await db.database
+      .from('alumno_beca')
+      .select('beca_id, beca_porcentaje, beca_estatus')
+      .eq('alumno_id', Number(ren.alumno_id))
+      .eq('beca_ciclo_escolar', cicloBecaOrigen)
+      .maybeSingle();
+
+    let beca_clase: string | null = null;
+    const beca_porcentaje =
+      becaRow?.beca_porcentaje != null ? Number(becaRow.beca_porcentaje) : null;
+    const beca_id =
+      becaRow?.beca_id != null ? Number(becaRow.beca_id) : null;
+
+    if (beca_id != null && beca_id > 0) {
+      const { data: concepto } = await db.database
+        .from('becas_concepto_beca')
+        .select('beca_clase')
+        .eq('beca_id', beca_id)
+        .maybeSingle();
+      beca_clase = concepto?.beca_clase ? String(concepto.beca_clase) : null;
+    }
+
     return NextResponse.json({
       renovacion: {
         id: String(ren.id),
@@ -93,6 +118,11 @@ export async function GET(_request: NextRequest, ctx: Ctx) {
         ),
       },
       alumno: mapAlumnoRow(alumno),
+      beca: {
+        beca_id,
+        beca_clase,
+        beca_porcentaje,
+      },
       documentos: (docs || []).map((d) => ({
         id: String(d.id),
         tipo: d.tipo,

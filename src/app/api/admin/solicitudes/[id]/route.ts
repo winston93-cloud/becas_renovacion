@@ -71,6 +71,22 @@ export async function GET(_request: NextRequest, ctx: Ctx) {
       grado: alumno.alumno_grado,
     });
 
+    const beca_id =
+      sol.beca_deseada_id != null ? Number(sol.beca_deseada_id) : null;
+    const beca_porcentaje =
+      sol.beca_porcentaje_deseado != null
+        ? Number(sol.beca_porcentaje_deseado)
+        : null;
+    let beca_clase: string | null = null;
+    if (beca_id != null && beca_id > 0) {
+      const { data: concepto } = await db.database
+        .from('becas_concepto_beca')
+        .select('beca_clase')
+        .eq('beca_id', beca_id)
+        .maybeSingle();
+      beca_clase = concepto?.beca_clase ? String(concepto.beca_clase) : null;
+    }
+
     return NextResponse.json({
       solicitud: {
         id: String(sol.id),
@@ -88,6 +104,11 @@ export async function GET(_request: NextRequest, ctx: Ctx) {
         ),
       },
       alumno: mapAlumnoRow(alumno),
+      beca: {
+        beca_id,
+        beca_clase,
+        beca_porcentaje,
+      },
       documentos: (docs || []).map((d) => ({
         id: String(d.id),
         tipo: d.tipo,
@@ -122,7 +143,7 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
 
     const { data: sol, error } = await db.database
       .from('becas_solicitud')
-      .select('id, alumno_id')
+      .select('id, alumno_id, beca_deseada_id, beca_porcentaje_deseado')
       .eq('id', id)
       .maybeSingle();
 
@@ -197,6 +218,8 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
           sol.beca_porcentaje_deseado != null
             ? Number(sol.beca_porcentaje_deseado)
             : null,
+        becaIdFallback:
+          sol.beca_deseada_id != null ? Number(sol.beca_deseada_id) : null,
       });
       if (!sync.ok) {
         return NextResponse.json({ error: sync.error }, { status: 400 });
