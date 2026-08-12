@@ -1,7 +1,7 @@
 /**
- * Destinatarios del aviso «acceso autorizado».
+ * Destinatarios de avisos a familia (acceso autorizado, doc incorrecto, etc.).
  * Remitente SMTP = buzón masivo de servicios (avisos_no-replay).
- * - Alumno de prueba (JUAN PRUEBA / ref 29901) → isc.escobedo@gmail.com
+ * - Alumno de prueba (LUIS PRUEBA / ref 29902; legado JUAN/29901) → isc.escobedo@gmail.com
  * - Alumnos reales → correos de papá/mamá en alumno_familiar
  * Sin BCC visible ni enviado a la familia.
  */
@@ -9,7 +9,8 @@ import type { createAdminClient } from '@insforge/sdk';
 
 type Db = ReturnType<typeof createAdminClient>['database'];
 
-const REF_PRUEBA = 29901;
+/** Ref actual de alumno de prueba (LUIS). 29901 = legado JUAN. */
+const REFS_PRUEBA = new Set([29902, 29901]);
 const EMAIL_PRUEBA =
   process.env.BECAS_EMAIL_ACCESO_FAMILIA?.trim() || 'isc.escobedo@gmail.com';
 
@@ -34,16 +35,16 @@ export function esAlumnoPruebaAcceso(opts: {
   alumno_nombre?: string | null;
 }): boolean {
   const ref = Number(opts.alumno_ref);
-  if (Number.isFinite(ref) && ref === REF_PRUEBA) return true;
+  if (Number.isFinite(ref) && REFS_PRUEBA.has(ref)) return true;
   const parts = [opts.alumno_app, opts.alumno_apm, opts.alumno_nombre]
     .map((p) => (p != null ? String(p).trim().toUpperCase() : ''))
     .filter(Boolean);
   const joined = parts.join(' ');
-  if (joined.includes('JUAN') && (joined.match(/\bPRUEBA\b/g) || []).length >= 2) {
-    return true;
-  }
+  const pruebas = (joined.match(/\bPRUEBA\b/g) || []).length;
+  if (pruebas < 2) return false;
+  if (joined.includes('LUIS') || joined.includes('JUAN')) return true;
   if (
-    parts.includes('JUAN') &&
+    (parts.includes('LUIS') || parts.includes('JUAN')) &&
     parts.filter((p) => p === 'PRUEBA').length >= 2
   ) {
     return true;

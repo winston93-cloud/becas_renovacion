@@ -214,6 +214,8 @@ export async function GET(request: NextRequest) {
         storage_url: d.storage_url,
         nombre_original: d.nombre_original,
         subido_en: d.subido_en,
+        revision_estado: d.revision_estado || 'pendiente',
+        revision_nota: d.revision_nota || null,
       }));
     }
 
@@ -241,6 +243,10 @@ export async function GET(request: NextRequest) {
         familiar_email: (row.familiar_email as string) || null,
       };
     };
+
+    const docsPorCorregir = documentos.some(
+      (d) => d.revision_estado === 'incorrecto'
+    );
 
     const payload: RenovacionPrecarga = {
       ciclo_escolar: ciclo,
@@ -294,8 +300,9 @@ export async function GET(request: NextRequest) {
         : null,
       hermanos,
       documentos,
-      // 2026-07-16 - Si ya finalizó, el frontend va directo al comprobante
+      // 2026-07-16 - Si ya finalizó, el frontend va al comprobante (o a correcciones)
       ya_registrado: Boolean(renovacion?.correo_enviado),
+      docs_por_corregir: docsPorCorregir,
     };
 
     return NextResponse.json(payload);

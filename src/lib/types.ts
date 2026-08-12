@@ -50,6 +50,9 @@ export type Documento = {
   storage_url: string | null;
   nombre_original: string | null;
   subido_en: string;
+  /** Estado de revisión admin (portal lo usa para correcciones). */
+  revision_estado?: 'pendiente' | 'ok' | 'incorrecto';
+  revision_nota?: string | null;
 };
 
 export type RenovacionPayload = {
@@ -121,10 +124,12 @@ export type RenovacionPrecarga = {
   hermanos: Hermano[];
   documentos: Documento[];
   /**
-   * 2026-07-16 - true si ya finalizó renovación (correo_enviado).
-   * El portal no debe permitir reeditar; solo comprobante.
+   * true si ya finalizó renovación (correo_enviado).
+   * Si además hay docs incorrectos, el portal abre carga de correcciones.
    */
   ya_registrado: boolean;
+  /** Hay documentos marcados incorrecto que el padre puede re-subir. */
+  docs_por_corregir?: boolean;
 };
 
 /**
@@ -205,6 +210,7 @@ export type SolicitudPrecarga = {
   } | null;
   hermanos: Hermano[];
   documentos: Documento[];
-  /** true si ya envió la solicitud (enviado=true); solo consulta */
+  /** true si ya envió la solicitud (enviado=true); solo consulta salvo correcciones */
   ya_registrado: boolean;
+  docs_por_corregir?: boolean;
 };

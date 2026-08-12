@@ -263,6 +263,8 @@ export async function GET(request: NextRequest) {
         storage_url: d.storage_url,
         nombre_original: d.nombre_original,
         subido_en: d.subido_en,
+        revision_estado: d.revision_estado || 'pendiente',
+        revision_nota: d.revision_nota || null,
       }));
     }
 
@@ -290,6 +292,10 @@ export async function GET(request: NextRequest) {
         familiar_email: (row.familiar_email as string) || null,
       };
     };
+
+    const docsPorCorregir = documentos.some(
+      (d) => d.revision_estado === 'incorrecto'
+    );
 
     const payload: SolicitudPrecarga = {
       ciclo_escolar: ciclo,
@@ -353,6 +359,7 @@ export async function GET(request: NextRequest) {
       hermanos,
       documentos,
       ya_registrado: Boolean(solicitud?.enviado),
+      docs_por_corregir: docsPorCorregir,
     };
 
     return NextResponse.json(payload);

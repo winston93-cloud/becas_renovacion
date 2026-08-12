@@ -117,7 +117,9 @@ async function main() {
     );
     rows.push(...(chunk || []));
   }
-  const alumnos = rows.filter((r) => Number(r.alumno_ref) !== 29901);
+  const alumnos = rows.filter(
+    (r) => ![29901, 29902].includes(Number(r.alumno_ref))
+  );
   console.log(`Autorizados MK/PRI a notificar: ${alumnos.length}`);
 
   const ids = alumnos.map((a) => Number(a.alumno_id));

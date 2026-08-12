@@ -63,16 +63,27 @@ export async function POST(request: NextRequest) {
     const wrong = forbidWrongAlumno(auth.acceso, renovacion.alumno_id);
     if (wrong) return wrong;
 
-    // 2026-07-16 - Bloquear nuevas subidas si ya finalizó
+    // Bloquear subidas si ya finalizó, salvo corrección de documentos incorrectos
     if (renovacion.correo_enviado) {
-      return NextResponse.json(
-        {
-          error:
-            'Este alumno ya finalizó su renovación. No se pueden modificar documentos.',
-          ya_registrado: true,
-        },
-        { status: 409 }
-      );
+      const { data: existingForTipo } = await admin.database
+        .from('becas_documento')
+        .select('id, revision_estado')
+        .eq('renovacion_id', renovacionId)
+        .eq('tipo', tipo)
+        .maybeSingle();
+      if (
+        !existingForTipo ||
+        existingForTipo.revision_estado !== 'incorrecto'
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              'Este alumno ya finalizó su renovación. Solo puede reemplazar documentos marcados como incorrectos.',
+            ya_registrado: true,
+          },
+          { status: 409 }
+        );
+      }
     }
 
     // 2026-07-16 - alumno_id es integer (FK a public.alumno)

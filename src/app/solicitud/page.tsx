@@ -80,7 +80,7 @@ function SolicitudContent() {
           if (json.solicitud?.id) setSolicitudId(json.solicitud.id);
           if (json.ya_registrado) {
             setYaRegistrado(true);
-            setStep('done');
+            setStep(json.docs_por_corregir ? 'docs' : 'done');
           }
         }
       } catch (err) {
@@ -175,14 +175,34 @@ function SolicitudContent() {
           data &&
           step === 'docs' &&
           solicitudId &&
-          !yaRegistrado && (
+          (!yaRegistrado || Boolean(data.docs_por_corregir)) && (
             <div key="docs" className="ui-enter">
               <SubirDocumentosSolicitud
                 solicitudId={solicitudId}
                 documentosIniciales={data.documentos}
                 nivel={data.alumno.alumno_nivel}
                 grado={data.alumno.alumno_grado}
-                onComplete={() => setStep('done')}
+                modoCorreccion={yaRegistrado}
+                onComplete={() => {
+                  setData((prev) =>
+                    prev
+                      ? {
+                          ...prev,
+                          docs_por_corregir: false,
+                          documentos: prev.documentos.map((d) =>
+                            d.revision_estado === 'incorrecto'
+                              ? {
+                                  ...d,
+                                  revision_estado: 'pendiente',
+                                  revision_nota: null,
+                                }
+                              : d
+                          ),
+                        }
+                      : prev
+                  );
+                  setStep('done');
+                }}
               />
             </div>
           )}

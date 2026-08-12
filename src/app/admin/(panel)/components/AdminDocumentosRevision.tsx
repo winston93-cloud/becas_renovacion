@@ -2,7 +2,7 @@
 
 /**
  * Lista de documentos con revisión (ver PDF → OK / incorrecto).
- * La verificación del expediente solo se habilita cuando todos están OK.
+ * Incorrecto exige motivo y avisa a los papás por correo.
  */
 import { useCallback, useMemo, useState } from 'react';
 import { Alert, Badge, Button, Card } from '@/components/ui';
@@ -48,6 +48,7 @@ export function AdminDocumentosRevision({
   onChanged,
 }: Props) {
   const [error, setError] = useState<string | null>(null);
+  const [okMsg, setOkMsg] = useState<string | null>(null);
   const [savingTipo, setSavingTipo] = useState<string | null>(null);
   const [visor, setVisor] = useState<{
     doc: DocAdminItem;
@@ -55,6 +56,10 @@ export function AdminDocumentosRevision({
     url: string;
   } | null>(null);
   const [notaIncorrecto, setNotaIncorrecto] = useState('');
+  const [promptIncorrecto, setPromptIncorrecto] = useState<{
+    doc: DocAdminItem;
+    label: string;
+  } | null>(null);
 
   const porTipo = useMemo(() => {
     const m = new Map<string, DocAdminItem>();
@@ -91,6 +96,7 @@ export function AdminDocumentosRevision({
   const abrirRevisar = useCallback(
     async (doc: DocAdminItem, label: string) => {
       setError(null);
+      setOkMsg(null);
       setSavingTipo(doc.tipo);
       try {
         const res = await fetch(
@@ -117,6 +123,16 @@ export function AdminDocumentosRevision({
   const marcar = useCallback(
     async (doc: DocAdminItem, estado: RevisionEstadoDoc, nota?: string) => {
       setError(null);
+      setOkMsg(null);
+      if (estado === 'incorrecto') {
+        const m = (nota || '').trim();
+        if (m.length < 5) {
+          setError(
+            'Escriba el motivo de lo incorrecto (mínimo 5 caracteres). Se enviará a los padres.'
+          );
+          return;
+        }
+      }
       setSavingTipo(doc.tipo);
       try {
         const res = await fetch('/api/admin/documentos/revision', {
@@ -132,8 +148,22 @@ export function AdminDocumentosRevision({
         const json = await res.json();
         if (!res.ok) throw new Error(json.error || 'No se pudo guardar.');
         await onChanged();
+        setPromptIncorrecto(null);
         if (visor?.doc.id === doc.id) {
           if (estado === 'ok' || estado === 'incorrecto') cerrarVisor();
+        }
+        if (estado === 'incorrecto') {
+          if (json.email_aviso?.ok) {
+            setOkMsg(
+              `Documento marcado incorrecto. Aviso enviado a: ${json.email_aviso.to}.`
+            );
+          } else if (json.email_aviso?.error) {
+            setOkMsg(
+              `Documento marcado incorrecto, pero el correo no se envió: ${json.email_aviso.error}`
+            );
+          } else {
+            setOkMsg('Documento marcado incorrecto.');
+          }
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error al guardar.');
@@ -162,10 +192,12 @@ export function AdminDocumentosRevision({
         </div>
         <p className="text-xs text-text-secondary">
           Abra cada PDF con <strong>Revisar</strong>, luego márquelo como
-          correcto o incorrecto. Solo con todos en OK se puede marcar el
-          expediente como verificado.
+          correcto o incorrecto. Al marcar incorrecto debe indicar el motivo; se
+          avisa a los padres para que corrijan solo ese documento en el portal.
+          Solo con todos en OK se puede marcar el expediente como verificado.
         </p>
         {error ? <Alert variant="error">{error}</Alert> : null}
+        {okMsg ? <Alert variant="success">{okMsg}</Alert> : null}
         <ul className="space-y-3">
           {docsRequeridos.map((req) => {
             const doc = porTipo.get(req.tipo);
@@ -203,7 +235,7 @@ export function AdminDocumentosRevision({
                         <Button
                           type="button"
                           variant="secondary"
-                          className="!px-3 !py-1.5 text-xs"
+                          className="!min-h-[44px] !px-3 !py-1.5 text-xs"
                           disabled={busy}
                           onClick={() => void abrirRevisar(doc, req.label)}
                         >
@@ -212,7 +244,7 @@ export function AdminDocumentosRevision({
                         {doc.revision_estado !== 'ok' ? (
                           <Button
                             type="button"
-                            className="!px-3 !py-1.5 text-xs"
+                            className="!min-h-[44px] !px-3 !py-1.5 text-xs"
                             disabled={busy}
                             onClick={() => void marcar(doc, 'ok')}
                           >
@@ -223,15 +255,13 @@ export function AdminDocumentosRevision({
                           <Button
                             type="button"
                             variant="ghost"
-                            className="!px-3 !py-1.5 text-xs text-amber-800"
+                            className="!min-h-[44px] !px-3 !py-1.5 text-xs text-amber-800"
                             disabled={busy}
-                            onClick={() =>
-                              void marcar(
-                                doc,
-                                'incorrecto',
-                                'Documento incorrecto o ilegible'
-                              )
-                            }
+                            onClick={() => {
+                              setError(null);
+                              setNotaIncorrecto('');
+                              setPromptIncorrecto({ doc, label: req.label });
+                            }}
                           >
                             Incorrecto
                           </Button>
@@ -239,7 +269,7 @@ export function AdminDocumentosRevision({
                           <Button
                             type="button"
                             variant="ghost"
-                            className="!px-3 !py-1.5 text-xs"
+                            className="!min-h-[44px] !px-3 !py-1.5 text-xs"
                             disabled={busy}
                             onClick={() => void marcar(doc, 'pendiente')}
                           >
@@ -255,6 +285,71 @@ export function AdminDocumentosRevision({
           })}
         </ul>
       </Card>
+
+      {promptIncorrecto ? (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center p-3 sm:items-center sm:p-6"
+          role="presentation"
+        >
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/50"
+            aria-label="Cerrar"
+            onClick={() => setPromptIncorrecto(null)}
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="relative z-10 w-full max-w-lg rounded-[16px] bg-card p-4 shadow-xl sm:p-5"
+          >
+            <h2 className="text-base font-semibold text-primary">
+              Motivo de documento incorrecto
+            </h2>
+            <p className="mt-1 text-sm text-text-secondary">
+              {promptIncorrecto.label}. Este motivo se enviará por correo a los
+              padres y se mostrará en la carga de documentos del portal.
+            </p>
+            <label className="mt-3 block text-xs text-text-secondary">
+              Motivo (obligatorio)
+              <textarea
+                value={notaIncorrecto}
+                onChange={(e) => setNotaIncorrecto(e.target.value)}
+                rows={3}
+                className="mt-1 w-full rounded-[10px] border border-border bg-card px-3 py-2 text-base text-text sm:text-sm"
+                placeholder="Ej. Ilegible, incompleto, no corresponde al alumno…"
+                autoFocus
+              />
+            </label>
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
+              <Button
+                type="button"
+                variant="ghost"
+                className="!min-h-[44px]"
+                onClick={() => setPromptIncorrecto(null)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                className="!min-h-[44px]"
+                disabled={
+                  savingTipo === promptIncorrecto.doc.tipo ||
+                  notaIncorrecto.trim().length < 5
+                }
+                onClick={() =>
+                  void marcar(
+                    promptIncorrecto.doc,
+                    'incorrecto',
+                    notaIncorrecto.trim()
+                  )
+                }
+              >
+                Confirmar e informar a padres
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {visor ? (
         <div
@@ -294,12 +389,12 @@ export function AdminDocumentosRevision({
             </div>
             <div className="space-y-3 border-t border-border px-4 py-3">
               <label className="block text-xs text-text-secondary">
-                Nota si es incorrecto (opcional)
+                Motivo si es incorrecto (obligatorio para rechazar)
                 <textarea
                   value={notaIncorrecto}
                   onChange={(e) => setNotaIncorrecto(e.target.value)}
                   rows={2}
-                  className="mt-1 w-full rounded-[10px] border border-border bg-card px-3 py-2 text-sm text-text"
+                  className="mt-1 w-full rounded-[10px] border border-border bg-card px-3 py-2 text-base text-text sm:text-sm"
                   placeholder="Ej. Ilegible, incompleto, no corresponde al alumno…"
                 />
               </label>
@@ -307,12 +402,16 @@ export function AdminDocumentosRevision({
                 <Button
                   type="button"
                   variant="secondary"
-                  disabled={savingTipo === visor.doc.tipo}
+                  className="!min-h-[44px]"
+                  disabled={
+                    savingTipo === visor.doc.tipo ||
+                    notaIncorrecto.trim().length < 5
+                  }
                   onClick={() =>
                     void marcar(
                       visor.doc,
                       'incorrecto',
-                      notaIncorrecto || 'Documento incorrecto'
+                      notaIncorrecto.trim()
                     )
                   }
                 >
@@ -320,6 +419,7 @@ export function AdminDocumentosRevision({
                 </Button>
                 <Button
                   type="button"
+                  className="!min-h-[44px]"
                   disabled={savingTipo === visor.doc.tipo}
                   onClick={() => void marcar(visor.doc, 'ok')}
                 >

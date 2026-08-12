@@ -74,7 +74,7 @@ function RenovacionContent() {
           if (json.renovacion?.id) setRenovacionId(json.renovacion.id);
           if (json.ya_registrado) {
             setYaRegistrado(true);
-            setStep('done');
+            setStep(json.docs_por_corregir ? 'docs' : 'done');
           }
         }
       } catch (err) {
@@ -153,14 +153,34 @@ function RenovacionContent() {
           data &&
           step === 'docs' &&
           renovacionId &&
-          !yaRegistrado && (
+          (!yaRegistrado || Boolean(data.docs_por_corregir)) && (
             <div key="docs" className="ui-enter">
               <SubirDocumentos
                 renovacionId={renovacionId}
                 documentosIniciales={data.documentos}
                 nivel={data.alumno.alumno_nivel}
                 grado={data.alumno.alumno_grado}
-                onComplete={() => setStep('done')}
+                modoCorreccion={yaRegistrado}
+                onComplete={() => {
+                  setData((prev) =>
+                    prev
+                      ? {
+                          ...prev,
+                          docs_por_corregir: false,
+                          documentos: prev.documentos.map((d) =>
+                            d.revision_estado === 'incorrecto'
+                              ? {
+                                  ...d,
+                                  revision_estado: 'pendiente',
+                                  revision_nota: null,
+                                }
+                              : d
+                          ),
+                        }
+                      : prev
+                  );
+                  setStep('done');
+                }}
               />
             </div>
           )}

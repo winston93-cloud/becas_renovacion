@@ -73,16 +73,27 @@ export async function POST(request: NextRequest) {
     const wrong = forbidWrongAlumno(auth.acceso, solicitud.alumno_id);
     if (wrong) return wrong;
 
-    // 2026-07-17 - Bloquear nuevas subidas si ya envió
+    // Bloquear subidas si ya envió, salvo corrección de documentos incorrectos
     if (solicitud.enviado) {
-      return NextResponse.json(
-        {
-          error:
-            'Este alumno ya envió su solicitud. No se pueden modificar documentos.',
-          ya_registrado: true,
-        },
-        { status: 409 }
-      );
+      const { data: existingForTipo } = await admin.database
+        .from('becas_solicitud_documento')
+        .select('id, revision_estado')
+        .eq('solicitud_id', solicitudId)
+        .eq('tipo', tipo)
+        .maybeSingle();
+      if (
+        !existingForTipo ||
+        existingForTipo.revision_estado !== 'incorrecto'
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              'Este alumno ya envió su solicitud. Solo puede reemplazar documentos marcados como incorrectos.',
+            ya_registrado: true,
+          },
+          { status: 409 }
+        );
+      }
     }
 
     // Defensa: beca activa del ciclo pasado → debe ir a Renovación
