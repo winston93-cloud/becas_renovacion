@@ -84,6 +84,18 @@ export function labelDocRequerido(tipo: DocumentoTipo): string {
   return LABELS[tipo];
 }
 
+/** Lista lista para UI: tipo + etiqueta según nivel/grado. */
+export function docsRequeridosConEtiqueta(opts: {
+  flujo: FlujoDocumentos;
+  nivel: number | null | undefined;
+  grado: number | null | undefined;
+}): { tipo: DocumentoTipo; label: string }[] {
+  return docsRequeridos(opts).map((tipo) => ({
+    tipo,
+    label: labelDocRequerido(tipo),
+  }));
+}
+
 /**
  * Renovación: 4 PDFs de la circular (todos los niveles).
  * Solicitud (nuevo ingreso): 3 base; +2 si Kinder 2+.

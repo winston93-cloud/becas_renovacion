@@ -14,7 +14,14 @@
 import { FormEvent, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, CalendarClock, RefreshCw, ShieldCheck, UserPlus } from 'lucide-react';
+import {
+  ArrowRight,
+  CalendarClock,
+  FileText,
+  RefreshCw,
+  ShieldCheck,
+  UserPlus,
+} from 'lucide-react';
 import { Alert, Button, Input, Label, Modal } from '@/components/ui';
 import {
   fetchConAcceso,
@@ -35,6 +42,8 @@ type AccesoEstado =
   | 'ya_tiene_beca'
   | 'no_encontrado';
 
+type DocRequeridoUi = { tipo: string; label: string };
+
 export default function HomePage() {
   const router = useRouter();
   const [alumnoRef, setAlumnoRef] = useState('');
@@ -43,6 +52,10 @@ export default function HomePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  const [docsAcceso, setDocsAcceso] = useState<{
+    nivelLabel: string;
+    docs: DocRequeridoUi[];
+  } | null>(null);
   const [modalRenovacion, setModalRenovacion] = useState(false);
   const [modalVentana, setModalVentana] = useState<{
     titulo: string;
@@ -59,6 +72,32 @@ export default function HomePage() {
       codigo: status.codigo,
     });
     return false;
+  }
+
+  function tomarDocsDeRespuesta(json: Record<string, unknown>) {
+    const docs = Array.isArray(json.documentos_requeridos)
+      ? (json.documentos_requeridos as DocRequeridoUi[]).filter(
+          (d) => d && typeof d.label === 'string'
+        )
+      : [];
+    if (docs.length === 0) {
+      setDocsAcceso(null);
+      return;
+    }
+    setDocsAcceso({
+      nivelLabel:
+        typeof json.nivel_label === 'string' && json.nivel_label
+          ? json.nivel_label
+          : 'su nivel',
+      docs,
+    });
+  }
+
+  function limpiarFeedback() {
+    setError(null);
+    setInfo(null);
+    setDocsAcceso(null);
+    setModalRenovacion(false);
   }
 
   async function iniciarSesion(ref: string, clave: string): Promise<void> {
@@ -123,6 +162,7 @@ export default function HomePage() {
 
     setError(null);
     setInfo(null);
+    setDocsAcceso(null);
     setModalRenovacion(false);
     setLoading(true);
 
@@ -166,6 +206,7 @@ export default function HomePage() {
       }
 
       if (estado === 'esperando_respuesta') {
+        tomarDocsDeRespuesta(statusJson);
         setInfo(
           statusJson.mensaje ||
             'Ya envió su solicitud de acceso. Por favor espere la respuesta del área de becas del Instituto.'
@@ -196,6 +237,7 @@ export default function HomePage() {
           router.push(`/solicitud?alumno_ref=${encodeURIComponent(ref)}`);
           return;
         }
+        tomarDocsDeRespuesta(postJson);
         setInfo(
           postJson.mensaje ||
             'Solicitud de acceso enviada. Espere la respuesta del área de becas del Instituto.'
@@ -215,9 +257,7 @@ export default function HomePage() {
 
   function elegirFlujo(next: Flujo) {
     setFlujo(next);
-    setError(null);
-    setInfo(null);
-    setModalRenovacion(false);
+    limpiarFeedback();
   }
 
   const puedeEnviar = Boolean(alumnoRef.trim() && alumnoClave && !loading && !info);
@@ -353,9 +393,7 @@ export default function HomePage() {
                 value={alumnoRef}
                 onChange={(e) => {
                   setAlumnoRef(e.target.value.replace(/\D/g, ''));
-                  setError(null);
-                  setInfo(null);
-                  setModalRenovacion(false);
+                  limpiarFeedback();
                 }}
                 placeholder="Ej. 21628"
                 aria-label="Número de control del alumno"
@@ -373,9 +411,7 @@ export default function HomePage() {
                 value={alumnoClave}
                 onChange={(e) => {
                   setAlumnoClave(e.target.value);
-                  setError(null);
-                  setInfo(null);
-                  setModalRenovacion(false);
+                  limpiarFeedback();
                 }}
                 placeholder="Contraseña del alumno"
                 aria-label="Contraseña del alumno"
@@ -401,6 +437,40 @@ export default function HomePage() {
               <Alert variant="info" title="Solicitud de acceso">
                 {info}
               </Alert>
+            ) : null}
+
+            {info && docsAcceso ? (
+              <aside className="home-docs-card ui-enter" aria-label="Documentos para el trámite">
+                <div className="home-docs-card__head">
+                  <span className="home-docs-card__icon" aria-hidden>
+                    <FileText className="h-4 w-4" />
+                  </span>
+                  <div>
+                    <p className="home-docs-card__kicker">Prepare su expediente</p>
+                    <h3 className="home-docs-card__title">
+                      Documentos para solicitud de beca
+                    </h3>
+                    <p className="home-docs-card__sub">
+                      Según el nivel ({docsAcceso.nivelLabel}). Cuando le
+                      autoricen el acceso, deberá subirlos en PDF en el portal.
+                    </p>
+                  </div>
+                </div>
+                <ol className="home-docs-list">
+                  {docsAcceso.docs.map((doc, idx) => (
+                    <li key={doc.tipo} className="home-docs-list__item">
+                      <span className="home-docs-list__num" aria-hidden>
+                        {idx + 1}
+                      </span>
+                      <span className="home-docs-list__label">{doc.label}</span>
+                    </li>
+                  ))}
+                </ol>
+                <p className="home-docs-card__note">
+                  Solo archivos PDF, legibles y a nombre del alumno o tutor
+                  correspondiente.
+                </p>
+              </aside>
             ) : null}
 
             <Button type="submit" disabled={!puedeEnviar} fullWidth>

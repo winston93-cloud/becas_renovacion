@@ -22,6 +22,7 @@ import {
   buildSolicitudAccesoEmailHtml,
   buildSolicitudAccesoEmailSubject,
 } from '@/lib/email-solicitud';
+import { docsRequeridosConEtiqueta } from '@/lib/documentos-requeridos';
 
 type AccesoEstado =
   | 'puede_solicitar'
@@ -29,6 +30,26 @@ type AccesoEstado =
   | 'autorizado'
   | 'ya_tiene_beca'
   | 'no_encontrado';
+
+function payloadDocsAlumno(alumno: {
+  alumno_nivel?: number | null;
+  alumno_grado?: number | null;
+}) {
+  const nivel =
+    alumno.alumno_nivel != null ? Number(alumno.alumno_nivel) : null;
+  const grado =
+    alumno.alumno_grado != null ? Number(alumno.alumno_grado) : null;
+  return {
+    alumno_nivel: nivel,
+    alumno_grado: grado,
+    nivel_label: labelNivel(nivel),
+    documentos_requeridos: docsRequeridosConEtiqueta({
+      flujo: 'solicitud',
+      nivel,
+      grado,
+    }),
+  };
+}
 
 function parseAlumnoRef(raw: string | null): number | null {
   if (!raw || !/^\d+$/.test(raw.trim())) return null;
@@ -122,6 +143,7 @@ export async function GET(request: NextRequest) {
       mensaje: mensajePublico(estado),
       alumno_ref: alumno!.alumno_ref,
       acceso_enviado_en: alumno!.alumno_solicitud_acceso_en || null,
+      ...payloadDocsAlumno(alumno!),
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Error desconocido';
@@ -172,6 +194,7 @@ export async function POST(request: NextRequest) {
         estado,
         mensaje: mensajePublico(estado),
         puede_continuar: true,
+        ...payloadDocsAlumno(alumno!),
       });
     }
     if (estado === 'esperando_respuesta') {
@@ -181,6 +204,7 @@ export async function POST(request: NextRequest) {
         mensaje: mensajePublico(estado),
         ya_enviado: true,
         acceso_enviado_en: alumno!.alumno_solicitud_acceso_en || null,
+        ...payloadDocsAlumno(alumno!),
       });
     }
 
@@ -264,6 +288,7 @@ export async function POST(request: NextRequest) {
       mensaje: mensajePublico('esperando_respuesta'),
       email_id: messageId || null,
       acceso_enviado_en: ahora,
+      ...payloadDocsAlumno(alumno!),
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Error desconocido';
