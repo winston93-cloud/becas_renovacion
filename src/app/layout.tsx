@@ -1,18 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Fraunces, Source_Sans_3 } from 'next/font/google';
 import './globals.css';
-
-const fraunces = Fraunces({
-  variable: '--font-fraunces',
-  subsets: ['latin'],
-  weight: ['500', '600', '700'],
-});
-
-const sourceSans = Source_Sans_3({
-  variable: '--font-source-sans',
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-});
 
 export const metadata: Metadata = {
   title: 'Portal de Becas · Instituto Winston Churchill',
@@ -27,7 +14,9 @@ export const viewport: Viewport = {
 };
 
 /**
- * 2026-07-23 - Tipografía editorial (Fraunces + Source Sans 3) para tono institucional cálido.
+ * Tipografía editorial (Fraunces + Source Sans 3).
+ * Se carga por CSS en runtime (no next/font/google) para evitar fallos de
+ * Turbopack en Vercel: Can't resolve '@vercel/turbopack-next/internal/font/google/font'.
  */
 export default function RootLayout({
   children,
@@ -36,11 +25,19 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es">
-      <body
-        className={`${fraunces.variable} ${sourceSans.variable} font-sans antialiased`}
-      >
-        {children}
-      </body>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link
+          rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossOrigin="anonymous"
+        />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Source+Sans+3:wght@400;500;600;700&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body className="font-sans antialiased">{children}</body>
     </html>
   );
 }
