@@ -20,7 +20,6 @@ type Item = {
 export default function AdminPermisosPage() {
   const [q, setQ] = useState('');
   const [items, setItems] = useState<Item[]>([]);
-  const [remitente, setRemitente] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<number | null>(null);
@@ -42,9 +41,6 @@ export default function AdminPermisosPage() {
       if (!res.ok) throw new Error(json.error || 'Error');
       if (seq !== reqSeq.current) return;
       setItems(json.items || []);
-      if (json.email_aviso?.from) {
-        setRemitente(String(json.email_aviso.from));
-      }
     } catch (err) {
       if (seq !== reqSeq.current) return;
       setError(err instanceof Error ? err.message : 'Error');
@@ -106,14 +102,6 @@ export default function AdminPermisosPage() {
           solicitud enviada se ve después en la pestaña Solicitudes.
         </p>
       </div>
-
-      {remitente ? (
-        <Alert variant="info" title="Aviso de acceso autorizado">
-          Al autorizar, se envía un correo oficial desde{' '}
-          <strong>{remitente}</strong> a los correos de los padres registrados
-          del alumno (en alumnos de prueba, al correo de prueba configurado).
-        </Alert>
-      ) : null}
 
       <div className="w-full max-w-md">
         <Label htmlFor="q">Buscar No. Control o nombre</Label>
