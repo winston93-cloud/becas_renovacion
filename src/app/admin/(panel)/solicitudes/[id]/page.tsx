@@ -150,13 +150,17 @@ export default function SolicitudDetallePage({
       {error ? <Alert variant="error">{error}</Alert> : null}
 
       <Card className="space-y-3">
-        <h3 className="text-sm font-semibold text-primary">Acciones</h3>
+        <h3 className="text-sm font-semibold text-primary">
+          Acciones de Control Escolar
+        </h3>
         <p className="text-xs text-text-secondary">
-          Revise cada documento antes de marcar el expediente como verificado.
+          Primero revise cada documento (Revisar → correcto / incorrecto).
+          Cuando todos estén OK, marque el expediente como verificado.
         </p>
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           <Button
             type="button"
+            className="!min-h-[44px]"
             disabled={saving || (!s.verificado && !docsOk)}
             onClick={() => patch({ verificado: !s.verificado })}
             title={
@@ -165,11 +169,14 @@ export default function SolicitudDetallePage({
                 : undefined
             }
           >
-            {s.verificado ? 'Quitar verificación' : 'Marcar verificada'}
+            {s.verificado
+              ? 'Quitar verificación'
+              : '✓ Marcar como verificada'}
           </Button>
           <Button
             type="button"
             variant="secondary"
+            className="!min-h-[44px]"
             disabled={saving}
             onClick={() => patch({ beca_autorizada: !s.beca_autorizada })}
           >
@@ -180,6 +187,12 @@ export default function SolicitudDetallePage({
           <p className="text-xs text-amber-800">
             Aún no se puede verificar: faltan documentos por revisar o hay
             alguno marcado como incorrecto.
+          </p>
+        ) : null}
+        {s.fecha_verificado ? (
+          <p className="text-xs text-text-secondary">
+            Verificada el{' '}
+            {new Date(s.fecha_verificado).toLocaleString('es-MX')}
           </p>
         ) : null}
       </Card>
