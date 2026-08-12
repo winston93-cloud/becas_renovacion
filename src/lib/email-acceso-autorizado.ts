@@ -1,18 +1,25 @@
 /**
  * Destinatarios de avisos a familia (acceso autorizado, doc incorrecto, etc.).
  * Remitente SMTP = buzón masivo de servicios (avisos_no-replay).
- * - Alumno de prueba (RUBEN/LUIS/JUAN PRUEBA o refs 29903/29902/29901) → isc.escobedo@gmail.com
+ * - Alumno de prueba (ALAN PRUEBA / ref 29904; legados 29901–29903) → isc.escobedo@gmail.com
  * - Alumnos reales → correos de papá/mamá en alumno_familiar
- * Sin BCC visible ni enviado a la familia.
  */
 import type { createAdminClient } from '@insforge/sdk';
 
 type Db = ReturnType<typeof createAdminClient>['database'];
 
-/** Refs de alumnos de prueba. */
-const REFS_PRUEBA = new Set([29903, 29902, 29901]);
+/** Refs reservadas para alumnos de prueba. */
+const REFS_PRUEBA = new Set([29904, 29903, 29902, 29901]);
 const EMAIL_PRUEBA =
   process.env.BECAS_EMAIL_ACCESO_FAMILIA?.trim() || 'isc.escobedo@gmail.com';
+
+const NOMBRES_PRUEBA = [
+  'ALAN',
+  'RUBEN',
+  'RUBÉN',
+  'LUIS',
+  'JUAN',
+] as const;
 
 export function portalBecasPublicUrl(): string {
   const fromEnv =
@@ -42,24 +49,7 @@ export function esAlumnoPruebaAcceso(opts: {
   const joined = parts.join(' ');
   const pruebas = (joined.match(/\bPRUEBA\b/g) || []).length;
   if (pruebas < 2) return false;
-  if (
-    joined.includes('RUBEN') ||
-    joined.includes('RUBÉN') ||
-    joined.includes('LUIS') ||
-    joined.includes('JUAN')
-  ) {
-    return true;
-  }
-  if (
-    (parts.includes('RUBEN') ||
-      parts.includes('RUBÉN') ||
-      parts.includes('LUIS') ||
-      parts.includes('JUAN')) &&
-    parts.filter((p) => p === 'PRUEBA').length >= 2
-  ) {
-    return true;
-  }
-  return false;
+  return NOMBRES_PRUEBA.some((n) => joined.includes(n) || parts.includes(n));
 }
 
 function emailValido(raw: unknown): string | null {

@@ -17,6 +17,7 @@ import { useRouter } from 'next/navigation';
 import {
   ArrowRight,
   CalendarClock,
+  ChevronDown,
   FileText,
   RefreshCw,
   ShieldCheck,
@@ -56,6 +57,7 @@ export default function HomePage() {
     nivelLabel: string;
     docs: DocRequeridoUi[];
   } | null>(null);
+  const [docsExpandidos, setDocsExpandidos] = useState(false);
   const [modalRenovacion, setModalRenovacion] = useState(false);
   const [modalVentana, setModalVentana] = useState<{
     titulo: string;
@@ -97,6 +99,7 @@ export default function HomePage() {
     setError(null);
     setInfo(null);
     setDocsAcceso(null);
+    setDocsExpandidos(false);
     setModalRenovacion(false);
   }
 
@@ -440,13 +443,18 @@ export default function HomePage() {
             ) : null}
 
             {info && docsAcceso ? (
-              <aside className="home-docs-card ui-enter" aria-label="Documentos para el trámite">
+              <aside
+                className={`home-docs-card ui-enter${docsExpandidos ? ' is-open' : ''}`}
+                aria-label="Documentos para el trámite"
+              >
                 <div className="home-docs-card__head">
                   <span className="home-docs-card__icon" aria-hidden>
                     <FileText className="h-4 w-4" />
                   </span>
-                  <div>
-                    <p className="home-docs-card__kicker">Prepare su expediente</p>
+                  <div className="home-docs-card__copy">
+                    <p className="home-docs-card__kicker">
+                      Prepare su expediente
+                    </p>
                     <h3 className="home-docs-card__title">
                       Documentos para solicitud de beca
                     </h3>
@@ -456,20 +464,47 @@ export default function HomePage() {
                     </p>
                   </div>
                 </div>
-                <ol className="home-docs-list">
-                  {docsAcceso.docs.map((doc, idx) => (
-                    <li key={doc.tipo} className="home-docs-list__item">
-                      <span className="home-docs-list__num" aria-hidden>
-                        {idx + 1}
-                      </span>
-                      <span className="home-docs-list__label">{doc.label}</span>
-                    </li>
-                  ))}
-                </ol>
-                <p className="home-docs-card__note">
-                  Solo archivos PDF, legibles y a nombre del alumno o tutor
-                  correspondiente.
-                </p>
+
+                <button
+                  type="button"
+                  className="home-docs-toggle"
+                  aria-expanded={docsExpandidos}
+                  aria-controls="home-docs-panel"
+                  onClick={() => setDocsExpandidos((v) => !v)}
+                >
+                  <span>
+                    {docsExpandidos
+                      ? 'Colapsar'
+                      : `Ver documentos (${docsAcceso.docs.length})`}
+                  </span>
+                  <ChevronDown
+                    className={`home-docs-toggle__chevron h-4 w-4${docsExpandidos ? ' is-open' : ''}`}
+                    aria-hidden
+                  />
+                </button>
+
+                <div
+                  id="home-docs-panel"
+                  className="home-docs-panel"
+                  hidden={!docsExpandidos}
+                >
+                  <ol className="home-docs-list">
+                    {docsAcceso.docs.map((doc, idx) => (
+                      <li key={doc.tipo} className="home-docs-list__item">
+                        <span className="home-docs-list__num" aria-hidden>
+                          {idx + 1}
+                        </span>
+                        <span className="home-docs-list__label">
+                          {doc.label}
+                        </span>
+                      </li>
+                    ))}
+                  </ol>
+                  <p className="home-docs-card__note">
+                    Solo archivos PDF, legibles y a nombre del alumno o tutor
+                    correspondiente.
+                  </p>
+                </div>
               </aside>
             ) : null}
 
