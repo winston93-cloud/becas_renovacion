@@ -23,6 +23,10 @@ export type OrigenCalifsBecados = {
  * - 1° Primaria ← Kinder 3; 2°←1° … 6°←5°
  * - 7mo ← 6° Primaria; 8vo ← 7mo; 9no ← 8vo
  *
+ * Nota operativa: becados ya en 7mo durante el ciclo de datos a menudo no
+ * tienen filas en prim_* grado 6; la migración hace fallback a boleta
+ * secundaria (ver scripts/migrar-promedio-ciclo-mysql-a-insforge.mjs).
+ *
  * Kinder 1: sin año previo en boletas Kinder → null.
  */
 export function origenCalifsDesdeFicha(

@@ -91,18 +91,50 @@ async function main() {
       for (const [id, v] of p) mapa.set(id, { ...v, fuente: 'secundaria' });
     }
 
+    // Puente 6°→7mo: ficha secundaria grado 1 pide primaria 6°, pero en ciclo
+    // de datos ya tienen boleta secundaria (sin filas en prim_*). Fallback.
+    const puente7mo = conOrigen.filter(
+      (x) =>
+        Number(x.alumno.alumno_nivel) === 4 &&
+        Number(x.alumno.alumno_grado) === 1 &&
+        x.origen.fuente === 'primaria' &&
+        (mapa.get(Number(x.alumno.alumno_id)) == null ||
+          mapa.get(Number(x.alumno.alumno_id)).promedio == null)
+    );
+    const idsPuente = [
+      ...new Set(puente7mo.map((x) => Number(x.alumno.alumno_id))),
+    ];
+    if (idsPuente.length) {
+      console.log('fallback_7mo_secundaria', idsPuente.length);
+      const p = await cargarPromediosSecundariaMysql(idsPuente, CICLO);
+      for (const [id, v] of p) {
+        if (v.promedio == null) continue;
+        mapa.set(id, {
+          ...v,
+          fuente: 'secundaria',
+          nivelOrigenOverride: 4,
+          gradoOrigenOverride: 1,
+        });
+      }
+    }
+
     const out = [];
     for (const { alumno, origen } of conOrigen) {
       const id = Number(alumno.alumno_id);
       const p = mapa.get(id);
       if (!p || p.promedio == null) continue;
+      const fuente = p.fuente || origen.fuente;
+      const nivelOrigen =
+        p.nivelOrigenOverride != null ? p.nivelOrigenOverride : origen.nivelOrigen;
+      const gradoOrigen =
+        p.gradoOrigenOverride != null ? p.gradoOrigenOverride : origen.gradoOrigen;
       out.push({
         alumno_id: id,
         alumno_ref: String(alumno.alumno_ref ?? '').trim(),
         ciclo: CICLO,
-        nivel_origen: origen.nivelOrigen,
-        grado_origen: origen.gradoOrigen,
-        fuente: origen.fuente,
+        nivel_origen: nivelOrigen,
+        grado_origen: gradoOrigen,
+        fuente,
         promedio_es: p.promedioEs ?? null,
         promedio_en: p.promedioEn ?? null,
         letra_en: p.letraEn ?? null,
