@@ -141,7 +141,7 @@ export function buildSolicitudDataFromRows(
       ),
     grado: labelGrado(
       alumno.alumno_nivel != null ? Number(alumno.alumno_nivel) : null,
-      alumno.alumno_grado
+      alumno.alumno_grado != null ? Number(alumno.alumno_grado) : null
     ),
     grupo: labelGrupo(alumno.alumno_grupo as number | string | null),
     cicloLabel: input.cicloLabel,
@@ -228,7 +228,7 @@ export function buildSolicitudNuevaDataFromRows(
       ),
     grado: labelGrado(
       alumno.alumno_nivel != null ? Number(alumno.alumno_nivel) : null,
-      alumno.alumno_grado
+      alumno.alumno_grado != null ? Number(alumno.alumno_grado) : null
     ),
     grupo: labelGrupo(alumno.alumno_grupo as number | string | null),
     cicloLabel: input.cicloLabel,
