@@ -25,6 +25,7 @@ import {
   type DocLinkForSolicitudEmail,
 } from '@/lib/email-solicitud';
 import { labelGrupo } from '@/lib/label-grupo';
+import { labelGrado } from '@/lib/label-grado';
 import { docsRequeridos } from '@/lib/documentos-requeridos';
 
 async function blobToBuffer(blob: Blob): Promise<Buffer> {
@@ -238,8 +239,7 @@ export async function POST(request: NextRequest) {
       .map((p) => (p != null ? String(p).trim() : ''))
       .filter(Boolean)
       .join(' ');
-    const grado =
-      alumno.alumno_grado != null ? String(alumno.alumno_grado) : '—';
+    const grado = labelGrado(nivel, alumno.alumno_grado);
     const grupo = labelGrupo(alumno.alumno_grupo);
 
     const emailData = {

@@ -25,6 +25,7 @@ type Item = {
     nombre: string;
     nivel_label: string;
     grado: number | null;
+    grado_label?: string;
     grupo: string;
   };
 };
@@ -78,7 +79,7 @@ function ListInner() {
         id: it.id,
         alumno_ref: it.alumno.alumno_ref,
         nombre: it.alumno.nombre,
-        meta: `${it.alumno.nivel_label} · ${it.alumno.grado ?? '—'} / ${it.alumno.grupo}`,
+        meta: `${it.alumno.nivel_label} · ${it.alumno.grado_label ?? it.alumno.grado ?? '—'} / ${it.alumno.grupo}`,
       })),
     [items]
   );
@@ -95,7 +96,7 @@ function ListInner() {
         alumno_ref: it.alumno.alumno_ref,
         nombre: it.alumno.nombre,
         nivel_label: it.alumno.nivel_label,
-        grado: it.alumno.grado,
+        grado: it.alumno.grado_label ?? it.alumno.grado,
         grupo: it.alumno.grupo,
         enviado: it.enviado,
         enviado_en: it.enviado_en,
@@ -190,7 +191,7 @@ function ListInner() {
             <p className="font-semibold text-primary">{it.alumno.nombre}</p>
             <p className="text-sm text-text-secondary">
               {it.alumno.alumno_ref} · {it.alumno.nivel_label}{' '}
-              {it.alumno.grado ?? '—'} / {it.alumno.grupo}
+              {it.alumno.grado_label ?? it.alumno.grado ?? '—'} / {it.alumno.grupo}
             </p>
             <div className="mt-2 flex flex-wrap items-center gap-2">
               {it.verificado ? (
@@ -234,7 +235,7 @@ function ListInner() {
                 </td>
                 <td>{it.alumno.nombre}</td>
                 <td>
-                  {it.alumno.grado ?? '—'} / {it.alumno.grupo}
+                  {it.alumno.grado_label ?? it.alumno.grado ?? '—'} / {it.alumno.grupo}
                 </td>
                 <td>
                   <div className="flex flex-wrap gap-1">

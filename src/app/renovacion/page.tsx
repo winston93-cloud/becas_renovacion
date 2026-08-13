@@ -20,6 +20,7 @@ import TabsFormulario from './components/TabsFormulario';
 import SubirDocumentos from './components/SubirDocumentos';
 import ResumenConfirmacion from './components/ResumenConfirmacion';
 import { StepIndicator } from './components/StepIndicator';
+import { labelGrado } from '@/lib/label-grado';
 
 type Step = 'form' | 'docs' | 'done';
 
@@ -192,11 +193,13 @@ function RenovacionContent() {
               alumnoNombre={data.alumno.nombre_completo}
               alumnoRef={data.alumno.alumno_ref}
               cicloLabel={data.ciclo_label}
-              grado={
-                data.alumno.alumno_grado != null
-                  ? String(data.alumno.alumno_grado)
-                  : null
-              }
+              grado={(() => {
+                const g = labelGrado(
+                  data.alumno.alumno_nivel,
+                  data.alumno.alumno_grado
+                );
+                return g === '—' ? null : g;
+              })()}
               grupo={data.alumno.alumno_grupo}
               yaRegistrado={yaRegistrado}
               fechaRegistro={data.renovacion?.correo_enviado_en || null}

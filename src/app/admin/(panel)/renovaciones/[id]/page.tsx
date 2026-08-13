@@ -35,6 +35,7 @@ type Detail = {
     nombre: string;
     nivel_label: string;
     grado: number | null;
+    grado_label?: string;
     grupo: string;
   };
   beca: {
@@ -137,7 +138,7 @@ export default function RenovacionDetallePage({
       <AdminExpedienteHeader
         nombre={a.nombre}
         alumnoRef={a.alumno_ref}
-        metaLinea={`${a.nivel_label} ${a.grado ?? '—'} / ${a.grupo} · Renovación de becas ${r.ciclo_label}`}
+        metaLinea={`${a.nivel_label} ${a.grado_label ?? a.grado ?? '—'} / ${a.grupo} · Renovación de becas ${r.ciclo_label}`}
         badges={
           <>
             <BadgeEnviada enviada={r.correo_enviado} />

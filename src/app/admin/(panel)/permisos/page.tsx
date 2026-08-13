@@ -10,6 +10,7 @@ type Item = {
   nombre: string;
   nivel_label: string;
   grado: number | null;
+  grado_label?: string;
   grupo: string;
   permiso_solicitud: boolean;
   acceso_enviada: boolean;
@@ -157,7 +158,7 @@ export default function AdminPermisosPage() {
               <div className="min-w-0">
                 <p className="font-semibold text-primary">{it.nombre}</p>
                 <p className="text-sm text-text-secondary">
-                  {it.alumno_ref} · {it.nivel_label} {it.grado ?? '—'} /{' '}
+                  {it.alumno_ref} · {it.nivel_label} {it.grado_label ?? it.grado ?? '—'} /{' '}
                   {it.grupo}
                 </p>
                 <div className="mt-1 flex flex-wrap gap-1">

@@ -18,6 +18,7 @@ import {
 } from '@/lib/ciclo-escolar';
 import { labelNivel } from '@/lib/email-renovacion';
 import { labelGrupo } from '@/lib/label-grupo';
+import { labelGrado } from '@/lib/label-grado';
 import {
   buildAccesoAutorizadoEmailHtml,
   buildAccesoAutorizadoEmailSubject,
@@ -215,8 +216,7 @@ export async function PATCH(request: NextRequest) {
         .join(' ');
       const nivel =
         alumno.alumno_nivel != null ? Number(alumno.alumno_nivel) : null;
-      const grado =
-        alumno.alumno_grado != null ? String(alumno.alumno_grado) : '—';
+      const grado = labelGrado(nivel, alumno.alumno_grado as number | null);
       const grupo = labelGrupo(alumno.alumno_grupo as number | null);
       const emailData = {
         alumnoNombre: nombreCompleto || 'Sin nombre',

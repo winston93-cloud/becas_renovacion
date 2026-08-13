@@ -9,6 +9,7 @@ import { useMemo, useState } from 'react';
 import type { Hermano, SolicitudPayload, SolicitudPrecarga } from '@/lib/types';
 import { fetchConAcceso } from '@/lib/acceso-session';
 import { labelNivel } from '@/lib/email-renovacion';
+import { labelGrado } from '@/lib/label-grado';
 import { labelGrupo } from '@/lib/label-grupo';
 import {
   Alert,
@@ -293,7 +294,7 @@ export default function TabsFormularioSolicitud({ data, onSaved }: Props) {
             <div>
               <Label>Grado / Grupo</Label>
               <Input
-                value={`${data.alumno.alumno_grado ?? '—'} / ${labelGrupo(data.alumno.alumno_grupo)}`}
+                value={`${labelGrado(data.alumno.alumno_nivel, data.alumno.alumno_grado)} / ${labelGrupo(data.alumno.alumno_grupo)}`}
                 readOnly
               />
             </div>

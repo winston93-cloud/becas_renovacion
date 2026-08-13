@@ -25,6 +25,7 @@ import {
 } from '@/lib/email-doc-incorrecto';
 import { labelNivel } from '@/lib/email-renovacion';
 import { labelGrupo } from '@/lib/label-grupo';
+import { labelGrado } from '@/lib/label-grado';
 import { labelDocRequerido } from '@/lib/documentos-requeridos';
 import {
   getCicloBecaARenovar,
@@ -193,12 +194,15 @@ export async function PATCH(request: NextRequest) {
             .map((p) => (p != null ? String(p).trim() : ''))
             .filter(Boolean)
             .join(' ');
-          const grado =
-            alumno.alumno_grado != null ? String(alumno.alumno_grado) : '';
+          const grado = labelGrado(
+            alumno.alumno_nivel as number | null,
+            alumno.alumno_grado as number | null
+          );
           const grupo = labelGrupo(
             alumno.alumno_grupo as number | string | null
           );
-          const gradoGrupo = [grado, grupo].filter(Boolean).join(' / ') || '—';
+          const gradoGrupo =
+            [grado, grupo].filter((p) => p && p !== '—').join(' / ') || '—';
           const cicloLabel =
             flujo === 'renovacion'
               ? getSchoolCycleLabel(getCurrentSchoolCycle())

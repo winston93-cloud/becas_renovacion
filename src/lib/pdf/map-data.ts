@@ -2,6 +2,7 @@
  * 2026-07-16 - Helpers para armar PdfSolicitudData / PdfComprobanteData desde filas BD.
  */
 import { labelNivel } from '@/lib/email-renovacion';
+import { labelGrado } from '@/lib/label-grado';
 import { labelGrupo } from '@/lib/label-grupo';
 import type { PdfFamiliar, PdfHermano, PdfSolicitudData } from '@/lib/pdf/types';
 
@@ -138,7 +139,10 @@ export function buildSolicitudDataFromRows(
       labelNivel(
         alumno.alumno_nivel != null ? Number(alumno.alumno_nivel) : null
       ),
-    grado: alumno.alumno_grado != null ? String(alumno.alumno_grado) : '—',
+    grado: labelGrado(
+      alumno.alumno_nivel != null ? Number(alumno.alumno_nivel) : null,
+      alumno.alumno_grado
+    ),
     grupo: labelGrupo(alumno.alumno_grupo as number | string | null),
     cicloLabel: input.cicloLabel,
     becaClase: input.becaClase,
@@ -222,7 +226,10 @@ export function buildSolicitudNuevaDataFromRows(
       labelNivel(
         alumno.alumno_nivel != null ? Number(alumno.alumno_nivel) : null
       ),
-    grado: alumno.alumno_grado != null ? String(alumno.alumno_grado) : '—',
+    grado: labelGrado(
+      alumno.alumno_nivel != null ? Number(alumno.alumno_nivel) : null,
+      alumno.alumno_grado
+    ),
     grupo: labelGrupo(alumno.alumno_grupo as number | string | null),
     cicloLabel: input.cicloLabel,
     becaClase: input.becaClase,
