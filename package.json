@@ -13,6 +13,7 @@
     "@insforge/sdk": "^1.4.4",
     "bcrypt": "^6.0.0",
     "lucide-react": "^1.24.0",
+    "mysql2": "^3.23.3",
     "next": "16.2.10",
     "nodemailer": "^9.0.3",
     "pdfkit": "^0.19.1",
