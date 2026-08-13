@@ -45,17 +45,20 @@ Toda la documentación técnica detallada vive en `docs/`. Léela en este orden 
 
 ## Fuentes legacy de promedio (carpetas en Proyectos)
 
-Mapa canónico (Mario, 2026-08-13) — 5 sistemas de boletas:
+Mapa canónico (Mario, 2026-08-13). Raíz: `/home/mario/Proyectos/`.
 
-| Carpeta | Uso en promedio |
-|---|---|
-| `boletasik` | Kinder inglés |
-| `boletasek` | Primaria (par con `boletasik`) |
-| `boletas_español` | Primaria español |
-| `sistemas/ingles` | Primaria inglés |
-| `boletas` | Secundaria |
+| Carpeta | Ruta | Uso en promedio |
+|---|---|---|
+| `boletasik` | `/home/mario/Proyectos/boletasik` | Kinder inglés |
+| `boletasek` | `/home/mario/Proyectos/boletasek` | Primaria (par con `boletasik`; a veces anida copia de `boletasik`) |
+| `boletas_español` | `/home/mario/Proyectos/boletas_español` | Primaria español |
+| `sistemas/ingles` | `/home/mario/Proyectos/sistemas/ingles` | Primaria inglés |
+| `boletas` | `/home/mario/Proyectos/boletas` | Secundaria |
+
+También aparece `/home/mario/Proyectos/boletassecundaria` (envío/correo; no es la fuente del Promedio Final Winston de `boletas`).
 
 Implementación TS: `kinderPromedioMysql.ts`, `primariaPromedioMysql.ts`, `secundariaPromedioMysql.ts`.
+Cotejo PHP↔promedio: abrir esas carpetas en agent **local** (esta VM cloud no monta `/home/mario/Proyectos`).
 
 <!-- INSFORGE:START -->
 ## InsForge backend
