@@ -246,7 +246,6 @@ async function main() {
         docs_que_pide: [
           'Comprobante(s) de ingresos de un mes',
           'Comprobante de domicilio',
-          'Boleta SEP del ciclo escolar',
           'Comprobante(s) de pago de inscripción completa',
         ],
       },

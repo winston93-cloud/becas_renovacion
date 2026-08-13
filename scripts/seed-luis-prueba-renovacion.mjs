@@ -1,6 +1,6 @@
 /**
  * One-shot: borra JUAN PRUEBA (29901) y crea LUIS PRUEBA (29902)
- * con renovación enviada + 4 PDFs apócrifos.
+ * con renovación enviada + 3 PDFs apócrifos (sin boleta SEP).
  *
  * Uso: node --env-file=.env.local scripts/seed-luis-prueba-renovacion.mjs
  */
@@ -296,7 +296,7 @@ async function main() {
     beca_autorizada: false,
     ingresos: true,
     domicilio: true,
-    boleta: true,
+    boleta: false,
     comp_inscripcion: true,
   };
 
@@ -316,7 +316,6 @@ async function main() {
   const tipos = [
     ['ingresos', 'COMPROBANTE_INGRESOS_PRUEBA.pdf'],
     ['domicilio', 'COMPROBANTE_DOMICILIO_PRUEBA.pdf'],
-    ['boleta', 'BOLETA_PRUEBA.pdf'],
     ['comp_inscripcion', 'RECIBO_INSCRIPCION_PRUEBA.pdf'],
   ];
 
