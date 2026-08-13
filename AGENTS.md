@@ -41,7 +41,7 @@ Toda la documentación técnica detallada vive en `docs/`. Léela en este orden 
 7. Cambios de esquema van en `migrations/<timestamp>_<nombre>.sql` y se aplican con `npx @insforge/cli db migrations up --all`. Nunca editar una migración ya aplicada.
 8. Este repo es hermano del sistema PHP legacy (`c:\Users\rafas\Desktop\becas`), no vive dentro de él.
 9. Comenta los cambios que hagas con fecha y motivo breve (`// 2026-07-17 - ...`).
-10. **Promedios en admin renovación:** se leen de InsForge proyecto **Boletas** (`promedio_ciclo`, ciclo = beca a renovar). Vars: `INSFORGE_BOLETAS_URL`, `INSFORGE_BOLETAS_API_KEY`. Migración: `scripts/migrar-promedio-ciclo-mysql-a-insforge.mjs` (incluye fallback 7mo←boleta secundaria si no hay primaria 6°). Backfill puntual: `scripts/backfill-7mo-desde-secundaria.ts`.
+10. **Promedios en admin renovación:** se leen de InsForge proyecto **Boletas** (`promedio_ciclo`, ciclo = beca a renovar). Vars: `INSFORGE_BOLETAS_URL`, `INSFORGE_BOLETAS_API_KEY`. Migración: `scripts/migrar-promedio-ciclo-mysql-a-insforge.mjs` (fallbacks: 7mo←secundaria, 1° primaria←primaria g1 si no hay kinder 3). Backfills: `scripts/backfill-7mo-desde-secundaria.ts`, `scripts/backfill-1prim-desde-primaria.ts`.
 
 <!-- INSFORGE:START -->
 ## InsForge backend

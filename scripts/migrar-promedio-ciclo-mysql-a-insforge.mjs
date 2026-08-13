@@ -118,6 +118,38 @@ async function main() {
       }
     }
 
+    // Puente kinder 3→1° primaria: ficha primaria grado 1 pide kinder 3, pero
+    // en ciclo de datos ya tienen boleta primaria (sin filas en pke/pk). Fallback.
+    const puente1prim = conOrigen.filter(
+      (x) =>
+        Number(x.alumno.alumno_nivel) === 3 &&
+        Number(x.alumno.alumno_grado) === 1 &&
+        x.origen.fuente === 'kinder' &&
+        (mapa.get(Number(x.alumno.alumno_id)) == null ||
+          mapa.get(Number(x.alumno.alumno_id)).promedio == null)
+    );
+    const idsPuente1 = [
+      ...new Set(puente1prim.map((x) => Number(x.alumno.alumno_id))),
+    ];
+    if (idsPuente1.length) {
+      console.log('fallback_1prim_primaria', idsPuente1.length);
+      const inputs = puente1prim.map((x) => ({
+        alumnoId: Number(x.alumno.alumno_id),
+        alumnoRef: String(x.alumno.alumno_ref ?? '').trim(),
+        grado: 1,
+      }));
+      const p = await cargarPromediosPrimariaMysql(inputs);
+      for (const [id, v] of p) {
+        if (v.promedio == null) continue;
+        mapa.set(id, {
+          ...v,
+          fuente: 'primaria',
+          nivelOrigenOverride: 3,
+          gradoOrigenOverride: 1,
+        });
+      }
+    }
+
     const out = [];
     for (const { alumno, origen } of conOrigen) {
       const id = Number(alumno.alumno_id);
