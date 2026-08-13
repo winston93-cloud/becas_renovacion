@@ -60,3 +60,4 @@ next-env.d.ts
 .git.bak*
 # admin PIN plaintext (never commit)
 .admin-pins.local.json
+tmp/
