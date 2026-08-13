@@ -43,6 +43,20 @@ Toda la documentación técnica detallada vive en `docs/`. Léela en este orden 
 9. Comenta los cambios que hagas con fecha y motivo breve (`// 2026-07-17 - ...`).
 10. **Promedios en admin renovación:** se leen de InsForge proyecto **Boletas** (`promedio_ciclo`, ciclo = beca a renovar). Vars: `INSFORGE_BOLETAS_URL`, `INSFORGE_BOLETAS_API_KEY`. Migración: `scripts/migrar-promedio-ciclo-mysql-a-insforge.mjs` (fallbacks: 7mo←secundaria, 1° primaria←primaria g1 si no hay kinder 3). Backfills: `scripts/backfill-7mo-desde-secundaria.ts`, `scripts/backfill-1prim-desde-primaria.ts`.
 
+## Fuentes legacy de promedio (carpetas en Proyectos)
+
+Mapa canónico (Mario, 2026-08-13) — 5 sistemas de boletas:
+
+| Carpeta | Uso en promedio |
+|---|---|
+| `boletasik` | Kinder inglés |
+| `boletasek` | Primaria (par con `boletasik`) |
+| `boletas_español` | Primaria español |
+| `sistemas/ingles` | Primaria inglés |
+| `boletas` | Secundaria |
+
+Implementación TS: `kinderPromedioMysql.ts`, `primariaPromedioMysql.ts`, `secundariaPromedioMysql.ts`.
+
 <!-- INSFORGE:START -->
 ## InsForge backend
 

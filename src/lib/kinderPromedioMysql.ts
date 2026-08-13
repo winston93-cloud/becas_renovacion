@@ -13,7 +13,7 @@ const TABLA_EN_PKP = 'boleta_calificacionpkp'
 const TRIMESTRES = [1, 2, 3]
 /**
  * Music + Mindfulness por grado (boletas_materiask): excluidos del promedio
- * igual que `clausulaExclusionMusicMindfulnessPkBoletasIk` en boletasik.
+ * igual que en legacy `boletasik` (Kinder inglés).
  */
 const MATERIAS_EN_EXCLUIDAS = new Set([6, 7, 13, 14, 20, 21])
 
@@ -62,11 +62,15 @@ function numeroALetraKinderEn(n: number | null): string | null {
 /**
  * Promedios Kinder desde MySQL (`winston_general`).
  *
+ * Fuentes legacy (Proyectos):
+ * - EN: carpeta `boletasik` (Kinder inglés) — tablas `boleta_calificacionpk` / `pkp`
+ * - ES: tablas `boleta_calificacionpke` (par `boletasik` / `boletasek`)
+ *
  * ES (`boleta_calificacionpke`):
  * 1) Por materia: (T1+T2+T3) / trimestres con nota
  * 2) General: media de esos promedios de materia (boleta completa)
  *
- * EN (`boleta_calificacionpk`, igual que boletasik/boleta_funciones.php):
+ * EN (`boleta_calificacionpk`, legacy boletasik):
  * 1) Por trimestre: media de letras→número (sin Music/Mindfulness)
  * 2) General: media de los trimestres disponibles
  * Ponderador: E=10 VG=9 G=8 R=7 S=6 NI=5

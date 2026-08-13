@@ -35,7 +35,7 @@ function promedioLista(vals: number[], dec: number): number | null {
 }
 
 /**
- * Promedio Final Winston desde `boleta_calificacion` (carpeta boletas).
+ * Promedio Final Winston desde `boleta_calificacion` (carpeta legacy `boletas`).
  *
  * Una sola boleta (sin EN aparte): media de trimestres 1–3 de todas las materias
  * numéricas excepto Mindfulness (ids 45–47). Igual que BoletaPdfGenerator para 7º/8º.

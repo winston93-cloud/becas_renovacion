@@ -48,7 +48,7 @@ function promedioLista(vals: number[], dec: number): number | null {
   return redondear(vals.reduce((a, b) => a + b, 0) / vals.length, dec)
 }
 
-/** Divisores por bloque según grado (igual que boletaspdf.php). */
+/** Divisores por bloque según grado (legacy `boletas_español` / boletaspdf). */
 function divisoresBloques(grado: number): {
   lenguajes: number
   saberes: number
@@ -81,6 +81,11 @@ function promedioBloqueTrimestre(
 
 /**
  * Promedios Primaria desde MySQL (`winston_general`).
+ *
+ * Fuentes legacy (Proyectos):
+ * - ES: carpeta `boletas_español` — tablas `prim_*`
+ * - EN: carpeta `sistemas/ingles` — tabla `ing_cal`
+ * (par adicional `boletasek` documentado con `boletasik` en AGENTS.md)
  *
  * `grado` = grado en que se cursaron las califs (origen del ciclo de datos),
  * no el de la ficha ya avanzada (ej. ficha 6° → grado 5 para divisores).
