@@ -1,10 +1,15 @@
 /**
  * Promedio final Winston para el detalle admin de renovación.
- * Misma lógica que el reporte «Becados Promedio > 9» de servicios_admin,
- * pero SIN umbral: aplica a todos los becados del ciclo a renovar.
+ *
+ * 2026-08-13 - Fuente principal: InsForge proyecto Boletas (`promedio_ciclo`),
+ * ciclo = getCicloBecaARenovar() (ej. 22). La ficha puede ir un grado adelante
+ * (6° en renovación ↔ boleta 5° en ciclo 22).
+ *
+ * Sin umbral ≥9: aplica a todos los becados.
  */
 import { origenCalifsDesdeFicha } from '@/lib/origenCalifsBecados';
 import { getSchoolCycleLabel } from '@/lib/ciclo-escolar';
+import { getInsforgeBoletasConfig } from '@/lib/insforge-boletas';
 
 export type PromedioBecadoRenovacion = {
   cicloDatos: number;
@@ -39,10 +44,120 @@ function vacio(
   };
 }
 
+function numOrNull(v: unknown): number | null {
+  if (v == null || v === '') return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * Lee promedio desde InsForge Boletas (`promedio_ciclo`).
+ * Si la tabla aún no existe / backend no listo, devuelve nota explicativa.
+ */
+async function cargarDesdeInsforgeBoletas(opts: {
+  alumnoId: number;
+  nivelFicha: number;
+  gradoFicha: number;
+  cicloDatos: number;
+}): Promise<PromedioBecadoRenovacion> {
+  const { alumnoId, nivelFicha, gradoFicha, cicloDatos } = opts;
+  const origen = origenCalifsDesdeFicha(nivelFicha, gradoFicha);
+  const cfg = getInsforgeBoletasConfig();
+  if (!cfg) {
+    return vacio(
+      cicloDatos,
+      'Falta configurar INSFORGE_BOLETAS_URL / INSFORGE_BOLETAS_API_KEY.'
+    );
+  }
+
+  try {
+    const { createAdminClient } = await import('@insforge/sdk');
+    const db = createAdminClient({
+      baseUrl: cfg.baseUrl,
+      apiKey: cfg.apiKey,
+    });
+
+    const { data, error } = await db.database
+      .from('promedio_ciclo')
+      .select(
+        'alumno_id, ciclo, nivel_origen, grado_origen, fuente, promedio_es, promedio_en, letra_en, promedio_general'
+      )
+      .eq('alumno_id', alumnoId)
+      .eq('ciclo', cicloDatos)
+      .maybeSingle();
+
+    if (error) {
+      return vacio(
+        cicloDatos,
+        `InsForge Boletas: ${error.message}. Si el proyecto es nuevo, hay que crear la tabla promedio_ciclo y migrar el ciclo ${cicloDatos}.`,
+        origen
+          ? {
+              fuente: origen.fuente,
+              gradoOrigen: origen.gradoOrigen,
+              muestraEsEn:
+                origen.fuente !== 'secundaria' && Number(nivelFicha) !== 4,
+            }
+          : undefined
+      );
+    }
+
+    if (!data) {
+      return vacio(
+        cicloDatos,
+        origen
+          ? `Sin promedio en InsForge Boletas para este alumno (ciclo ${cicloDatos}, origen ${origen.fuente} grado ${origen.gradoOrigen}).`
+          : `Sin promedio en boletas del ciclo (sin grado previo).`,
+        origen
+          ? {
+              fuente: origen.fuente,
+              gradoOrigen: origen.gradoOrigen,
+              muestraEsEn:
+                origen.fuente !== 'secundaria' && Number(nivelFicha) !== 4,
+            }
+          : undefined
+      );
+    }
+
+    const fuente = String(data.fuente || origen?.fuente || '') as
+      | 'kinder'
+      | 'primaria'
+      | 'secundaria';
+    const soloGeneral = Number(nivelFicha) === 4 && fuente === 'primaria';
+    const muestraEsEn =
+      (fuente === 'kinder' || fuente === 'primaria') && !soloGeneral;
+
+    return {
+      cicloDatos,
+      cicloLabel: getSchoolCycleLabel(cicloDatos),
+      fuente: fuente || origen?.fuente || null,
+      gradoOrigen:
+        data.grado_origen != null
+          ? Number(data.grado_origen)
+          : (origen?.gradoOrigen ?? null),
+      muestraEsEn,
+      promedioEs: muestraEsEn ? numOrNull(data.promedio_es) : null,
+      promedioEn: muestraEsEn ? numOrNull(data.promedio_en) : null,
+      letraEn: muestraEsEn && data.letra_en ? String(data.letra_en) : null,
+      promedioGeneral: numOrNull(data.promedio_general),
+      nota:
+        numOrNull(data.promedio_general) == null
+          ? 'Registro en Boletas sin promedio_general.'
+          : null,
+    };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Error InsForge Boletas';
+    return vacio(cicloDatos, `No se pudo cargar el promedio: ${msg}`, {
+      fuente: origen?.fuente ?? null,
+      gradoOrigen: origen?.gradoOrigen ?? null,
+      muestraEsEn: Boolean(
+        origen && origen.fuente !== 'secundaria' && Number(nivelFicha) !== 4
+      ),
+    });
+  }
+}
+
 /**
  * @param cicloDatos Ciclo de la beca a renovar (`getCicloBecaARenovar()`).
- * @param nivelFicha Nivel actual del alumno (ficha).
- * @param gradoFicha Grado actual del alumno (ficha).
  */
 export async function cargarPromedioBecadoRenovacion(opts: {
   alumnoId: number;
@@ -51,98 +166,6 @@ export async function cargarPromedioBecadoRenovacion(opts: {
   gradoFicha: number;
   cicloDatos: number;
 }): Promise<PromedioBecadoRenovacion> {
-  const { alumnoId, alumnoRef, nivelFicha, gradoFicha, cicloDatos } = opts;
-
-  const origen = origenCalifsDesdeFicha(nivelFicha, gradoFicha);
-  if (!origen) {
-    return vacio(
-      cicloDatos,
-      'Sin promedio en boletas del ciclo (sin grado previo en boletas Winston).'
-    );
-  }
-
-  try {
-    if (origen.fuente === 'kinder') {
-      const { cargarPromediosKinderMysql } = await import(
-        '@/lib/kinderPromedioMysql'
-      );
-      const mapa = await cargarPromediosKinderMysql([alumnoId]);
-      const p = mapa.get(alumnoId);
-      return {
-        cicloDatos,
-        cicloLabel: getSchoolCycleLabel(cicloDatos),
-        fuente: 'kinder',
-        gradoOrigen: origen.gradoOrigen,
-        muestraEsEn: true,
-        promedioEs: p?.promedioEs ?? null,
-        promedioEn: p?.promedioEn ?? null,
-        letraEn: p?.letraEn ?? null,
-        promedioGeneral: p?.promedio ?? null,
-        nota:
-          p?.promedio == null
-            ? 'Sin promedio en boletas del ciclo (Kinder ES/EN).'
-            : null,
-      };
-    }
-
-    if (origen.fuente === 'primaria') {
-      const { cargarPromediosPrimariaMysql } = await import(
-        '@/lib/primariaPromedioMysql'
-      );
-      const mapa = await cargarPromediosPrimariaMysql([
-        {
-          alumnoId,
-          alumnoRef: String(alumnoRef ?? '').trim(),
-          grado: origen.gradoOrigen,
-        },
-      ]);
-      const p = mapa.get(alumnoId);
-      // 7mo (ficha secundaria grado 1): origen primaria 6° → una sola columna.
-      const soloGeneral = Number(nivelFicha) === 4;
-      return {
-        cicloDatos,
-        cicloLabel: getSchoolCycleLabel(cicloDatos),
-        fuente: 'primaria',
-        gradoOrigen: origen.gradoOrigen,
-        muestraEsEn: !soloGeneral,
-        promedioEs: soloGeneral ? null : (p?.promedioEs ?? null),
-        promedioEn: soloGeneral ? null : (p?.promedioEn ?? null),
-        letraEn: null,
-        promedioGeneral: p?.promedio ?? null,
-        nota:
-          p?.promedio == null
-            ? 'Sin promedio en boletas del ciclo (Primaria ES/EN).'
-            : null,
-      };
-    }
-
-    // secundaria
-    const { cargarPromediosSecundariaMysql } = await import(
-      '@/lib/secundariaPromedioMysql'
-    );
-    const mapa = await cargarPromediosSecundariaMysql([alumnoId], cicloDatos);
-    const p = mapa.get(alumnoId);
-    return {
-      cicloDatos,
-      cicloLabel: getSchoolCycleLabel(cicloDatos),
-      fuente: 'secundaria',
-      gradoOrigen: origen.gradoOrigen,
-      muestraEsEn: false,
-      promedioEs: null,
-      promedioEn: null,
-      letraEn: null,
-      promedioGeneral: p?.promedio ?? null,
-      nota:
-        p?.promedio == null
-          ? 'Sin promedio en boletas del ciclo (Secundaria).'
-          : null,
-    };
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Error al leer MySQL';
-    return vacio(cicloDatos, `No se pudo cargar el promedio: ${msg}`, {
-      fuente: origen.fuente,
-      gradoOrigen: origen.gradoOrigen,
-      muestraEsEn: origen.fuente !== 'secundaria' && Number(nivelFicha) !== 4,
-    });
-  }
+  // Ya no se consulta MySQL hosting (sale de servicio). Solo InsForge Boletas.
+  return cargarDesdeInsforgeBoletas(opts);
 }

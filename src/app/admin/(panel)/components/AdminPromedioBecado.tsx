@@ -92,8 +92,8 @@ export function AdminPromedioBecado({ promedio }: Props) {
       )}
 
       <p className="text-xs text-text-secondary">
-        Calculado desde boletas Winston del ciclo a renovar (no se pide boleta
-        SEP al papá). No forma parte del checklist de documentos.
+        Calculado desde InsForge Boletas (ciclo a renovar). La ficha puede ir un
+        grado adelante (ej. 6° aquí ↔ boleta 5°). No se pide boleta SEP al papá.
       </p>
     </Card>
   );
