@@ -1,7 +1,9 @@
 /**
  * 2026-07-17 - Documentos requeridos según trámite (solicitud/renovación)
  * y grupo escolar (maternal/kinder 1 vs kinder 2+).
- * 2026-07-27 - Renovación: vuelve al checklist de la circular (4 PDFs).
+ * 2026-07-27 - Renovación: checklist circular (ingresos/domicilio/inscripción).
+ * 2026-08-13 - Renovación: ya no se pide boleta SEP al papá; el promedio
+ *              sale de boletas Winston MySQL en el panel admin.
  */
 import type { DocumentoTipo } from '@/lib/types';
 
@@ -19,11 +21,10 @@ export function esMaternalOKinder1(
   return false;
 }
 
-/** Circular renovación: 4 adjuntos (legacy PHP / comunicado institucional). */
+/** Renovación: 3 PDFs (sin boleta SEP; promedio en admin). */
 const RENOVACION_CIRCULAR: DocumentoTipo[] = [
   'ingresos',
   'domicilio',
-  'boleta',
   'comp_inscripcion',
 ];
 
@@ -97,7 +98,7 @@ export function docsRequeridosConEtiqueta(opts: {
 }
 
 /**
- * Renovación: 4 PDFs de la circular (todos los niveles).
+ * Renovación: 3 PDFs (ingresos, domicilio, inscripción).
  * Solicitud (nuevo ingreso): 3 base; +2 si Kinder 2+.
  */
 export function docsRequeridos(opts: {

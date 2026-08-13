@@ -30,6 +30,7 @@ export type Hermano = {
 };
 
 // 2026-07-27 - Renovación: ingresos|domicilio|boleta|comp_inscripcion (circular).
+// 2026-08-13 - Renovación ya no exige boleta SEP (sigue en el union por filas legacy).
 // Solicitud nueva: acta/CURP/etc.
 export type DocumentoTipo =
   | 'ingresos'

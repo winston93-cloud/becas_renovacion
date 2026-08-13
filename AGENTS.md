@@ -41,3 +41,4 @@ Toda la documentación técnica detallada vive en `docs/`. Léela en este orden 
 7. Cambios de esquema van en `migrations/<timestamp>_<nombre>.sql` y se aplican con `npx @insforge/cli db migrations up --all`. Nunca editar una migración ya aplicada.
 8. Este repo es hermano del sistema PHP legacy (`c:\Users\rafas\Desktop\becas`), no vive dentro de él.
 9. Comenta los cambios que hagas con fecha y motivo breve (`// 2026-07-17 - ...`).
+10. **Promedios en admin renovación:** requieren `MYSQL_HOST`, `MYSQL_USER`, `MYSQL_PASSWORD`, `MYSQL_DATABASE=winston_general` (mismas que `servicios_admin`). Sin ellas el detalle admin muestra error de carga de promedio; el checklist de documentos (3 PDFs) sigue funcionando. Configurar también en Vercel del proyecto `becas-renovacion`.
