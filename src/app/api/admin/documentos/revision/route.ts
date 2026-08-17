@@ -16,7 +16,7 @@ import {
 } from '@/lib/admin-auditoria';
 import { nombreAlumnoAuditoria } from '@/lib/admin-auditoria-alumno';
 import {
-  portalBecasPublicUrl,
+  portalBecasIngresoUrl,
   resolveAccesoAutorizadoDestinatarios,
 } from '@/lib/email-acceso-autorizado';
 import {
@@ -220,7 +220,10 @@ export async function PATCH(request: NextRequest) {
             cicloLabel,
             documentoLabel: labelDocRequerido(tipoDoc),
             motivo: nota,
-            portalUrl: portalBecasPublicUrl(),
+            portalUrl: portalBecasIngresoUrl({
+              flujo: flujo as 'renovacion' | 'solicitud',
+              alumnoRef: String(alumno.alumno_ref),
+            }),
             flujo: flujo as 'renovacion' | 'solicitud',
           };
           await sendMail({

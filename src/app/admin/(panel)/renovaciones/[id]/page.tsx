@@ -181,8 +181,13 @@ export default function RenovacionDetallePage({
           <Button
             type="button"
             variant="secondary"
-            disabled={saving}
+            disabled={saving || (!r.beca_autorizada && !r.verificado)}
             onClick={() => patch({ beca_autorizada: !r.beca_autorizada })}
+            title={
+              !r.beca_autorizada && !r.verificado
+                ? 'Marque el expediente como verificado antes de autorizar la beca'
+                : undefined
+            }
           >
             {r.beca_autorizada ? 'Quitar autorización' : 'Autorizar beca'}
           </Button>
@@ -191,6 +196,11 @@ export default function RenovacionDetallePage({
           <p className="text-xs text-amber-800">
             Aún no se puede verificar: faltan documentos por revisar o hay
             alguno marcado como incorrecto.
+          </p>
+        ) : null}
+        {!r.beca_autorizada && !r.verificado ? (
+          <p className="text-xs text-amber-800">
+            No se puede autorizar la beca hasta que el expediente esté verificado.
           </p>
         ) : null}
         {r.fecha_verificado ? (

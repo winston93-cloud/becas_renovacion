@@ -178,8 +178,13 @@ export default function SolicitudDetallePage({
             type="button"
             variant="secondary"
             className="!min-h-[44px]"
-            disabled={saving}
+            disabled={saving || (!s.beca_autorizada && !s.verificado)}
             onClick={() => patch({ beca_autorizada: !s.beca_autorizada })}
+            title={
+              !s.beca_autorizada && !s.verificado
+                ? 'Marque el expediente como verificado antes de autorizar la beca'
+                : undefined
+            }
           >
             {s.beca_autorizada ? 'Quitar autorización' : 'Autorizar beca'}
           </Button>
@@ -188,6 +193,11 @@ export default function SolicitudDetallePage({
           <p className="text-xs text-amber-800">
             Aún no se puede verificar: faltan documentos por revisar o hay
             alguno marcado como incorrecto.
+          </p>
+        ) : null}
+        {!s.beca_autorizada && !s.verificado ? (
+          <p className="text-xs text-amber-800">
+            No se puede autorizar la beca hasta que el expediente esté verificado.
           </p>
         ) : null}
         {s.fecha_verificado ? (

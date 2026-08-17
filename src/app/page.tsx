@@ -10,8 +10,9 @@
  * 2026-07-22 - Requiere No. de Control + contraseña (alumno_clave), como el legacy.
  * 2026-07-22 - Ventanas de fechas: validar antes de cualquier petición.
  * 2026-07-23 - Home editorial: marca Winston primero + panel de acceso.
+ * 2026-08-17 - Enlace de correo: ?flujo=solicitud|renovacion&alumno_ref= preselecciona trámite.
  */
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import {
@@ -64,6 +65,20 @@ export default function HomePage() {
     mensaje: string;
     codigo?: string;
   } | null>(null);
+  const [desdeEnlaceCorreo, setDesdeEnlaceCorreo] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const fl = params.get('flujo');
+    const ref = params.get('alumno_ref');
+    if (fl === 'solicitud' || fl === 'renovacion') {
+      setFlujo(fl);
+      setDesdeEnlaceCorreo(true);
+    }
+    if (ref) {
+      setAlumnoRef(ref.replace(/\D/g, ''));
+    }
+  }, []);
 
   function assertVentanaAbierta(flujoCheck: Flujo): boolean {
     const status = getPortalStatus(flujoCheck);
@@ -319,6 +334,16 @@ export default function HomePage() {
           <p className="home-panel-sub">
             Elige el tipo de solicitud e inicia con los datos del alumno.
           </p>
+
+          {desdeEnlaceCorreo ? (
+            <Alert variant="info" title="Enlace del correo">
+              <p className="leading-relaxed">
+                {flujo === 'solicitud'
+                  ? 'Su trámite es Solicitud de beca (no Renovación). Ya dejamos seleccionado el tipo de trámite y el número de control; escriba la contraseña del alumno y continúe.'
+                  : 'Su trámite es Renovación de beca. Ya dejamos seleccionado el tipo de trámite y el número de control; escriba la contraseña del alumno y continúe.'}
+              </p>
+            </Alert>
+          ) : null}
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>

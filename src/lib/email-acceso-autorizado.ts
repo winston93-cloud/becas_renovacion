@@ -35,6 +35,18 @@ export function portalBecasPublicUrl(): string {
   return 'https://becas-renovacion.vercel.app';
 }
 
+/** Enlace de ingreso con trámite y no. de control preseleccionados (correos a padres). */
+export function portalBecasIngresoUrl(opts: {
+  flujo: 'renovacion' | 'solicitud';
+  alumnoRef: string | number;
+}): string {
+  const ref = String(opts.alumnoRef || '').replace(/\D/g, '');
+  const params = new URLSearchParams();
+  params.set('flujo', opts.flujo);
+  if (ref) params.set('alumno_ref', ref);
+  return `${portalBecasPublicUrl()}/?${params.toString()}`;
+}
+
 export function esAlumnoPruebaAcceso(opts: {
   alumno_ref?: string | number | null;
   alumno_app?: string | null;

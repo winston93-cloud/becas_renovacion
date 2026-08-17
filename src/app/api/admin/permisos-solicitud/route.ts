@@ -26,7 +26,7 @@ import {
 import {
   esAlumnoPruebaAcceso,
   fetchEmailsPadresPorAlumnos,
-  portalBecasPublicUrl,
+  portalBecasIngresoUrl,
   resolveAccesoAutorizadoDestinatarios,
 } from '@/lib/email-acceso-autorizado';
 
@@ -224,7 +224,10 @@ export async function PATCH(request: NextRequest) {
         nivelLabel: labelNivel(nivel),
         gradoGrupo: `${grado} / ${grupo}`,
         cicloLabel: getSchoolCycleLabel(getCurrentSchoolCycle()),
-        portalUrl: portalBecasPublicUrl(),
+        portalUrl: portalBecasIngresoUrl({
+          flujo: 'solicitud',
+          alumnoRef: String(alumno.alumno_ref),
+        }),
       };
       const recipients = await resolveAccesoAutorizadoDestinatarios({
         db: db.database,

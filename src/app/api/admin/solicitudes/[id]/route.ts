@@ -145,7 +145,7 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
 
     const { data: sol, error } = await db.database
       .from('becas_solicitud')
-      .select('id, alumno_id, beca_deseada_id, beca_porcentaje_deseado')
+      .select('id, alumno_id, beca_deseada_id, beca_porcentaje_deseado, verificado')
       .eq('id', id)
       .maybeSingle();
 
@@ -198,6 +198,15 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
       );
     }
     if (typeof body.beca_autorizada === 'boolean') {
+      if (body.beca_autorizada === true && !sol.verificado) {
+        return NextResponse.json(
+          {
+            error:
+              'No se puede autorizar la beca sin verificar el expediente primero.',
+          },
+          { status: 400 }
+        );
+      }
       patch.beca_autorizada = body.beca_autorizada;
       accionesLog.push(
         body.beca_autorizada

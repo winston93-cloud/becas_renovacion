@@ -114,6 +114,19 @@ export function buildDocFaltanteEmailHtml(data: EmailDocFaltanteData): string {
                 y podrá subir únicamente el (o los) que aparecen como pendientes.
                 No es necesario volver a llenar el formulario completo.
               </p>
+              ${
+                data.flujo === 'solicitud'
+                  ? `<p style="margin:0 0 16px;font-size:14px;line-height:1.55;color:#5E6C84;">
+                En la pantalla de inicio elija <strong style="color:#16213E;">Solicitud nueva</strong>
+                (no Renovación). El enlace ya deja seleccionado su trámite y número de control;
+                solo escriba la contraseña del alumno.
+              </p>`
+                  : `<p style="margin:0 0 16px;font-size:14px;line-height:1.55;color:#5E6C84;">
+                En la pantalla de inicio elija <strong style="color:#16213E;">Renovación</strong>.
+                El enlace ya deja seleccionado su trámite y número de control;
+                solo escriba la contraseña del alumno.
+              </p>`
+              }
               <p style="margin:22px 0 12px;text-align:center;">
                 <a href="${portal}" style="display:inline-block;background:#0B173A;color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;padding:12px 22px;border-radius:10px;">
                   Ir al Portal de Becas
@@ -156,6 +169,19 @@ export function buildDocIncorrectoEmailHtml(
                 y podrá subir únicamente el (o los) documento(s) marcado(s) como incorrecto(s).
                 No es necesario volver a llenar el formulario completo.
               </p>
+              ${
+                data.flujo === 'solicitud'
+                  ? `<p style="margin:0 0 16px;font-size:14px;line-height:1.55;color:#5E6C84;">
+                En la pantalla de inicio elija <strong style="color:#16213E;">Solicitud nueva</strong>
+                (no Renovación). El enlace ya deja seleccionado su trámite y número de control;
+                solo escriba la contraseña del alumno.
+              </p>`
+                  : `<p style="margin:0 0 16px;font-size:14px;line-height:1.55;color:#5E6C84;">
+                En la pantalla de inicio elija <strong style="color:#16213E;">Renovación</strong>.
+                El enlace ya deja seleccionado su trámite y número de control;
+                solo escriba la contraseña del alumno.
+              </p>`
+              }
               <p style="margin:22px 0 12px;text-align:center;">
                 <a href="${portal}" style="display:inline-block;background:#0B173A;color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;padding:12px 22px;border-radius:10px;">
                   Ir al Portal de Becas
