@@ -60,6 +60,68 @@ export function buildDocIncorrectoEmailSubject(
   return `Documento por corregir — ${data.alumnoNombre} (${data.alumnoRef})`;
 }
 
+export type EmailDocFaltanteData = {
+  alumnoNombre: string;
+  alumnoRef: string;
+  nivelLabel: string;
+  gradoGrupo: string;
+  cicloLabel: string;
+  documentosLabels: string[];
+  portalUrl: string;
+  flujo: 'renovacion' | 'solicitud';
+};
+
+export function buildDocFaltanteEmailSubject(
+  data: EmailDocFaltanteData
+): string {
+  return `Documento pendiente — ${data.alumnoNombre} (${data.alumnoRef})`;
+}
+
+export function buildDocFaltanteEmailHtml(data: EmailDocFaltanteData): string {
+  const portal = escapeHtml(data.portalUrl);
+  const tramite =
+    data.flujo === 'renovacion' ? 'renovación de beca' : 'solicitud de beca';
+  const lista = data.documentosLabels
+    .map(
+      (label) =>
+        `<li style="margin:0 0 6px;"><strong>${escapeHtml(label)}</strong></li>`
+    )
+    .join('');
+  return wrapEmail(
+    'Documento pendiente de entregar',
+    `
+              <p style="margin:0 0 16px;font-size:14px;line-height:1.55;color:#5E6C84;">
+                Por medio del presente, el <strong style="color:#16213E;">Instituto Winston Churchill</strong>
+                le informa que, en la revisión de la <strong style="color:#16213E;">${escapeHtml(tramite)}</strong>
+                del alumno, hace falta uno o más documentos para continuar.
+              </p>
+              <table role="presentation" width="100%" style="font-size:14px;line-height:1.6;margin:0 0 16px;">
+                <tr><td style="color:#5E6C84;padding:4px 0;width:140px;">Alumno</td><td style="font-weight:600;">${escapeHtml(data.alumnoNombre)}</td></tr>
+                <tr><td style="color:#5E6C84;padding:4px 0;">No. Control</td><td>${escapeHtml(data.alumnoRef)}</td></tr>
+                <tr><td style="color:#5E6C84;padding:4px 0;">Nivel</td><td>${escapeHtml(data.nivelLabel)}</td></tr>
+                <tr><td style="color:#5E6C84;padding:4px 0;">Grado / Grupo</td><td>${escapeHtml(data.gradoGrupo)}</td></tr>
+                <tr><td style="color:#5E6C84;padding:4px 0;">Ciclo</td><td>${escapeHtml(data.cicloLabel)}</td></tr>
+              </table>
+              <p style="margin:0 0 8px;font-size:14px;font-weight:600;color:#16213E;">
+                Documento(s) por subir
+              </p>
+              <div style="margin:0 0 16px;padding:12px 14px;background:#FFF7ED;border:1px solid #FDBA74;border-radius:8px;font-size:14px;line-height:1.5;color:#9A3412;">
+                <ul style="margin:0;padding-left:18px;">${lista}</ul>
+              </div>
+              <p style="margin:0 0 16px;font-size:14px;line-height:1.55;color:#5E6C84;">
+                Ingrese al Portal de Becas con el número de control y la contraseña escolar del alumno.
+                En <strong style="color:#16213E;">Carga de documentos</strong> verá los archivos ya entregados
+                y podrá subir únicamente el (o los) que aparecen como pendientes.
+                No es necesario volver a llenar el formulario completo.
+              </p>
+              <p style="margin:22px 0 12px;text-align:center;">
+                <a href="${portal}" style="display:inline-block;background:#0B173A;color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;padding:12px 22px;border-radius:10px;">
+                  Ir al Portal de Becas
+                </a>
+              </p>`
+  );
+}
+
 export function buildDocIncorrectoEmailHtml(
   data: EmailDocIncorrectoData
 ): string {

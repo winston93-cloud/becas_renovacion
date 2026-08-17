@@ -207,6 +207,7 @@ export default function SolicitudDetallePage({
 
       <AdminDocumentosRevision
         flujo="solicitud"
+        expedienteId={s.id}
         docsRequeridos={data.docs_requeridos}
         documentos={data.documentos}
         onChanged={refreshDocs}

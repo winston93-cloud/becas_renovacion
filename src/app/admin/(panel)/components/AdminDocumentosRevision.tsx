@@ -27,6 +27,7 @@ export type DocRequeridoItem = { tipo: string; label: string };
 
 type Props = {
   flujo: 'renovacion' | 'solicitud';
+  expedienteId: string;
   docsRequeridos: DocRequeridoItem[];
   documentos: DocAdminItem[];
   onChanged: () => Promise<void> | void;
@@ -44,6 +45,7 @@ function badgeVariant(
 
 export function AdminDocumentosRevision({
   flujo,
+  expedienteId,
   docsRequeridos,
   documentos,
   onChanged,
@@ -185,6 +187,37 @@ export function AdminDocumentosRevision({
     [flujo, onChanged, visor, cerrarVisor]
   );
 
+  const avisarFaltantes = useCallback(
+    async (tipos?: string[]) => {
+      setError(null);
+      setOkMsg(null);
+      setSavingTipo(tipos?.length === 1 ? tipos[0] : '__faltantes__');
+      try {
+        const res = await fetch('/api/admin/documentos/aviso-faltante', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            flujo,
+            expediente_id: expedienteId,
+            tipos: tipos && tipos.length > 0 ? tipos : undefined,
+          }),
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || 'No se pudo enviar el aviso.');
+        if (json.email_aviso?.ok) {
+          setOkMsg(`Aviso enviado a: ${json.email_aviso.to}.`);
+        } else {
+          setOkMsg('Aviso registrado.');
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Error al avisar.');
+      } finally {
+        setSavingTipo(null);
+      }
+    },
+    [flujo, expedienteId]
+  );
+
   return (
     <>
       <Card className="space-y-3">
@@ -208,8 +241,29 @@ export function AdminDocumentosRevision({
           Abra cada PDF con <strong>Revisar</strong>, luego márquelo como
           correcto o incorrecto. Al marcar incorrecto debe indicar el motivo; se
           avisa a los padres para que corrijan solo ese documento en el portal.
-          Solo con todos en OK se puede marcar el expediente como verificado.
+          Si falta un documento (no se subió), use <strong>Avisar a padres</strong>
+          para pedirles que lo entreguen. Solo con todos en OK se puede marcar
+          el expediente como verificado.
         </p>
+        {resumen.faltan > 0 ? (
+          <Alert variant="warning" title="Documento(s) faltante(s)">
+            El expediente está incompleto. Avise a los padres para que suban lo
+            que falta; al entrar al portal verán solo esos documentos pendientes.
+            <div className="mt-3">
+              <Button
+                type="button"
+                variant="secondary"
+                className="!min-h-[44px] !px-3 !py-1.5 text-xs"
+                disabled={Boolean(savingTipo)}
+                onClick={() => void avisarFaltantes()}
+              >
+                {savingTipo === '__faltantes__'
+                  ? 'Enviando aviso…'
+                  : 'Avisar documentos faltantes'}
+              </Button>
+            </div>
+          </Alert>
+        ) : null}
         {error ? <Alert variant="error">{error}</Alert> : null}
         {okMsg ? <Alert variant="success">{okMsg}</Alert> : null}
         <ul className="space-y-3">
@@ -297,7 +351,17 @@ export function AdminDocumentosRevision({
                           </Button>
                         )}
                       </>
-                    ) : null}
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        className="!min-h-[44px] !px-3 !py-1.5 text-xs"
+                        disabled={Boolean(savingTipo)}
+                        onClick={() => void avisarFaltantes([req.tipo])}
+                      >
+                        {busy ? 'Enviando…' : 'Avisar a padres'}
+                      </Button>
+                    )}
                   </div>
                 </div>
               </li>

@@ -212,6 +212,7 @@ export default function RenovacionDetallePage({
 
       <AdminDocumentosRevision
         flujo="renovacion"
+        expedienteId={r.id}
         docsRequeridos={data.docs_requeridos}
         documentos={data.documentos}
         onChanged={refreshDocs}

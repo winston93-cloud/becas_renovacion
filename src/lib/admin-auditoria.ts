@@ -20,7 +20,8 @@ export type AuditoriaAccion =
   | 'acceso.revocar'
   | 'documento.marcar_ok'
   | 'documento.marcar_incorrecto'
-  | 'documento.quitar_rechazo';
+  | 'documento.quitar_rechazo'
+  | 'documento.avisar_faltante';
 
 export type AuditoriaEntidad =
   | 'sesion'
@@ -115,6 +116,7 @@ export function etiquetaAccionAuditoria(accion: string): string {
     'documento.marcar_ok': 'Documento marcado OK',
     'documento.marcar_incorrecto': 'Documento marcado incorrecto',
     'documento.quitar_rechazo': 'Quitó rechazo de documento',
+    'documento.avisar_faltante': 'Avisó documento faltante a padres',
   };
   return map[accion] || accion;
 }

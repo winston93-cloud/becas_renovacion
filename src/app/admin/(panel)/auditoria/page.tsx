@@ -116,6 +116,9 @@ export default function AdminAuditoriaPage() {
             <option value="documento.marcar_incorrecto">
               Documento incorrecto
             </option>
+            <option value="documento.avisar_faltante">
+              Avisó documento faltante
+            </option>
             <option value="login">Inicio de sesión</option>
             <option value="logout">Cierre de sesión</option>
           </select>
