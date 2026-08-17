@@ -19,6 +19,7 @@ import TabsFormularioSolicitud from './components/TabsFormularioSolicitud';
 import SubirDocumentosSolicitud from './components/SubirDocumentosSolicitud';
 import ResumenConfirmacionSolicitud from './components/ResumenConfirmacionSolicitud';
 import { StepIndicator } from '../renovacion/components/StepIndicator';
+import { labelGrado } from '@/lib/label-grado';
 
 type Step = 'form' | 'docs' | 'done';
 
@@ -222,11 +223,13 @@ function SolicitudContent() {
               alumnoNombre={data.alumno.nombre_completo}
               alumnoRef={data.alumno.alumno_ref}
               cicloLabel={data.ciclo_label}
-              grado={
-                data.alumno.alumno_grado != null
-                  ? String(data.alumno.alumno_grado)
-                  : null
-              }
+              grado={(() => {
+                const g = labelGrado(
+                  data.alumno.alumno_nivel,
+                  data.alumno.alumno_grado
+                );
+                return g === '—' ? null : g;
+              })()}
               grupo={data.alumno.alumno_grupo}
               yaRegistrado={yaRegistrado}
               fechaRegistro={data.solicitud?.enviado_en || null}

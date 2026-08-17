@@ -16,6 +16,7 @@ import {
 } from '@/lib/admin-auditoria';
 import { nombreAlumnoAuditoria } from '@/lib/admin-auditoria-alumno';
 import { syncAlumnoBecaPorAutorizacion } from '@/lib/sync-alumno-beca-autorizacion';
+import { cargarPromedioBecadoRenovacion } from '@/lib/promedioBecadoRenovacion';
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -99,6 +100,15 @@ export async function GET(_request: NextRequest, ctx: Ctx) {
       beca_clase = concepto?.beca_clase ? String(concepto.beca_clase) : null;
     }
 
+    const alumnoMapped = mapAlumnoRow(alumno);
+    const promedio = await cargarPromedioBecadoRenovacion({
+      alumnoId: alumnoMapped.alumno_id,
+      alumnoRef: alumnoMapped.alumno_ref,
+      nivelFicha: Number(alumno.alumno_nivel),
+      gradoFicha: Number(alumno.alumno_grado),
+      cicloDatos: cicloBecaOrigen,
+    });
+
     return NextResponse.json({
       renovacion: {
         id: String(ren.id),
@@ -117,12 +127,13 @@ export async function GET(_request: NextRequest, ctx: Ctx) {
           tipos.map((t) => [t, Boolean(ren[t])])
         ),
       },
-      alumno: mapAlumnoRow(alumno),
+      alumno: alumnoMapped,
       beca: {
         beca_id,
         beca_clase,
         beca_porcentaje,
       },
+      promedio,
       documentos: (docs || []).map((d) => ({
         id: String(d.id),
         tipo: d.tipo,

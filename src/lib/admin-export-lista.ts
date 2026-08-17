@@ -7,7 +7,7 @@ export type AdminExportRow = {
   alumno_ref: string;
   nombre: string;
   nivel_label: string;
-  grado: number | null;
+  grado: number | string | null;
   grupo: string;
   enviado: boolean;
   enviado_en: string | null;

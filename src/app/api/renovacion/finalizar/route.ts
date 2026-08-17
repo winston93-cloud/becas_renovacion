@@ -18,6 +18,7 @@ import {
 } from '@/lib/email-renovacion';
 import { docsRequeridos } from '@/lib/documentos-requeridos';
 import { labelGrupo } from '@/lib/label-grupo';
+import { labelGrado } from '@/lib/label-grado';
 
 async function blobToBuffer(blob: Blob): Promise<Buffer> {
   return Buffer.from(await blob.arrayBuffer());
@@ -242,8 +243,7 @@ export async function POST(request: NextRequest) {
 
     const nombreCompleto =
       `${alumno.alumno_app || ''} ${alumno.alumno_apm || ''} ${alumno.alumno_nombre || ''}`.trim();
-    const grado =
-      alumno.alumno_grado != null ? String(alumno.alumno_grado) : '—';
+    const grado = labelGrado(nivel, alumno.alumno_grado);
     const grupo = labelGrupo(alumno.alumno_grupo);
     const cicloLabel = getSchoolCycleLabel(getCurrentSchoolCycle());
 

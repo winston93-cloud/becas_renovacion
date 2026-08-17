@@ -5,6 +5,7 @@
  */
 import { getInsforgeAdmin } from '@/lib/insforge-server';
 import { labelNivel } from '@/lib/email-renovacion';
+import { labelGrado } from '@/lib/label-grado';
 import { labelGrupo } from '@/lib/label-grupo';
 import type { AdminAuth } from '@/lib/admin-auth';
 
@@ -92,6 +93,7 @@ export function mapAlumnoRow(a: Record<string, unknown>) {
     nivel,
     nivel_label: labelNivel(nivel),
     grado: a.alumno_grado != null ? Number(a.alumno_grado) : null,
+    grado_label: labelGrado(nivel, a.alumno_grado as number | null),
     grupo: labelGrupo(a.alumno_grupo as number | null),
     permiso_solicitud: Number(a.alumno_permiso_solicitud_beca) === 1,
     acceso_enviada: Number(a.alumno_solicitud_acceso_enviada) === 1,

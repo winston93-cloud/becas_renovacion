@@ -8,6 +8,7 @@ import {
   docsListosParaVerificar,
   type DocAdminItem,
 } from '@/app/admin/(panel)/components/AdminDocumentosRevision';
+import { AdminPromedioBecado } from '@/app/admin/(panel)/components/AdminPromedioBecado';
 import {
   AdminExpedienteHeader,
   BadgeAutorizada,
@@ -15,6 +16,7 @@ import {
   BadgeVerificada,
 } from '@/components/admin/AdminExpedienteHeader';
 import { normalizarRevisionEstado } from '@/lib/doc-revision';
+import type { PromedioBecadoRenovacion } from '@/lib/promedioBecadoRenovacion';
 
 type Detail = {
   renovacion: {
@@ -33,6 +35,7 @@ type Detail = {
     nombre: string;
     nivel_label: string;
     grado: number | null;
+    grado_label?: string;
     grupo: string;
   };
   beca: {
@@ -40,6 +43,7 @@ type Detail = {
     beca_clase: string | null;
     beca_porcentaje: number | null;
   } | null;
+  promedio?: PromedioBecadoRenovacion | null;
   documentos: DocAdminItem[];
   docs_requeridos: { tipo: string; label: string }[];
 };
@@ -134,7 +138,7 @@ export default function RenovacionDetallePage({
       <AdminExpedienteHeader
         nombre={a.nombre}
         alumnoRef={a.alumno_ref}
-        metaLinea={`${a.nivel_label} ${a.grado ?? '—'} / ${a.grupo} · Renovación de becas ${r.ciclo_label}`}
+        metaLinea={`${a.nivel_label} ${a.grado_label ?? a.grado ?? '—'} / ${a.grupo} · Renovación de becas ${r.ciclo_label}`}
         badges={
           <>
             <BadgeEnviada enviada={r.correo_enviado} />
@@ -203,6 +207,8 @@ export default function RenovacionDetallePage({
           {r.motivo || '—'}
         </p>
       </Card>
+
+      <AdminPromedioBecado promedio={data.promedio} />
 
       <AdminDocumentosRevision
         flujo="renovacion"

@@ -11,6 +11,7 @@ import { buildComprobantePdf } from '@/lib/pdf/comprobante';
 import { formatFechaEsMx } from '@/lib/pdf/map-data';
 import { docsRequeridos } from '@/lib/documentos-requeridos';
 import { labelGrupo } from '@/lib/label-grupo';
+import { labelGrado } from '@/lib/label-grado';
 
 export async function GET(request: NextRequest) {
   try {
@@ -106,8 +107,7 @@ export async function GET(request: NextRequest) {
     const pdf = await buildComprobantePdf({
       alumnoNombre: nombreCompleto || 'Sin nombre',
       alumnoRef: String(alumno.alumno_ref),
-      grado:
-        alumno.alumno_grado != null ? String(alumno.alumno_grado) : '—',
+      grado: labelGrado(alumno.alumno_nivel, alumno.alumno_grado),
       grupo: labelGrupo(alumno.alumno_grupo),
       cicloLabel: getSchoolCycleLabel(getCurrentSchoolCycle()),
       fechaRegistro: formatFechaEsMx(
