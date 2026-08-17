@@ -30,7 +30,7 @@ export type Hermano = {
 };
 
 // 2026-08-13 - Renovación: ingresos|domicilio|comp_inscripcion (sin boleta SEP).
-// Solicitud nueva: acta/CURP/etc.
+// Solicitud nueva: acta/CURP/etc.; convenio (PEMEX/IMSS/CFE/TELMEX) también ingresos.
 export type DocumentoTipo =
   | 'ingresos'
   | 'domicilio'

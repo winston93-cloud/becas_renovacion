@@ -3,8 +3,10 @@
  * y grupo escolar (maternal/kinder 1 vs kinder 2+).
  * 2026-07-27 - Renovación: vuelve al checklist de la circular (4 PDFs).
  * 2026-08-13 - Renovación: ya no pide boleta SEP (promedio desde InsForge Boletas).
+ * 2026-08-17 - Solicitud convenio (PEMEX/IMSS/CFE/TELMEX): + comprobante de ingresos.
  */
 import type { DocumentoTipo } from '@/lib/types';
+import { esBecaConvenio } from '@/lib/becas-convenio';
 
 export type FlujoDocumentos = 'solicitud' | 'renovacion';
 
@@ -84,12 +86,19 @@ export function labelDocRequerido(tipo: DocumentoTipo): string {
   return LABELS[tipo];
 }
 
-/** Lista lista para UI: tipo + etiqueta según nivel/grado. */
-export function docsRequeridosConEtiqueta(opts: {
+export type DocsRequeridosOpts = {
   flujo: FlujoDocumentos;
   nivel: number | null | undefined;
   grado: number | null | undefined;
-}): { tipo: DocumentoTipo; label: string }[] {
+  /** Solicitud: beca deseada. Sin id (acceso previo) no se pide ingresos de convenio. */
+  becaId?: number | null;
+  becaClase?: string | null;
+};
+
+/** Lista lista para UI: tipo + etiqueta según nivel/grado/beca. */
+export function docsRequeridosConEtiqueta(
+  opts: DocsRequeridosOpts
+): { tipo: DocumentoTipo; label: string }[] {
   return docsRequeridos(opts).map((tipo) => ({
     tipo,
     label: labelDocRequerido(tipo),
@@ -98,13 +107,9 @@ export function docsRequeridosConEtiqueta(opts: {
 
 /**
  * Renovación: 3 PDFs (ingresos, domicilio, inscripción).
- * Solicitud (nuevo ingreso): 3 base; +2 si Kinder 2+.
+ * Solicitud (nuevo ingreso): 3 base; +2 si Kinder 2+; +ingresos si convenio.
  */
-export function docsRequeridos(opts: {
-  flujo: FlujoDocumentos;
-  nivel: number | null | undefined;
-  grado: number | null | undefined;
-}): DocumentoTipo[] {
+export function docsRequeridos(opts: DocsRequeridosOpts): DocumentoTipo[] {
   if (opts.flujo === 'renovacion') {
     return [...RENOVACION_CIRCULAR];
   }
@@ -113,6 +118,12 @@ export function docsRequeridos(opts: {
   const list: DocumentoTipo[] = [...BASE_NUEVO_INGRESO];
   if (!maternalKinder1) {
     list.push(...EXTRA_KINDER2);
+  }
+  if (
+    esBecaConvenio({ becaId: opts.becaId, becaClase: opts.becaClase }) &&
+    !list.includes('ingresos')
+  ) {
+    list.push('ingresos');
   }
   return list;
 }

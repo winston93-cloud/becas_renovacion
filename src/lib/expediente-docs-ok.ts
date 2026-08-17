@@ -12,11 +12,15 @@ export async function expedienteDocsTodosOk(params: {
   expedienteId: string;
   nivel: number | null | undefined;
   grado: number | null | undefined;
+  becaId?: number | null;
+  becaClase?: string | null;
 }): Promise<{ ok: true } | { ok: false; motivo: string }> {
   const tipos = docsRequeridos({
     flujo: params.flujo,
     nivel: params.nivel,
     grado: params.grado,
+    becaId: params.becaId,
+    becaClase: params.becaClase,
   });
   if (tipos.length === 0) {
     return { ok: false, motivo: 'No hay documentos requeridos configurados.' };

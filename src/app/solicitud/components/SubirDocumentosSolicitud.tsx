@@ -2,10 +2,10 @@
 
 /**
  * Carga de PDFs para solicitud de beca.
- * Modo corrección: tras envío, solo re-sube docs marcados incorrecto;
+ * Modo corrección: tras envío, re-sube incorrectos y completa faltantes;
  * los OK se muestran verificados.
  */
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { CheckCircle2, FileText, Upload } from 'lucide-react';
 import type { Documento, DocumentoTipo } from '@/lib/types';
 import {
@@ -20,8 +20,10 @@ type Props = {
   documentosIniciales: Documento[];
   nivel: number | null;
   grado: number | null;
+  /** Beca deseada guardada; convenio exige comprobante de ingresos. */
+  becaId?: number | null;
   onComplete: () => void;
-  /** Expediente ya enviado: solo corregir incorrectos */
+  /** Expediente ya enviado: corregir incorrectos o completar faltantes */
   modoCorreccion?: boolean;
 };
 
@@ -67,16 +69,19 @@ export default function SubirDocumentosSolicitud({
   documentosIniciales,
   nivel,
   grado,
+  becaId = null,
   onComplete,
   modoCorreccion = false,
 }: Props) {
   const docsList = useMemo(
     () =>
-      docsRequeridos({ flujo: 'solicitud', nivel, grado }).map((tipo) => ({
-        tipo,
-        label: labelDocRequerido(tipo),
-      })),
-    [nivel, grado]
+      docsRequeridos({ flujo: 'solicitud', nivel, grado, becaId }).map(
+        (tipo) => ({
+          tipo,
+          label: labelDocRequerido(tipo),
+        })
+      ),
+    [nivel, grado, becaId]
   );
 
   const [docs, setDocs] = useState<
@@ -90,15 +95,33 @@ export default function SubirDocumentosSolicitud({
     return initial;
   });
   const [uploading, setUploading] = useState<DocumentoTipo | null>(null);
+
+  useEffect(() => {
+    setDocs((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const d of docsList) {
+        if (!(d.tipo in next)) {
+          next[d.tipo] =
+            documentosIniciales.find((x) => x.tipo === d.tipo) || null;
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [docsList, documentosIniciales]);
+
   const [progress, setProgress] = useState<
     Partial<Record<DocumentoTipo, number>>
   >({});
   const [finalizing, setFinalizing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const pendientesCorregir = docsList.filter(
-    (d) => docs[d.tipo]?.revision_estado === 'incorrecto'
-  ).length;
+  const pendientesCorregir = docsList.filter((d) => {
+    const doc = docs[d.tipo];
+    if (!doc) return true;
+    return doc.revision_estado === 'incorrecto';
+  }).length;
 
   const allUploaded = docsList.every((d) => docs[d.tipo]);
   const correccionesListas =
@@ -202,13 +225,13 @@ export default function SubirDocumentosSolicitud({
         </h2>
         <p className="mt-1 text-sm text-text-secondary">
           {modoCorreccion
-            ? 'Su solicitud ya está registrada. Suba únicamente los documentos marcados como incorrectos. Los verificados no se modifican.'
+            ? 'Su solicitud ya está registrada. Suba los documentos marcados como incorrectos y cualquier documento requerido que aún falte. Los verificados no se modifican.'
             : `Sube los ${docsList.length} PDFs requeridos para completar la solicitud de beca.`}
         </p>
         {modoCorreccion && pendientesCorregir > 0 ? (
           <Alert variant="warning" className="mt-3" title="Documentos por corregir">
-            Quedan {pendientesCorregir} documento(s) por reemplazar. Lea el
-            motivo indicado en cada uno.
+            Quedan {pendientesCorregir} documento(s) por reemplazar o completar.
+            Lea el motivo indicado en cada uno.
           </Alert>
         ) : null}
       </div>

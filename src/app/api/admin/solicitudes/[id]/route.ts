@@ -65,12 +65,6 @@ export async function GET(_request: NextRequest, ctx: Ctx) {
       )
       .eq('solicitud_id', id);
 
-    const tipos = docsRequeridos({
-      flujo: 'solicitud',
-      nivel: alumno.alumno_nivel,
-      grado: alumno.alumno_grado,
-    });
-
     const beca_id =
       sol.beca_deseada_id != null ? Number(sol.beca_deseada_id) : null;
     const beca_porcentaje =
@@ -86,6 +80,14 @@ export async function GET(_request: NextRequest, ctx: Ctx) {
         .maybeSingle();
       beca_clase = concepto?.beca_clase ? String(concepto.beca_clase) : null;
     }
+
+    const tipos = docsRequeridos({
+      flujo: 'solicitud',
+      nivel: alumno.alumno_nivel,
+      grado: alumno.alumno_grado,
+      becaId: beca_id,
+      becaClase: beca_clase,
+    });
 
     return NextResponse.json({
       solicitud: {
@@ -178,6 +180,8 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
           expedienteId: id,
           nivel: alumno?.alumno_nivel,
           grado: alumno?.alumno_grado,
+          becaId:
+            sol.beca_deseada_id != null ? Number(sol.beca_deseada_id) : null,
         });
         if (!gate.ok) {
           return NextResponse.json({ error: gate.motivo }, { status: 400 });

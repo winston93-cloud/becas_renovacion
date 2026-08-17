@@ -32,6 +32,7 @@ function SolicitudContent() {
   const [data, setData] = useState<SolicitudPrecarga | null>(null);
   const [step, setStep] = useState<Step>('form');
   const [solicitudId, setSolicitudId] = useState<string | null>(null);
+  const [becaDeseadaId, setBecaDeseadaId] = useState<number | null>(null);
   const [yaRegistrado, setYaRegistrado] = useState(false);
 
   useEffect(() => {
@@ -78,6 +79,9 @@ function SolicitudContent() {
         if (!cancelled) {
           setData(json);
           if (json.solicitud?.id) setSolicitudId(json.solicitud.id);
+          if (json.solicitud?.beca_deseada_id != null) {
+            setBecaDeseadaId(Number(json.solicitud.beca_deseada_id));
+          }
           if (json.ya_registrado) {
             setYaRegistrado(true);
             setStep(json.docs_por_corregir ? 'docs' : 'done');
@@ -162,8 +166,9 @@ function SolicitudContent() {
           <div key="form" className="ui-enter">
             <TabsFormularioSolicitud
               data={data}
-              onSaved={(id) => {
+              onSaved={(id, becaId) => {
                 setSolicitudId(id);
+                setBecaDeseadaId(becaId);
                 setStep('docs');
               }}
             />
@@ -182,6 +187,9 @@ function SolicitudContent() {
                 documentosIniciales={data.documentos}
                 nivel={data.alumno.alumno_nivel}
                 grado={data.alumno.alumno_grado}
+                becaId={
+                  becaDeseadaId ?? data.solicitud?.beca_deseada_id ?? null
+                }
                 modoCorreccion={yaRegistrado}
                 onComplete={() => {
                   setData((prev) =>

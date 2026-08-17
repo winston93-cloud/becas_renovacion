@@ -1,7 +1,7 @@
 /**
  * 2026-07-17 - Subida de PDFs de solicitud de beca (nuevo ingreso)
  * al bucket privado becas-documentos, prefijo solicitud/.
- * Tipos por catálogo nuevo (acta, CURP, etc.).
+ * Tipos requeridos según nivel y beca deseada (convenio incluye ingresos).
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { getInsforgeAdmin } from '@/lib/insforge-server';
@@ -12,6 +12,7 @@ import type { DocumentoTipo } from '@/lib/types';
 import {
   DOCUMENTO_FLAG_COLUMN,
   TODOS_DOCUMENTO_TIPOS,
+  docsRequeridos,
 } from '@/lib/documentos-requeridos';
 import { REVISION_AL_REENVIAR, REVISION_AL_SUBIR } from '@/lib/doc-revision';
 
@@ -59,7 +60,7 @@ export async function POST(request: NextRequest) {
 
     const { data: solicitud, error: solErr } = await admin.database
       .from('becas_solicitud')
-      .select('id, alumno_id, enviado')
+      .select('id, alumno_id, enviado, beca_deseada_id')
       .eq('id', solicitudId)
       .maybeSingle();
 
@@ -73,7 +74,33 @@ export async function POST(request: NextRequest) {
     const wrong = forbidWrongAlumno(auth.acceso, solicitud.alumno_id);
     if (wrong) return wrong;
 
-    // Bloquear subidas si ya envió, salvo corrección de documentos incorrectos
+    const { data: alumno } = await admin.database
+      .from('alumno')
+      .select('alumno_nivel, alumno_grado')
+      .eq('alumno_id', solicitud.alumno_id)
+      .maybeSingle();
+
+    const tiposRequeridos = docsRequeridos({
+      flujo: 'solicitud',
+      nivel: alumno?.alumno_nivel != null ? Number(alumno.alumno_nivel) : null,
+      grado: alumno?.alumno_grado != null ? Number(alumno.alumno_grado) : null,
+      becaId:
+        solicitud.beca_deseada_id != null
+          ? Number(solicitud.beca_deseada_id)
+          : null,
+    });
+
+    if (!tiposRequeridos.includes(tipo)) {
+      return NextResponse.json(
+        {
+          error:
+            'Este documento no aplica para el tipo de beca de esta solicitud.',
+        },
+        { status: 400 }
+      );
+    }
+
+    // Bloquear subidas si ya envió, salvo corrección o un tipo requerido que aún no existe
     const { data: existingDoc } = await admin.database
       .from('becas_solicitud_documento')
       .select('id, storage_key, revision_estado')
@@ -84,8 +111,10 @@ export async function POST(request: NextRequest) {
     const esCorreccion =
       Boolean(solicitud.enviado) &&
       existingDoc?.revision_estado === 'incorrecto';
+    const esPrimeraSubidaRequerida =
+      Boolean(solicitud.enviado) && !existingDoc;
 
-    if (solicitud.enviado && !esCorreccion) {
+    if (solicitud.enviado && !esCorreccion && !esPrimeraSubidaRequerida) {
       return NextResponse.json(
         {
           error:

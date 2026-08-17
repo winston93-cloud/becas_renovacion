@@ -1,6 +1,6 @@
 /**
  * 2026-07-17 - Finaliza solicitud de beca: marca enviado y notifica por SMTP.
- * Docs dinámicos por nivel; adjunta PDFs subidos (como renovación).
+ * Docs dinámicos por nivel y beca deseada (convenio: +ingresos).
  * To por nivel escolar (producción); BCC sistemas3.
  */
 import { NextRequest, NextResponse } from 'next/server';
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
 
     const { data: solicitud, error: solErr } = await admin.database
       .from('becas_solicitud')
-      .select('id, alumno_id, enviado, pdf_solicitud_key')
+      .select('id, alumno_id, enviado, pdf_solicitud_key, beca_deseada_id')
       .eq('id', solicitudId)
       .maybeSingle();
 
@@ -127,10 +127,15 @@ export async function POST(request: NextRequest) {
     const gradoNum =
       alumno.alumno_grado != null ? Number(alumno.alumno_grado) : null;
     // 2026-07-17 - Lista según maternal/kinder1 vs kinder2+
+    // 2026-08-17 - Convenio: + comprobante de ingresos (beca_deseada_id en BD)
     const tiposRequeridos = docsRequeridos({
       flujo: 'solicitud',
       nivel,
       grado: gradoNum,
+      becaId:
+        solicitud.beca_deseada_id != null
+          ? Number(solicitud.beca_deseada_id)
+          : null,
     });
 
     const { data: docs, error: docsErr } = await admin.database

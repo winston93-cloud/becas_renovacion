@@ -23,7 +23,7 @@ import {
 
 type Props = {
   data: SolicitudPrecarga;
-  onSaved: (solicitudId: string) => void;
+  onSaved: (solicitudId: string, becaDeseadaId: number) => void;
 };
 
 const emptyHermanos = (): Hermano[] =>
@@ -222,7 +222,7 @@ export default function TabsFormularioSolicitud({ data, onSaved }: Props) {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'No se pudo guardar la solicitud.');
-      onSaved(json.solicitud_id);
+      onSaved(json.solicitud_id, Number(becaDeseadaId));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al guardar.');
     } finally {

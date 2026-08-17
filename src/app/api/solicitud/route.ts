@@ -12,6 +12,7 @@ import { forbidWrongAlumno, requireAcceso } from '@/lib/acceso-auth';
 import { getCurrentSchoolCycle, getSchoolCycleLabel } from '@/lib/ciclo-escolar';
 import { tieneBecaActivaCicloPasado } from '@/lib/beca-elegibilidad';
 import { esBecaNoTramitable, esConceptoTramitable } from '@/lib/becas-excluidas';
+import { docsRequeridos } from '@/lib/documentos-requeridos';
 import { assertPortalAbierto } from '@/lib/portal-ventanas';
 import { labelNivel } from '@/lib/email-renovacion';
 import { buildSolicitudPdf } from '@/lib/pdf/solicitud';
@@ -293,9 +294,20 @@ export async function GET(request: NextRequest) {
       };
     };
 
-    const docsPorCorregir = documentos.some(
-      (d) => d.revision_estado === 'incorrecto'
-    );
+    const tiposRequeridos = docsRequeridos({
+      flujo: 'solicitud',
+      nivel: alumno.alumno_nivel != null ? Number(alumno.alumno_nivel) : null,
+      grado: alumno.alumno_grado != null ? Number(alumno.alumno_grado) : null,
+      becaId:
+        solicitud?.beca_deseada_id != null
+          ? Number(solicitud.beca_deseada_id)
+          : null,
+    });
+    const tiposSubidos = new Set(documentos.map((d) => d.tipo));
+    const faltaRequerido = tiposRequeridos.some((t) => !tiposSubidos.has(t));
+    const docsPorCorregir =
+      documentos.some((d) => d.revision_estado === 'incorrecto') ||
+      (Boolean(solicitud?.enviado) && faltaRequerido);
 
     const payload: SolicitudPrecarga = {
       ciclo_escolar: ciclo,
