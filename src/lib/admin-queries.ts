@@ -8,11 +8,17 @@ import { labelNivel } from '@/lib/email-renovacion';
 import { labelGrado } from '@/lib/label-grado';
 import { labelGrupo } from '@/lib/label-grupo';
 import type { AdminAuth } from '@/lib/admin-auth';
+import {
+  fetchDocsIncorrectosPorRenovacion,
+  fetchRenovacionIdsConDocsIncorrectos,
+  type DocIncorrectoResumen,
+} from '@/lib/admin-renovacion-docs-incorrectos';
 
 export type AdminListEstado =
   | 'todas'
   | 'enviadas'
   | 'pendientes'
+  | 'correccion_documentos'
   | 'verificadas'
   | 'autorizadas';
 
@@ -130,7 +136,7 @@ function applyEstadoRenovacionFilter(
   estado: AdminListEstado
 ) {
   if (estado === 'enviadas') return q.eq('correo_enviado', true);
-  if (estado === 'pendientes') {
+  if (estado === 'pendientes' || estado === 'correccion_documentos') {
     return q.eq('correo_enviado', true).eq('verificado', false);
   }
   if (estado === 'verificadas') return q.eq('verificado', true);
@@ -175,7 +181,30 @@ export async function listRenovaciones(opts: {
   const { data, error } = await q;
   if (error) throw new Error(error.message);
 
-  const renRows = data || [];
+  let renRows = data || [];
+  if (renRows.length === 0) return [];
+
+  const dbAdmin = getInsforgeAdmin();
+  let docsIncorrectosMap = new Map<string, DocIncorrectoResumen[]>();
+
+  if (estado === 'pendientes' || estado === 'correccion_documentos') {
+    const renIds = renRows.map((r) => String(r.id));
+    const conIncorrectos = await fetchRenovacionIdsConDocsIncorrectos(
+      dbAdmin,
+      renIds
+    );
+
+    if (estado === 'pendientes') {
+      renRows = renRows.filter((r) => !conIncorrectos.has(String(r.id)));
+    } else {
+      renRows = renRows.filter((r) => conIncorrectos.has(String(r.id)));
+      docsIncorrectosMap = await fetchDocsIncorrectosPorRenovacion(
+        dbAdmin,
+        renRows.map((r) => String(r.id))
+      );
+    }
+  }
+
   if (renRows.length === 0) return [];
 
   const alumnoIds = [...new Set(renRows.map((r) => Number(r.alumno_id)))];
@@ -190,8 +219,10 @@ export async function listRenovaciones(opts: {
     .map((r) => {
       const a = byId.get(Number(r.alumno_id));
       if (!a) return null;
+      const id = String(r.id);
+      const docsIncorrectos = docsIncorrectosMap.get(id);
       return {
-        id: String(r.id),
+        id,
         ciclo_escolar: Number(r.ciclo_escolar),
         correo_enviado: Boolean(r.correo_enviado),
         correo_enviado_en: r.correo_enviado_en || null,
@@ -202,6 +233,8 @@ export async function listRenovaciones(opts: {
         motivo: r.motivo || null,
         created_at: r.created_at,
         updated_at: r.updated_at,
+        docs_incorrectos: docsIncorrectos,
+        docs_incorrectos_count: docsIncorrectos?.length,
         alumno: mapAlumnoRow(a),
       };
     })
@@ -217,8 +250,36 @@ export async function listRenovaciones(opts: {
     motivo: string | null;
     created_at: string;
     updated_at: string;
+    docs_incorrectos?: DocIncorrectoResumen[];
+    docs_incorrectos_count?: number;
     alumno: ReturnType<typeof mapAlumnoRow>;
   }[];
+}
+
+/** Conteos de renovaciones enviadas: pendientes CE vs esperando corrección de docs. */
+export async function contarRenovacionesRevision(enviadas: {
+  id: string;
+  verificado: boolean;
+}[]) {
+  const sinVerificar = enviadas.filter((r) => !r.verificado);
+  if (sinVerificar.length === 0) {
+    return { pendientes: 0, correccion_documentos: 0 };
+  }
+
+  const conIncorrectos = await fetchRenovacionIdsConDocsIncorrectos(
+    getInsforgeAdmin(),
+    sinVerificar.map((r) => r.id)
+  );
+
+  let correccion = 0;
+  for (const r of sinVerificar) {
+    if (conIncorrectos.has(r.id)) correccion += 1;
+  }
+
+  return {
+    pendientes: sinVerificar.length - correccion,
+    correccion_documentos: correccion,
+  };
 }
 
 export async function listSolicitudes(opts: {

@@ -1168,6 +1168,16 @@ body {
   .admin-stat-grid {
     grid-template-columns: repeat(4, 1fr);
   }
+
+  .admin-stat-grid--5 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1280px) {
+  .admin-stat-grid--5 {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
 }
 
 .admin-stat-card {

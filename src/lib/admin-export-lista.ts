@@ -30,6 +30,8 @@ export function etiquetaFiltroEstado(estado: string): string {
       return 'Enviadas';
     case 'pendientes':
       return 'Pendientes de verificar';
+    case 'correccion_documentos':
+      return 'Corrección de documentos';
     case 'verificadas':
       return 'Verificadas';
     case 'autorizadas':

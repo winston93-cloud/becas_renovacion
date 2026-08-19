@@ -7,6 +7,7 @@ import {
   BadgeCheck,
   Clock3,
   FilePlus2,
+  FileWarning,
   Inbox,
   KeyRound,
   RefreshCw,
@@ -22,6 +23,7 @@ type Dash = {
   renovaciones: {
     total: number;
     pendientes: number;
+    correccion_documentos: number;
     verificadas: number;
     autorizadas: number;
   };
@@ -138,7 +140,7 @@ export default function AdminDashboardPage() {
           <RefreshCw size={14} aria-hidden />
           Renovaciones enviadas
         </h3>
-        <div className="admin-stat-grid">
+        <div className="admin-stat-grid admin-stat-grid--5">
           <Stat
             label="Enviadas"
             value={data.renovaciones.total}
@@ -157,13 +159,22 @@ export default function AdminDashboardPage() {
             delay={2}
           />
           <Stat
+            label="Corrección documentos"
+            value={data.renovaciones.correccion_documentos}
+            href="/admin/renovaciones?estado=correccion_documentos"
+            hint="Familia avisada; esperando reenvío correcto"
+            icon={FileWarning}
+            tone="warn"
+            delay={3}
+          />
+          <Stat
             label="Verificadas"
             value={data.renovaciones.verificadas}
             href="/admin/renovaciones?estado=verificadas"
             hint="Ya revisadas en el panel"
             icon={BadgeCheck}
             tone="ok"
-            delay={3}
+            delay={4}
           />
           <Stat
             label="Autorizadas"
@@ -172,7 +183,7 @@ export default function AdminDashboardPage() {
             hint="Beca marcada como autorizada"
             icon={Sparkles}
             tone="gold"
-            delay={4}
+            delay={5}
           />
         </div>
       </section>

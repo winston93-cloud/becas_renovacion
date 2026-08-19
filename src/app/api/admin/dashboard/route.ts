@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin-auth';
 import {
+  contarRenovacionesRevision,
   listPedidosAccesoSolicitud,
   listRenovaciones,
   listSolicitudes,
@@ -43,6 +44,10 @@ export async function GET() {
       (a) => a.permiso_solicitud && Boolean(a.acceso_enviada_en)
     );
 
+    const renRevision = await contarRenovacionesRevision(
+      renEnviadas.map((r) => ({ id: r.id, verificado: r.verificado }))
+    );
+
     return NextResponse.json({
       role: auth.admin.role,
       label: auth.admin.label,
@@ -54,7 +59,8 @@ export async function GET() {
       ciclo_solicitud_label: getSchoolCycleLabel(cicloSol),
       renovaciones: {
         total: renEnviadas.length,
-        pendientes: renEnviadas.filter((r) => !r.verificado).length,
+        pendientes: renRevision.pendientes,
+        correccion_documentos: renRevision.correccion_documentos,
         verificadas: renEnviadas.filter((r) => r.verificado).length,
         autorizadas: renEnviadas.filter((r) => r.beca_autorizada).length,
       },
