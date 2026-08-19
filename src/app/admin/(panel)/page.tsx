@@ -30,6 +30,7 @@ type Dash = {
   solicitudes: {
     total: number;
     pendientes: number;
+    correccion_documentos: number;
     verificadas: number;
     autorizadas: number;
   };
@@ -225,7 +226,7 @@ export default function AdminDashboardPage() {
           <FilePlus2 size={14} aria-hidden />
           Solicitudes nuevas enviadas
         </h3>
-        <div className="admin-stat-grid">
+        <div className="admin-stat-grid admin-stat-grid--5">
           <Stat
             label="Enviadas"
             value={data.solicitudes.total}
@@ -244,13 +245,22 @@ export default function AdminDashboardPage() {
             delay={2}
           />
           <Stat
+            label="Corrección documentos"
+            value={data.solicitudes.correccion_documentos}
+            href="/admin/solicitudes?estado=correccion_documentos"
+            hint="Familia avisada; esperando reenvío correcto"
+            icon={FileWarning}
+            tone="warn"
+            delay={3}
+          />
+          <Stat
             label="Verificadas"
             value={data.solicitudes.verificadas}
             href="/admin/solicitudes?estado=verificadas"
             hint="Expediente revisado"
             icon={BadgeCheck}
             tone="ok"
-            delay={3}
+            delay={4}
           />
           <Stat
             label="Autorizadas"
@@ -259,7 +269,7 @@ export default function AdminDashboardPage() {
             hint="Listas para seguimiento"
             icon={Sparkles}
             tone="gold"
-            delay={4}
+            delay={5}
           />
         </div>
       </section>

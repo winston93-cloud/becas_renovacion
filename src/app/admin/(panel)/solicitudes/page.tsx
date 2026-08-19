@@ -14,12 +14,20 @@ import {
   type AdminExportRow,
 } from '@/lib/admin-export-lista';
 
+type DocIncorrecto = {
+  tipo: string;
+  label: string;
+  nota: string | null;
+};
+
 type Item = {
   id: string;
   enviado: boolean;
   enviado_en: string | null;
   verificado: boolean;
   beca_autorizada: boolean;
+  docs_incorrectos?: DocIncorrecto[];
+  docs_incorrectos_count?: number;
   alumno: {
     alumno_ref: string;
     nombre: string;
@@ -41,6 +49,11 @@ function ListInner() {
   const [filtradosIds, setFiltradosIds] = useState<string[] | null>(null);
 
   useEffect(() => {
+    const e = sp.get('estado') || 'enviadas';
+    setEstado(e);
+  }, [sp]);
+
+  useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);
@@ -50,6 +63,14 @@ function ListInner() {
         const res = await fetch(
           `/api/admin/solicitudes?estado=${encodeURIComponent(estado)}`
         );
+        const ct = res.headers.get('content-type') || '';
+        if (!ct.includes('application/json')) {
+          throw new Error(
+            res.status === 502
+              ? 'El servidor no respondió (502). Intente de nuevo en unos segundos.'
+              : `Error del servidor (${res.status}).`
+          );
+        }
         const json = await res.json();
         if (!res.ok) throw new Error(json.error || 'Error');
         if (!cancelled) {
@@ -117,6 +138,8 @@ function ListInner() {
     [router]
   );
 
+  const esCorreccionDocs = estado === 'correccion_documentos';
+
   return (
     <div className="space-y-4">
       <div className="admin-hero">
@@ -128,8 +151,9 @@ function ListInner() {
             : ''}
         </p>
         <p className="text-xs text-text-secondary">
-          Abra el No. de control o pulse Revisar para revisar documentos y marcar
-          como verificada o autorizada.
+          {esCorreccionDocs
+            ? 'Familias a las que se envió correo por documentación incorrecta. Cuando reenvíen, vuelven a «Pendientes de verificar». Marque verificada solo cuando todo el expediente esté correcto.'
+            : 'Abra el No. de control o pulse Revisar para revisar documentos y marcar como verificada o autorizada.'}
         </p>
       </div>
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
@@ -156,6 +180,9 @@ function ListInner() {
             >
               <option value="enviadas">Enviadas</option>
               <option value="pendientes">Pendientes de verificar</option>
+              <option value="correccion_documentos">
+                Corrección de documentos
+              </option>
               <option value="verificadas">Verificadas</option>
               <option value="autorizadas">Autorizadas</option>
               <option value="todas">Todas</option>
@@ -171,7 +198,9 @@ function ListInner() {
 
       {!loading && !error && items.length === 0 ? (
         <Card className="text-sm text-text-secondary">
-          No hay solicitudes con este filtro.
+          {esCorreccionDocs
+            ? 'No hay solicitudes esperando corrección de documentos.'
+            : 'No hay solicitudes con este filtro.'}
         </Card>
       ) : null}
 
@@ -196,6 +225,8 @@ function ListInner() {
             <div className="mt-2 flex flex-wrap items-center gap-2">
               {it.verificado ? (
                 <Badge variant="success">Verificada</Badge>
+              ) : esCorreccionDocs || (it.docs_incorrectos_count ?? 0) > 0 ? (
+                <Badge variant="pending">Docs incorrectos</Badge>
               ) : (
                 <Badge variant="pending">Pendiente</Badge>
               )}
@@ -206,6 +237,11 @@ function ListInner() {
                 Revisar →
               </span>
             </div>
+            {esCorreccionDocs && it.docs_incorrectos?.length ? (
+              <p className="mt-2 text-xs text-text-secondary">
+                {it.docs_incorrectos.map((d) => d.label).join(' · ')}
+              </p>
+            ) : null}
           </Link>
         ))}
       </div>
@@ -217,6 +253,7 @@ function ListInner() {
               <th>No. Control</th>
               <th>Alumno</th>
               <th>Grado</th>
+              {esCorreccionDocs ? <th>Docs incorrectos</th> : null}
               <th>Estado</th>
               <th>Enviado</th>
               <th>Acción</th>
@@ -237,10 +274,32 @@ function ListInner() {
                 <td>
                   {it.alumno.grado_label ?? it.alumno.grado ?? '—'} / {it.alumno.grupo}
                 </td>
+                {esCorreccionDocs ? (
+                  <td className="max-w-xs text-sm text-text-secondary">
+                    {it.docs_incorrectos?.length ? (
+                      <ul className="list-inside list-disc space-y-1">
+                        {it.docs_incorrectos.map((d) => (
+                          <li key={d.tipo}>
+                            <span className="font-medium text-text-primary">
+                              {d.label}
+                            </span>
+                            {d.nota ? (
+                              <span className="block text-xs">{d.nota}</span>
+                            ) : null}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      '—'
+                    )}
+                  </td>
+                ) : null}
                 <td>
                   <div className="flex flex-wrap gap-1">
                     {it.verificado ? (
                       <Badge variant="success">Verificada</Badge>
+                    ) : esCorreccionDocs ? (
+                      <Badge variant="pending">Esperando corrección</Badge>
                     ) : it.enviado ? (
                       <Badge variant="pending">Pendiente</Badge>
                     ) : (

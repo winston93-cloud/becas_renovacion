@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin-auth';
 import {
   contarRenovacionesRevision,
+  contarSolicitudesRevision,
   listPedidosAccesoSolicitud,
   listRenovaciones,
   listSolicitudes,
@@ -58,6 +59,10 @@ export async function GET() {
       renEnviadas.map((r) => ({ id: r.id, verificado: r.verificado }))
     );
 
+    const solRevision = await contarSolicitudesRevision(
+      solEnviadas.map((s) => ({ id: s.id, verificado: s.verificado }))
+    );
+
     return NextResponse.json({
       role: auth.admin.role,
       label: auth.admin.label,
@@ -76,7 +81,8 @@ export async function GET() {
       },
       solicitudes: {
         total: solEnviadas.length,
-        pendientes: solEnviadas.filter((s) => !s.verificado).length,
+        pendientes: solRevision.pendientes,
+        correccion_documentos: solRevision.correccion_documentos,
         verificadas: solEnviadas.filter((s) => s.verificado).length,
         autorizadas: solEnviadas.filter((s) => s.beca_autorizada).length,
       },

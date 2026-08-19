@@ -10,6 +10,7 @@ import { labelGrupo } from '@/lib/label-grupo';
 import type { AdminAuth } from '@/lib/admin-auth';
 import {
   fetchDocsIncorrectosPorRenovacion,
+  fetchDocsIncorrectosPorSolicitud,
   fetchRenovacionIdsConDocsIncorrectos,
   type DocIncorrectoResumen,
 } from '@/lib/admin-renovacion-docs-incorrectos';
@@ -152,7 +153,7 @@ function applyEstadoSolicitudFilter(
   estado: AdminListEstado
 ) {
   if (estado === 'enviadas') return q.eq('enviado', true);
-  if (estado === 'pendientes') {
+  if (estado === 'pendientes' || estado === 'correccion_documentos') {
     return q.eq('enviado', true).eq('verificado', false);
   }
   if (estado === 'verificadas') return q.eq('verificado', true);
@@ -280,6 +281,32 @@ export async function contarRenovacionesRevision(enviadas: {
   };
 }
 
+/** Conteos solicitudes enviadas: pendientes CE vs esperando corrección de docs. */
+export async function contarSolicitudesRevision(enviadas: {
+  id: string;
+  verificado: boolean;
+}[]) {
+  const sinVerificar = enviadas.filter((r) => !r.verificado);
+  if (sinVerificar.length === 0) {
+    return { pendientes: 0, correccion_documentos: 0 };
+  }
+
+  const indice = await fetchDocsIncorrectosPorSolicitud(
+    getInsforgeAdmin(),
+    sinVerificar.map((r) => r.id)
+  );
+
+  let correccion = 0;
+  for (const r of sinVerificar) {
+    if (indice.has(r.id)) correccion += 1;
+  }
+
+  return {
+    pendientes: sinVerificar.length - correccion,
+    correccion_documentos: correccion,
+  };
+}
+
 export async function listSolicitudes(opts: {
   admin: AdminAuth;
   ciclo: number;
@@ -303,7 +330,26 @@ export async function listSolicitudes(opts: {
   const { data, error } = await q;
   if (error) throw new Error(error.message);
 
-  const solRows = data || [];
+  let solRows = data || [];
+  if (solRows.length === 0) return [];
+
+  const dbAdmin = getInsforgeAdmin();
+  let docsIncorrectosMap = new Map<string, DocIncorrectoResumen[]>();
+
+  if (estado === 'pendientes' || estado === 'correccion_documentos') {
+    const solIds = solRows.map((r) => String(r.id));
+    docsIncorrectosMap = await fetchDocsIncorrectosPorSolicitud(
+      dbAdmin,
+      solIds
+    );
+
+    if (estado === 'pendientes') {
+      solRows = solRows.filter((r) => !docsIncorrectosMap.has(String(r.id)));
+    } else {
+      solRows = solRows.filter((r) => docsIncorrectosMap.has(String(r.id)));
+    }
+  }
+
   if (solRows.length === 0) return [];
 
   const alumnoIds = [...new Set(solRows.map((r) => Number(r.alumno_id)))];
@@ -318,8 +364,10 @@ export async function listSolicitudes(opts: {
     .map((r) => {
       const a = byId.get(Number(r.alumno_id));
       if (!a) return null;
+      const id = String(r.id);
+      const docsIncorrectos = docsIncorrectosMap.get(id);
       return {
-        id: String(r.id),
+        id,
         ciclo_escolar: Number(r.ciclo_escolar),
         enviado: Boolean(r.enviado),
         enviado_en: r.enviado_en || null,
@@ -330,6 +378,8 @@ export async function listSolicitudes(opts: {
         motivo: r.motivo || null,
         created_at: r.created_at,
         updated_at: r.updated_at,
+        docs_incorrectos: docsIncorrectos,
+        docs_incorrectos_count: docsIncorrectos?.length,
         alumno: mapAlumnoRow(a),
       };
     })
@@ -345,6 +395,8 @@ export async function listSolicitudes(opts: {
     motivo: string | null;
     created_at: string;
     updated_at: string;
+    docs_incorrectos?: DocIncorrectoResumen[];
+    docs_incorrectos_count?: number;
     alumno: ReturnType<typeof mapAlumnoRow>;
   }[];
 }
