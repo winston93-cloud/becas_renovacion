@@ -70,6 +70,49 @@ export function resumenExport(rows: AdminExportRow[]) {
   };
 }
 
+export function formatGradoExport(
+  grado: number | string | null | undefined
+): string {
+  if (grado == null) return '—';
+  const s = String(grado).trim();
+  if (!s || s.toLowerCase() === 'nan') return '—';
+  return s;
+}
+
+/** Nivel y grado comunes del listado (para encabezado del export). */
+export function contextoEscolarExport(rows: AdminExportRow[]): {
+  nivel: string;
+  grado: string;
+} {
+  const niveles = [
+    ...new Set(rows.map((r) => r.nivel_label.trim()).filter(Boolean)),
+  ];
+  const grados = [
+    ...new Set(
+      rows.map((r) => formatGradoExport(r.grado)).filter((g) => g !== '—')
+    ),
+  ];
+  return {
+    nivel:
+      niveles.length === 1
+        ? niveles[0]
+        : niveles.length === 0
+          ? '—'
+          : 'Varios niveles',
+    grado:
+      grados.length === 1
+        ? grados[0]
+        : grados.length === 0
+          ? '—'
+          : 'Varios grados',
+  };
+}
+
+export function lineaContextoEscolarExport(rows: AdminExportRow[]): string {
+  const { nivel, grado } = contextoEscolarExport(rows);
+  return `Nivel: ${nivel} · Grado: ${grado}`;
+}
+
 export function formatFechaExport(iso: string | null): string {
   if (!iso) return '—';
   try {

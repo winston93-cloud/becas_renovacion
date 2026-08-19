@@ -7,6 +7,7 @@ import { LETTER, PDF_COLORS } from './palette';
 import {
   estadoRevisionTexto,
   formatFechaExport,
+  lineaContextoEscolarExport,
   resumenExport,
   type AdminExportPayload,
 } from '@/lib/admin-export-lista';
@@ -76,7 +77,8 @@ export async function buildListaRevisionPdf(
       ? 'Listado de renovaciones'
       : 'Listado de solicitudes nuevas';
   const generado = new Date().toLocaleString('es-MX');
-  const subtitle = `${payload.titulo} · Filtro: ${payload.filtro_label} · Generado: ${generado}`;
+  const contexto = lineaContextoEscolarExport(rows);
+  const subtitle = `${payload.titulo} · Filtro: ${payload.filtro_label} · ${contexto} · Generado: ${generado}`;
 
   const doc = new PDFDocument({
     size: [PAGE.width, PAGE.height],
@@ -124,8 +126,8 @@ export async function buildListaRevisionPdf(
   const cols = [
     { key: 'n', label: '#', w: 28 },
     { key: 'ref', label: 'No. control', w: 62 },
-    { key: 'nombre', label: 'Alumno', w: 190 },
-    { key: 'grado', label: 'Grado', w: 52 },
+    { key: 'nombre', label: 'Alumno', w: 210 },
+    { key: 'grupo', label: 'Grupo', w: 44 },
     { key: 'estado', label: 'Estado', w: 72 },
     { key: 'ver', label: 'Verif.', w: 42 },
     { key: 'aut', label: 'Autoriz.', w: 48 },
@@ -176,7 +178,7 @@ export async function buildListaRevisionPdf(
       String(i + 1),
       r.alumno_ref,
       r.nombre,
-      `${r.grado ?? '—'} / ${r.grupo || '—'}`,
+      r.grupo || '—',
       estado,
       r.verificado ? 'Sí' : 'No',
       r.beca_autorizada ? 'Sí' : 'No',

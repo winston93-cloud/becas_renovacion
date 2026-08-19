@@ -15,9 +15,15 @@ function sanitizeRows(raw: unknown): AdminExportRow[] {
       nombre: String(r.nombre ?? ''),
       nivel_label: String(r.nivel_label ?? ''),
       grado:
-        r.grado == null || String(r.grado).trim() === ''
+        r.grado == null ||
+        String(r.grado).trim() === '' ||
+        String(r.grado).toLowerCase() === 'nan'
           ? null
-          : Number(r.grado),
+          : typeof r.grado === 'number'
+            ? Number.isFinite(r.grado)
+              ? r.grado
+              : null
+            : String(r.grado),
       grupo: String(r.grupo ?? ''),
       enviado: Boolean(r.enviado),
       enviado_en: r.enviado_en ? String(r.enviado_en) : null,
