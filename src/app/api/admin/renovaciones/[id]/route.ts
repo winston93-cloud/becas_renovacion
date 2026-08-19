@@ -17,6 +17,12 @@ import {
 import { nombreAlumnoAuditoria } from '@/lib/admin-auditoria-alumno';
 import { syncAlumnoBecaPorAutorizacion } from '@/lib/sync-alumno-beca-autorizacion';
 import { cargarPromedioBecadoRenovacion } from '@/lib/promedioBecadoRenovacion';
+import {
+  actualizarBecaRenovacionAdmin,
+  cargarConceptosBecaAdmin,
+  filtrarConceptosTramitables,
+  parsePatchBecaAdmin,
+} from '@/lib/admin-beca-catalogo';
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -109,6 +115,9 @@ export async function GET(_request: NextRequest, ctx: Ctx) {
       cicloDatos: cicloBecaOrigen,
     });
 
+    const conceptosRaw = await cargarConceptosBecaAdmin(db.database);
+    const conceptos = filtrarConceptosTramitables(conceptosRaw, beca_id);
+
     return NextResponse.json({
       renovacion: {
         id: String(ren.id),
@@ -149,6 +158,7 @@ export async function GET(_request: NextRequest, ctx: Ctx) {
         tipo: t,
         label: labelDocRequerido(t),
       })),
+      conceptos,
     });
   } catch (err) {
     const message =
@@ -168,7 +178,7 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
 
     const { data: ren, error } = await db.database
       .from('becas_renovacion')
-      .select('id, alumno_id, verificado')
+      .select('id, alumno_id, verificado, beca_autorizada')
       .eq('id', id)
       .maybeSingle();
 
@@ -195,6 +205,46 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
 
     const patch: Record<string, unknown> = {};
     const accionesLog: string[] = [];
+    let detalleBecaCambio: Record<string, unknown> | null = null;
+
+    const parsedBeca = parsePatchBecaAdmin(body);
+    if (body.beca_id != null || body.beca_porcentaje != null) {
+      if (!parsedBeca.ok) {
+        return NextResponse.json({ error: parsedBeca.error }, { status: 400 });
+      }
+
+      const { data: becaOrigen } = await db.database
+        .from('alumno_beca')
+        .select('beca_id, beca_porcentaje')
+        .eq('alumno_id', Number(ren.alumno_id))
+        .eq('beca_ciclo_escolar', getCicloBecaARenovar())
+        .maybeSingle();
+
+      const becaUpd = await actualizarBecaRenovacionAdmin({
+        db: db.database,
+        alumnoId: Number(ren.alumno_id),
+        alumnoRef: alumno?.alumno_ref,
+        patch: parsedBeca.data,
+        becaAutorizada: Boolean(ren.beca_autorizada),
+      });
+      if (!becaUpd.ok) {
+        return NextResponse.json({ error: becaUpd.error }, { status: 400 });
+      }
+
+      detalleBecaCambio = {
+        beca_id_anterior:
+          becaOrigen?.beca_id != null ? Number(becaOrigen.beca_id) : null,
+        beca_id_nuevo: parsedBeca.data.beca_id,
+        porcentaje_anterior:
+          becaOrigen?.beca_porcentaje != null
+            ? Number(becaOrigen.beca_porcentaje)
+            : null,
+        porcentaje_nuevo: parsedBeca.data.beca_porcentaje,
+        beca_autorizada: Boolean(ren.beca_autorizada),
+      };
+      accionesLog.push('renovacion.cambiar_beca');
+    }
+
     if (typeof body.verificado === 'boolean') {
       if (body.verificado === true) {
         const gate = await expedienteDocsTodosOk({
@@ -236,7 +286,7 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
       );
     }
 
-    if (Object.keys(patch).length === 0) {
+    if (Object.keys(patch).length === 0 && !detalleBecaCambio) {
       return NextResponse.json(
         { error: 'Nada que actualizar.' },
         { status: 400 }
@@ -255,17 +305,19 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
       }
     }
 
-    const { data: updated, error: upErr } = await db.database
-      .from('becas_renovacion')
-      .update(patch)
-      .eq('id', id)
-      .select(
-        'id, verificado, fecha_verificado, beca_autorizada'
-      )
-      .maybeSingle();
+    let updated: Record<string, unknown> | null = null;
+    if (Object.keys(patch).length > 0) {
+      const { data: upd, error: upErr } = await db.database
+        .from('becas_renovacion')
+        .update(patch)
+        .eq('id', id)
+        .select('id, verificado, fecha_verificado, beca_autorizada')
+        .maybeSingle();
 
-    if (upErr) {
-      return NextResponse.json({ error: upErr.message }, { status: 500 });
+      if (upErr) {
+        return NextResponse.json({ error: upErr.message }, { status: 500 });
+      }
+      updated = upd;
     }
 
     const meta = clientMetaFromRequest(request);
@@ -278,12 +330,24 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
         alumno_ref: alumno?.alumno_ref != null ? String(alumno.alumno_ref) : null,
         alumno_nombre: nombreAlumnoAuditoria(alumno),
         alumno_nivel: alumno?.alumno_nivel != null ? Number(alumno.alumno_nivel) : null,
-        detalle: { cambios: patch, resultado: updated },
+        detalle:
+          accion === 'renovacion.cambiar_beca'
+            ? { cambio_beca: detalleBecaCambio }
+            : { cambios: patch, resultado: updated },
         ...meta,
       });
     }
 
-    return NextResponse.json({ ok: true, renovacion: updated });
+    return NextResponse.json({
+      ok: true,
+      renovacion: updated,
+      beca: detalleBecaCambio
+        ? {
+            beca_id: detalleBecaCambio.beca_id_nuevo,
+            beca_porcentaje: detalleBecaCambio.porcentaje_nuevo,
+          }
+        : undefined,
+    });
   } catch (err) {
     const message =
       err instanceof Error ? err.message : 'Error al actualizar.';

@@ -110,8 +110,10 @@ export default function AdminAuditoriaPage() {
             <option value="acceso.revocar">Revocó acceso</option>
             <option value="renovacion.verificar">Verificó renovación</option>
             <option value="renovacion.autorizar">Autorizó renovación</option>
+            <option value="renovacion.cambiar_beca">Cambió beca (renovación)</option>
             <option value="solicitud.verificar">Verificó solicitud</option>
             <option value="solicitud.autorizar">Autorizó solicitud</option>
+            <option value="solicitud.cambiar_beca">Cambió beca (solicitud)</option>
             <option value="documento.marcar_ok">Documento OK</option>
             <option value="documento.marcar_incorrecto">
               Documento incorrecto

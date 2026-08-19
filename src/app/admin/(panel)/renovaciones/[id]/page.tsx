@@ -17,6 +17,7 @@ import {
 } from '@/components/admin/AdminExpedienteHeader';
 import { normalizarRevisionEstado } from '@/lib/doc-revision';
 import type { PromedioBecadoRenovacion } from '@/lib/promedioBecadoRenovacion';
+import type { ConceptoBecaAdmin } from '@/lib/admin-beca-catalogo';
 
 type Detail = {
   renovacion: {
@@ -46,6 +47,7 @@ type Detail = {
   promedio?: PromedioBecadoRenovacion | null;
   documentos: DocAdminItem[];
   docs_requeridos: { tipo: string; label: string }[];
+  conceptos: ConceptoBecaAdmin[];
 };
 
 export default function RenovacionDetallePage({
@@ -149,6 +151,14 @@ export default function RenovacionDetallePage({
         becaLabel="Beca a renovar"
         tipoBeca={beca?.beca_clase ?? null}
         porcentajeBeca={beca?.beca_porcentaje ?? null}
+        becaEdit={{
+          flujo: 'renovacion',
+          expedienteId: r.id,
+          beca,
+          conceptos: data.conceptos || [],
+          becaAutorizada: r.beca_autorizada,
+          onSaved: () => load({ soft: true }),
+        }}
       />
 
       {error ? <Alert variant="error">{error}</Alert> : null}

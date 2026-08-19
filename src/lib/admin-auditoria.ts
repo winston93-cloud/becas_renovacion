@@ -12,10 +12,12 @@ export type AuditoriaAccion =
   | 'renovacion.quitar_verificacion'
   | 'renovacion.autorizar'
   | 'renovacion.quitar_autorizacion'
+  | 'renovacion.cambiar_beca'
   | 'solicitud.verificar'
   | 'solicitud.quitar_verificacion'
   | 'solicitud.autorizar'
   | 'solicitud.quitar_autorizacion'
+  | 'solicitud.cambiar_beca'
   | 'acceso.autorizar'
   | 'acceso.revocar'
   | 'documento.marcar_ok'
@@ -107,10 +109,12 @@ export function etiquetaAccionAuditoria(accion: string): string {
     'renovacion.quitar_verificacion': 'Quitó verificación (renovación)',
     'renovacion.autorizar': 'Autorizó beca (renovación)',
     'renovacion.quitar_autorizacion': 'Quitó autorización (renovación)',
+    'renovacion.cambiar_beca': 'Cambió tipo/porcentaje (renovación)',
     'solicitud.verificar': 'Verificó solicitud nueva',
     'solicitud.quitar_verificacion': 'Quitó verificación (solicitud)',
     'solicitud.autorizar': 'Autorizó beca (solicitud)',
     'solicitud.quitar_autorizacion': 'Quitó autorización (solicitud)',
+    'solicitud.cambiar_beca': 'Cambió tipo/porcentaje (solicitud)',
     'acceso.autorizar': 'Autorizó acceso a solicitud nueva',
     'acceso.revocar': 'Revocó acceso a solicitud nueva',
     'documento.marcar_ok': 'Documento marcado OK',
