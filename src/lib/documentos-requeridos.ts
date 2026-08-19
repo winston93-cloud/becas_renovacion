@@ -29,20 +29,12 @@ const RENOVACION_CIRCULAR: DocumentoTipo[] = [
   'comp_inscripcion',
 ];
 
-/** Solicitud nueva: expediente de ingreso. */
+/** Solicitud nueva: expediente de ingreso (sin carta de conducta ni constancia no adeudo). */
 const BASE_NUEVO_INGRESO: DocumentoTipo[] = [
   'acta_nacimiento',
   'curp',
   'curp_tutor',
 ];
-
-const EXTRA_KINDER2: DocumentoTipo[] = [
-  'constancia_no_adeudo',
-  'carta_buena_conducta',
-];
-
-/** Solicitud nueva: constancia + carta en todos los niveles (incl. Maternal/Kinder 1). */
-const EXTRA_SOLICITUD_NUEVA = EXTRA_KINDER2;
 
 const LABELS: Record<DocumentoTipo, string> = {
   ingresos:
@@ -110,14 +102,14 @@ export function docsRequeridosConEtiqueta(
 
 /**
  * Renovación: 3 PDFs (ingresos, domicilio, inscripción).
- * Solicitud nueva: acta, CURPs + constancia de no adeudo + carta de buena conducta (todos los niveles).
+ * Solicitud nueva: acta + CURPs (+ ingresos si beca convenio). Sin carta ni constancia no adeudo.
  */
 export function docsRequeridos(opts: DocsRequeridosOpts): DocumentoTipo[] {
   if (opts.flujo === 'renovacion') {
     return [...RENOVACION_CIRCULAR];
   }
 
-  const list: DocumentoTipo[] = [...BASE_NUEVO_INGRESO, ...EXTRA_SOLICITUD_NUEVA];
+  const list: DocumentoTipo[] = [...BASE_NUEVO_INGRESO];
   if (
     esBecaConvenio({ becaId: opts.becaId, becaClase: opts.becaClase }) &&
     !list.includes('ingresos')
