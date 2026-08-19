@@ -15,6 +15,10 @@ import {
 import { requireAcceso, forbidWrongAlumno } from '@/lib/acceso-auth';
 import { esBecaNoTramitable } from '@/lib/becas-excluidas';
 import { assertPortalAbierto } from '@/lib/portal-ventanas';
+import {
+  assertPortalRenovacionOExcepcionDocs,
+  renovacionExentaPorDocsIncorrectos,
+} from '@/lib/portal-renovacion-excepcion';
 import { labelNivel } from '@/lib/email-renovacion';
 import { buildSolicitudPdf } from '@/lib/pdf/solicitud';
 import { buildSolicitudDataFromRows } from '@/lib/pdf/map-data';
@@ -66,12 +70,6 @@ function viveToSmallint(v: boolean | null | undefined): number | null {
 
 export async function GET(request: NextRequest) {
   try {
-    // 2026-07-22 - Ventana de renovación
-    const cerrado = assertPortalAbierto('renovacion');
-    if (cerrado) {
-      return NextResponse.json(cerrado, { status: 403 });
-    }
-
     const alumnoRefRaw = (request.nextUrl.searchParams.get('alumno_ref') || '').trim();
     if (!alumnoRefRaw) {
       return NextResponse.json(
@@ -116,6 +114,16 @@ export async function GET(request: NextRequest) {
     }
 
     const alumnoId = Number(alumno.alumno_id);
+
+    const cerrado = await assertPortalRenovacionOExcepcionDocs(admin, alumnoId);
+    if (cerrado) {
+      return NextResponse.json(cerrado, { status: 403 });
+    }
+
+    const accesoCorreccionPostCierre = await renovacionExentaPorDocsIncorrectos(
+      admin,
+      alumnoId
+    );
 
     // 2026-07-23 - Gate = legacy PHP: beca_estatus = 1 en ciclo a renovar (calendario − 1)
     const { data: becaRow, error: becaErr } = await admin.database
@@ -303,6 +311,7 @@ export async function GET(request: NextRequest) {
       // 2026-07-16 - Si ya finalizó, el frontend va al comprobante (o a correcciones)
       ya_registrado: Boolean(renovacion?.correo_enviado),
       docs_por_corregir: docsPorCorregir,
+      acceso_correccion_post_cierre: accesoCorreccionPostCierre,
     };
 
     return NextResponse.json(payload);

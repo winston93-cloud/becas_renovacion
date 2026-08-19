@@ -5,7 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getInsforgeAdmin } from '@/lib/insforge-server';
 import { forbidWrongAlumno, requireAcceso } from '@/lib/acceso-auth';
-import { assertPortalAbierto } from '@/lib/portal-ventanas';
+import { assertPortalRenovacionOExcepcionPorRenovacionId } from '@/lib/portal-renovacion-excepcion';
 import { getCurrentSchoolCycle, getSchoolCycleLabel } from '@/lib/ciclo-escolar';
 import { buildComprobantePdf } from '@/lib/pdf/comprobante';
 import { formatFechaEsMx } from '@/lib/pdf/map-data';
@@ -15,11 +15,6 @@ import { labelGrado } from '@/lib/label-grado';
 
 export async function GET(request: NextRequest) {
   try {
-    const cerrado = assertPortalAbierto('renovacion');
-    if (cerrado) {
-      return NextResponse.json(cerrado, { status: 403 });
-    }
-
     const auth = requireAcceso(request);
     if (!auth.ok) return auth.response;
 
@@ -35,6 +30,14 @@ export async function GET(request: NextRequest) {
     }
 
     const admin = getInsforgeAdmin();
+
+    const cerrado = await assertPortalRenovacionOExcepcionPorRenovacionId(
+      admin,
+      renovacionId
+    );
+    if (cerrado) {
+      return NextResponse.json(cerrado, { status: 403 });
+    }
 
     const { data: renovacion, error: renErr } = await admin.database
       .from('becas_renovacion')

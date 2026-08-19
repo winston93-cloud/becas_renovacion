@@ -151,7 +151,7 @@ export default function HomePage() {
     const ref = alumnoRef.trim();
     const clave = alumnoClave;
     if (!ref || !clave) return;
-    if (!assertVentanaAbierta('renovacion')) return;
+    // Renovación: el API decide si hay excepción por docs incorrectos post-cierre
     setModalRenovacion(false);
     setFlujo('renovacion');
     setError(null);
@@ -176,7 +176,8 @@ export default function HomePage() {
     const clave = alumnoClave;
     if (!ref || !clave) return;
 
-    if (!assertVentanaAbierta(flujo)) return;
+    // Solicitud nueva sigue bloqueada en cliente; renovación la valida el API
+    if (flujo === 'solicitud' && !assertVentanaAbierta(flujo)) return;
 
     setError(null);
     setInfo(null);

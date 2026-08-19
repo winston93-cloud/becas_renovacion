@@ -130,6 +130,8 @@ export type RenovacionPrecarga = {
   ya_registrado: boolean;
   /** Hay documentos marcados incorrecto que el padre puede re-subir. */
   docs_por_corregir?: boolean;
+  /** Portal cerrado pero puede corregir docs incorrectos (excepción post-cierre). */
+  acceso_correccion_post_cierre?: boolean;
 };
 
 /**

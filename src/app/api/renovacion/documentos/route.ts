@@ -5,7 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getInsforgeAdmin } from '@/lib/insforge-server';
 import { forbidWrongAlumno, requireAcceso } from '@/lib/acceso-auth';
-import { assertPortalAbierto } from '@/lib/portal-ventanas';
+import { assertPortalRenovacionOExcepcionPorRenovacionId } from '@/lib/portal-renovacion-excepcion';
 import type { DocumentoTipo } from '@/lib/types';
 import {
   DOCUMENTO_FLAG_COLUMN,
@@ -15,11 +15,6 @@ import { REVISION_AL_REENVIAR, REVISION_AL_SUBIR } from '@/lib/doc-revision';
 
 export async function POST(request: NextRequest) {
   try {
-    const cerrado = assertPortalAbierto('renovacion');
-    if (cerrado) {
-      return NextResponse.json(cerrado, { status: 403 });
-    }
-
     // 2026-07-22 - Sesión familiar requerida
     const auth = requireAcceso(request);
     if (!auth.ok) return auth.response;
@@ -46,6 +41,14 @@ export async function POST(request: NextRequest) {
     }
 
     const admin = getInsforgeAdmin();
+
+    const cerrado = await assertPortalRenovacionOExcepcionPorRenovacionId(
+      admin,
+      renovacionId
+    );
+    if (cerrado) {
+      return NextResponse.json(cerrado, { status: 403 });
+    }
 
     const { data: renovacion, error: renErr } = await admin.database
       .from('becas_renovacion')
