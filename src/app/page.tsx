@@ -323,49 +323,58 @@ export default function HomePage() {
       </header>
 
       <main className="home-main home-main--trio">
+        <div className="home-trio-board">
         {/* Izquierda — Renovación */}
         <section
           className={`home-lane home-lane--renovacion ui-enter ui-enter-delay-1${enlaceFlujo === 'renovacion' ? ' is-highlighted' : ''}`}
           aria-labelledby="home-renovacion-title"
         >
           <div className="home-panel home-panel--renovacion">
-            <p className="home-lane-kicker">
-              <RefreshCw className="h-3.5 w-3.5" aria-hidden />
-              Columna izquierda
-            </p>
-            <h2 id="home-renovacion-title" className="home-panel-title">
-              Renovación de beca
-            </h2>
-            <p className="home-panel-sub">
-              Para alumnos que tuvieron <strong>beca Winston</strong> en el ciclo{' '}
-              <strong>{cicloPasadoLabel}</strong> (beca del Instituto,{' '}
-              <strong>no beca SEP</strong>).
-            </p>
+            <header className="home-panel-head">
+              <span className="home-panel-badge home-panel-badge--renovacion">
+                <RefreshCw className="h-3.5 w-3.5" aria-hidden />
+                Renovación
+              </span>
+              <h2 id="home-renovacion-title" className="home-panel-title">
+                Beca del ciclo anterior
+              </h2>
+              <p className="home-panel-sub">
+                Tuvo <strong>beca Winston</strong> en {cicloPasadoLabel}{' '}
+                <span className="home-panel-tag">No SEP</span> y renueva para{' '}
+                {cicloNuevoLabel}.
+              </p>
+            </header>
 
-            <div className="home-lane-box home-lane-box--ok">
-              <p className="home-lane-box__title">Use este acceso si:</p>
-              <ul className="home-lane-list">
-                <li>Su hijo(a) tuvo beca activa Winston el ciclo pasado.</li>
-                <li>Renueva para el ciclo {cicloNuevoLabel}.</li>
-                <li>Actualiza documentos y datos del mismo trámite.</li>
+            <div className="home-panel-body">
+              <ul className="home-checklist">
+                <li>Beca activa Winston el ciclo pasado</li>
+                <li>Mismo trámite: documentos y datos</li>
               </ul>
+              <p className="home-panel-note">
+                Si <em>no</em> tuvo beca en {cicloPasadoLabel}, use la solicitud
+                de la derecha.
+              </p>
+
+              {enlaceFlujo === 'renovacion' ? (
+                <Alert variant="info" title="Enlace del correo">
+                  <p className="leading-relaxed">
+                    Trámite de <strong>Renovación</strong>. Número de control
+                    listo; ingrese contraseña y continúe.
+                  </p>
+                </Alert>
+              ) : null}
+
+              {errorRenovacion ? (
+                <Alert variant="warning" title="No se pudo continuar">
+                  <p className="leading-relaxed">{errorRenovacion}</p>
+                </Alert>
+              ) : null}
             </div>
 
-            <p className="home-lane-warn">
-              No use esta columna si no tuvo beca Winston el ciclo {cicloPasadoLabel}
-              — aunque la haya tenido años antes.
-            </p>
-
-            {enlaceFlujo === 'renovacion' ? (
-              <Alert variant="info" title="Enlace del correo">
-                <p className="leading-relaxed">
-                  Su trámite es <strong>Renovación</strong>. Ya dejamos su número
-                  de control; escriba la contraseña y continúe.
-                </p>
-              </Alert>
-            ) : null}
-
-            <form onSubmit={handleRenovacionSubmit} className="home-lane-form">
+            <form
+              onSubmit={handleRenovacionSubmit}
+              className="home-panel-foot home-lane-form"
+            >
               <div>
                 <Label htmlFor="renovacion_ref" required>
                   No. de Control
@@ -399,17 +408,7 @@ export default function HomePage() {
                   }}
                   placeholder="Contraseña del alumno"
                 />
-                <p className="home-lane-hint">
-                  Misma contraseña del sistema escolar Winston.
-                </p>
               </div>
-
-              {errorRenovacion ? (
-                <Alert variant="warning" title="No se pudo continuar">
-                  <p className="leading-relaxed">{errorRenovacion}</p>
-                </Alert>
-              ) : null}
-
               <Button type="submit" disabled={!puedeRenovar} fullWidth>
                 {loadingRenovacion ? 'Verificando…' : 'Entrar a renovación'}
                 {!loadingRenovacion ? (
@@ -422,46 +421,44 @@ export default function HomePage() {
 
         {/* Centro — Marca */}
         <section className="home-lane home-lane--center ui-enter ui-enter-delay-2">
-          <div className="home-hero home-hero--center">
-            <p className="home-brand-kicker">Programa de becas</p>
-            <h1 className="home-hero-title">
-              Winston
-              <span>Portal de becas</span>
-            </h1>
-            <p className="home-hero-lead">
-              Elija la columna que corresponda a la situación de su familia. Son
-              dos trámites distintos; usar el incorrecto retrasa su proceso.
-            </p>
+          <div className="home-panel home-panel--center">
+            <header className="home-panel-head home-panel-head--center">
+              <p className="home-brand-kicker">Instituto Winston Churchill</p>
+              <h1 className="home-hero-title home-hero-title--center">
+                Portal de becas
+              </h1>
+              <p className="home-hero-lead home-hero-lead--center">
+                Dos trámites distintos. Elija el que corresponda a su hijo(a).
+              </p>
+            </header>
 
-            <div className="home-trio-guide" role="note">
-              <div className="home-trio-guide__item">
-                <span className="home-trio-guide__arrow" aria-hidden>
-                  ←
+            <div className="home-trio-guide" role="note" aria-label="Guía rápida">
+              <div className="home-trio-guide__item home-trio-guide__item--left">
+                <span className="home-trio-guide__icon" aria-hidden>
+                  <RefreshCw className="h-4 w-4" />
                 </span>
                 <span>
-                  <strong>Izquierda:</strong> ya tenía beca Winston el ciclo{' '}
-                  {cicloPasadoLabel}.
+                  <strong>Renovación</strong> — beca Winston {cicloPasadoLabel}
                 </span>
               </div>
-              <div className="home-trio-guide__item">
-                <span className="home-trio-guide__arrow" aria-hidden>
-                  →
+              <div className="home-trio-guide__item home-trio-guide__item--right">
+                <span className="home-trio-guide__icon" aria-hidden>
+                  <UserPlus className="h-4 w-4" />
                 </span>
                 <span>
-                  <strong>Derecha:</strong> primera solicitud o sin beca el ciclo{' '}
-                  {cicloPasadoLabel}.
+                  <strong>Solicitud</strong> — sin beca {cicloPasadoLabel}
                 </span>
               </div>
             </div>
 
-            <figure className="home-photo">
+            <figure className="home-photo home-photo--center">
               <Image
                 src="/images/winston-comunidad.jpg"
                 alt="Comunidad estudiantil Winston"
                 width={640}
                 height={400}
                 className="home-photo-img"
-                sizes="(max-width: 1099px) 100vw, 360px"
+                sizes="(max-width: 1099px) 100vw, 320px"
                 priority
               />
             </figure>
@@ -474,43 +471,114 @@ export default function HomePage() {
           aria-labelledby="home-solicitud-title"
         >
           <div className="home-panel home-panel--solicitud">
-            <p className="home-lane-kicker">
-              <UserPlus className="h-3.5 w-3.5" aria-hidden />
-              Columna derecha
-            </p>
-            <h2 id="home-solicitud-title" className="home-panel-title">
-              Solicitud de beca
-            </h2>
-            <p className="home-panel-sub">
-              Para quienes <strong>no tuvieron beca Winston</strong> en el ciclo{' '}
-              <strong>{cicloPasadoLabel}</strong> — primera vez o beca en ciclos
-              anteriores, pero no el pasado.
-            </p>
+            <header className="home-panel-head">
+              <span className="home-panel-badge home-panel-badge--solicitud">
+                <UserPlus className="h-3.5 w-3.5" aria-hidden />
+                Solicitud nueva
+              </span>
+              <h2 id="home-solicitud-title" className="home-panel-title">
+                Primera vez o sin beca reciente
+              </h2>
+              <p className="home-panel-sub">
+                <strong>No</strong> tuvo beca Winston en {cicloPasadoLabel}{' '}
+                (puede haberla tenido en ciclos anteriores).
+              </p>
+            </header>
 
-            <div className="home-lane-box home-lane-box--info">
-              <p className="home-lane-box__title">Use este acceso si:</p>
-              <ul className="home-lane-list">
-                <li>Es la primera vez que piden beca Winston.</li>
-                <li>Tuvieron beca hace más de un ciclo, no en {cicloPasadoLabel}.</li>
-                <li>Primero solicita acceso; Control Escolar autoriza el formulario.</li>
+            <div className="home-panel-body">
+              <ul className="home-checklist">
+                <li>Primera solicitud de beca Winston</li>
+                <li>Pide acceso; CE autoriza el formulario</li>
               </ul>
+              <p className="home-panel-note">
+                Si tuvo beca activa en {cicloPasadoLabel}, use{' '}
+                <strong>Renovación</strong> (izquierda).
+              </p>
+
+              {enlaceFlujo === 'solicitud' ? (
+                <Alert variant="info" title="Enlace del correo">
+                  <p className="leading-relaxed">
+                    Trámite de <strong>Solicitud</strong>. Número de control
+                    listo; ingrese contraseña y continúe.
+                  </p>
+                </Alert>
+              ) : null}
+
+              {errorSolicitud ? (
+                <Alert variant="warning" title="No se pudo continuar">
+                  <p className="leading-relaxed">{errorSolicitud}</p>
+                </Alert>
+              ) : null}
+
+              {infoSolicitud ? (
+                <Alert variant="info" title="Solicitud de acceso">
+                  {infoSolicitud}
+                </Alert>
+              ) : null}
+
+              {infoSolicitud && docsAcceso ? (
+                <aside
+                  className={`home-docs-card ui-enter${docsExpandidos ? ' is-open' : ''}`}
+                  aria-label="Documentos para el trámite"
+                >
+                  <div className="home-docs-card__head">
+                    <span className="home-docs-card__icon" aria-hidden>
+                      <FileText className="h-4 w-4" />
+                    </span>
+                    <div className="home-docs-card__copy">
+                      <p className="home-docs-card__kicker">
+                        Prepare su expediente
+                      </p>
+                      <h3 className="home-docs-card__title">
+                        Documentos ({docsAcceso.nivelLabel})
+                      </h3>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="home-docs-toggle"
+                    aria-expanded={docsExpandidos}
+                    aria-controls="home-docs-panel"
+                    onClick={() => setDocsExpandidos((v) => !v)}
+                  >
+                    <span>
+                      {docsExpandidos
+                        ? 'Colapsar'
+                        : `Ver lista (${docsAcceso.docs.length})`}
+                    </span>
+                    <ChevronDown
+                      className={`home-docs-toggle__chevron h-4 w-4${docsExpandidos ? ' is-open' : ''}`}
+                      aria-hidden
+                    />
+                  </button>
+
+                  <div
+                    id="home-docs-panel"
+                    className="home-docs-panel"
+                    hidden={!docsExpandidos}
+                  >
+                    <ol className="home-docs-list">
+                      {docsAcceso.docs.map((doc, idx) => (
+                        <li key={doc.tipo} className="home-docs-list__item">
+                          <span className="home-docs-list__num" aria-hidden>
+                            {idx + 1}
+                          </span>
+                          <span className="home-docs-list__label">
+                            {doc.label}
+                          </span>
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                </aside>
+              ) : null}
             </div>
 
-            <p className="home-lane-warn">
-              Si tuvo beca Winston activa el ciclo {cicloPasadoLabel}, debe usar la
-              columna de <strong>Renovación</strong> (izquierda).
-            </p>
-
-            {enlaceFlujo === 'solicitud' ? (
-              <Alert variant="info" title="Enlace del correo">
-                <p className="leading-relaxed">
-                  Su trámite es <strong>Solicitud de beca</strong> (no Renovación).
-                  Ya dejamos su número de control; escriba la contraseña y continúe.
-                </p>
-              </Alert>
-            ) : null}
-
-            <form onSubmit={handleSolicitudSubmit} className="home-lane-form">
+            <form
+              onSubmit={handleSolicitudSubmit}
+              className="home-panel-foot home-lane-form"
+            >
               <div>
                 <Label htmlFor="solicitud_ref" required>
                   No. de Control
@@ -544,86 +612,7 @@ export default function HomePage() {
                   }}
                   placeholder="Contraseña del alumno"
                 />
-                <p className="home-lane-hint">
-                  Misma contraseña del sistema escolar. Primero pide acceso; al
-                  autorizarlo, continúa el formulario.
-                </p>
               </div>
-
-              {errorSolicitud ? (
-                <Alert variant="warning" title="No se pudo continuar">
-                  <p className="leading-relaxed">{errorSolicitud}</p>
-                </Alert>
-              ) : null}
-
-              {infoSolicitud ? (
-                <Alert variant="info" title="Solicitud de acceso">
-                  {infoSolicitud}
-                </Alert>
-              ) : null}
-
-              {infoSolicitud && docsAcceso ? (
-                <aside
-                  className={`home-docs-card ui-enter${docsExpandidos ? ' is-open' : ''}`}
-                  aria-label="Documentos para el trámite"
-                >
-                  <div className="home-docs-card__head">
-                    <span className="home-docs-card__icon" aria-hidden>
-                      <FileText className="h-4 w-4" />
-                    </span>
-                    <div className="home-docs-card__copy">
-                      <p className="home-docs-card__kicker">
-                        Prepare su expediente
-                      </p>
-                      <h3 className="home-docs-card__title">
-                        Documentos para solicitud de beca
-                      </h3>
-                      <p className="home-docs-card__sub">
-                        Según el nivel ({docsAcceso.nivelLabel}). Cuando le
-                        autoricen el acceso, deberá subirlos en PDF.
-                      </p>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    className="home-docs-toggle"
-                    aria-expanded={docsExpandidos}
-                    aria-controls="home-docs-panel"
-                    onClick={() => setDocsExpandidos((v) => !v)}
-                  >
-                    <span>
-                      {docsExpandidos
-                        ? 'Colapsar'
-                        : `Ver documentos (${docsAcceso.docs.length})`}
-                    </span>
-                    <ChevronDown
-                      className={`home-docs-toggle__chevron h-4 w-4${docsExpandidos ? ' is-open' : ''}`}
-                      aria-hidden
-                    />
-                  </button>
-
-                  <div
-                    id="home-docs-panel"
-                    className="home-docs-panel"
-                    hidden={!docsExpandidos}
-                  >
-                    <ol className="home-docs-list">
-                      {docsAcceso.docs.map((doc, idx) => (
-                        <li key={doc.tipo} className="home-docs-list__item">
-                          <span className="home-docs-list__num" aria-hidden>
-                            {idx + 1}
-                          </span>
-                          <span className="home-docs-list__label">
-                            {doc.label}
-                          </span>
-                        </li>
-                      ))}
-                    </ol>
-                  </div>
-                </aside>
-              ) : null}
-
               <Button type="submit" disabled={!puedeSolicitar} fullWidth>
                 {loadingSolicitud
                   ? 'Verificando…'
@@ -634,13 +623,10 @@ export default function HomePage() {
                   <UserPlus className="h-4 w-4" aria-hidden />
                 ) : null}
               </Button>
-
-              <p className="home-lane-hint home-lane-hint--center">
-                Si ya le autorizaron el acceso, el mismo botón abre el formulario.
-              </p>
             </form>
           </div>
         </section>
+        </div>
       </main>
 
       <footer className="home-footer ui-enter ui-enter-delay-3">
