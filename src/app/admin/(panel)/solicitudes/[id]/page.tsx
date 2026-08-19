@@ -8,6 +8,7 @@ import {
   docsListosParaVerificar,
   type DocAdminItem,
 } from '@/app/admin/(panel)/components/AdminDocumentosRevision';
+import { AdminBecaTipoPorcentaje } from '@/app/admin/(panel)/components/AdminBecaTipoPorcentaje';
 import {
   AdminExpedienteHeader,
   BadgeAutorizada,
@@ -15,6 +16,7 @@ import {
   BadgeVerificada,
 } from '@/components/admin/AdminExpedienteHeader';
 import { normalizarRevisionEstado } from '@/lib/doc-revision';
+import type { ConceptoBecaAdmin } from '@/lib/admin-beca-catalogo';
 
 type Detail = {
   solicitud: {
@@ -43,6 +45,7 @@ type Detail = {
   } | null;
   documentos: DocAdminItem[];
   docs_requeridos: { tipo: string; label: string }[];
+  conceptos: ConceptoBecaAdmin[];
 };
 
 export default function SolicitudDetallePage({
@@ -146,6 +149,16 @@ export default function SolicitudDetallePage({
         becaLabel="Beca solicitada"
         tipoBeca={beca?.beca_clase ?? null}
         porcentajeBeca={beca?.beca_porcentaje ?? null}
+      />
+
+      <AdminBecaTipoPorcentaje
+        flujo="solicitud"
+        expedienteId={s.id}
+        becaLabel="Beca solicitada"
+        beca={beca}
+        conceptos={data.conceptos || []}
+        becaAutorizada={s.beca_autorizada}
+        onSaved={() => load({ soft: true })}
       />
 
       {error ? <Alert variant="error">{error}</Alert> : null}

@@ -12,6 +12,12 @@ import {
 } from '@/lib/admin-auditoria';
 import { nombreAlumnoAuditoria } from '@/lib/admin-auditoria-alumno';
 import { syncAlumnoBecaPorAutorizacion } from '@/lib/sync-alumno-beca-autorizacion';
+import {
+  actualizarBecaSolicitudAdmin,
+  cargarConceptosBecaAdmin,
+  filtrarConceptosTramitables,
+  parsePatchBecaAdmin,
+} from '@/lib/admin-beca-catalogo';
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -89,6 +95,9 @@ export async function GET(_request: NextRequest, ctx: Ctx) {
       becaClase: beca_clase,
     });
 
+    const conceptosRaw = await cargarConceptosBecaAdmin(db.database);
+    const conceptos = filtrarConceptosTramitables(conceptosRaw, beca_id);
+
     return NextResponse.json({
       solicitud: {
         id: String(sol.id),
@@ -126,6 +135,7 @@ export async function GET(_request: NextRequest, ctx: Ctx) {
         tipo: t,
         label: labelDocRequerido(t),
       })),
+      conceptos,
     });
   } catch (err) {
     const message =
@@ -145,7 +155,9 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
 
     const { data: sol, error } = await db.database
       .from('becas_solicitud')
-      .select('id, alumno_id, beca_deseada_id, beca_porcentaje_deseado, verificado')
+      .select(
+        'id, alumno_id, beca_deseada_id, beca_porcentaje_deseado, verificado, beca_autorizada'
+      )
       .eq('id', id)
       .maybeSingle();
 
@@ -172,6 +184,47 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
 
     const patch: Record<string, unknown> = {};
     const accionesLog: string[] = [];
+    let detalleBecaCambio: Record<string, unknown> | null = null;
+
+    const parsedBeca = parsePatchBecaAdmin(body);
+    if (body.beca_id != null || body.beca_porcentaje != null) {
+      if (!parsedBeca.ok) {
+        return NextResponse.json({ error: parsedBeca.error }, { status: 400 });
+      }
+
+      const becaUpd = await actualizarBecaSolicitudAdmin({
+        db: db.database,
+        solicitudId: id,
+        alumnoId: Number(sol.alumno_id),
+        patch: parsedBeca.data,
+        becaAutorizada: Boolean(sol.beca_autorizada),
+        syncAutorizacion: (p) =>
+          syncAlumnoBecaPorAutorizacion({
+            db: db.database,
+            alumnoId: Number(sol.alumno_id),
+            autorizada: true,
+            porcentajeFallback: p.beca_porcentaje,
+            becaIdFallback: p.beca_id,
+          }),
+      });
+      if (!becaUpd.ok) {
+        return NextResponse.json({ error: becaUpd.error }, { status: 400 });
+      }
+
+      detalleBecaCambio = {
+        beca_id_anterior:
+          sol.beca_deseada_id != null ? Number(sol.beca_deseada_id) : null,
+        beca_id_nuevo: parsedBeca.data.beca_id,
+        porcentaje_anterior:
+          sol.beca_porcentaje_deseado != null
+            ? Number(sol.beca_porcentaje_deseado)
+            : null,
+        porcentaje_nuevo: parsedBeca.data.beca_porcentaje,
+        beca_autorizada: Boolean(sol.beca_autorizada),
+      };
+      accionesLog.push('solicitud.cambiar_beca');
+    }
+
     if (typeof body.verificado === 'boolean') {
       if (body.verificado === true) {
         const gate = await expedienteDocsTodosOk({
@@ -215,7 +268,7 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
       );
     }
 
-    if (Object.keys(patch).length === 0) {
+    if (Object.keys(patch).length === 0 && !detalleBecaCambio) {
       return NextResponse.json(
         { error: 'Nada que actualizar.' },
         { status: 400 }
@@ -239,15 +292,19 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
       }
     }
 
-    const { data: updated, error: upErr } = await db.database
-      .from('becas_solicitud')
-      .update(patch)
-      .eq('id', id)
-      .select('id, verificado, fecha_verificado, beca_autorizada')
-      .maybeSingle();
+    let updated: Record<string, unknown> | null = null;
+    if (Object.keys(patch).length > 0) {
+      const { data: upd, error: upErr } = await db.database
+        .from('becas_solicitud')
+        .update(patch)
+        .eq('id', id)
+        .select('id, verificado, fecha_verificado, beca_autorizada')
+        .maybeSingle();
 
-    if (upErr) {
-      return NextResponse.json({ error: upErr.message }, { status: 500 });
+      if (upErr) {
+        return NextResponse.json({ error: upErr.message }, { status: 500 });
+      }
+      updated = upd;
     }
 
     const meta = clientMetaFromRequest(request);
@@ -260,12 +317,24 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
         alumno_ref: alumno?.alumno_ref != null ? String(alumno.alumno_ref) : null,
         alumno_nombre: nombreAlumnoAuditoria(alumno),
         alumno_nivel: alumno?.alumno_nivel != null ? Number(alumno.alumno_nivel) : null,
-        detalle: { cambios: patch, resultado: updated },
+        detalle:
+          accion === 'solicitud.cambiar_beca'
+            ? { cambio_beca: detalleBecaCambio }
+            : { cambios: patch, resultado: updated },
         ...meta,
       });
     }
 
-    return NextResponse.json({ ok: true, solicitud: updated });
+    return NextResponse.json({
+      ok: true,
+      solicitud: updated,
+      beca: detalleBecaCambio
+        ? {
+            beca_id: detalleBecaCambio.beca_id_nuevo,
+            beca_porcentaje: detalleBecaCambio.porcentaje_nuevo,
+          }
+        : undefined,
+    });
   } catch (err) {
     const message =
       err instanceof Error ? err.message : 'Error al actualizar.';
