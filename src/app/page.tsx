@@ -1,18 +1,9 @@
 'use client';
 
 /**
- * 2026-07-16 - Home: acceso por No. de Control.
- * 2026-07-17 - Solicitud: pedir acceso / esperar / continuar con permiso.
- * 2026-07-17 - Renovación: validar beca del ciclo anterior ANTES de salir del home.
- * 2026-07-28 - Modal Renovación solo si hubo beca activa el ciclo pasado
- *              (historial antepasado → puede Solicitud nueva).
- * 2026-07-18 - Radios nativos fiables en móvil.
- * 2026-07-22 - Requiere No. de Control + contraseña (alumno_clave), como el legacy.
- * 2026-07-22 - Ventanas de fechas: validar antes de cualquier petición.
- * 2026-07-23 - Home editorial: marca Winston primero + panel de acceso.
- * 2026-08-17 - Enlace de correo: ?flujo=solicitud|renovacion&alumno_ref= preselecciona trámite.
+ * Home — acceso familiar con dos trámites diferenciados (renovación vs solicitud).
  */
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import {
@@ -30,12 +21,19 @@ import {
   saveAccesoSession,
 } from '@/lib/acceso-session';
 import {
+  getCicloBecaARenovar,
+  getCurrentSchoolCycle,
+  getSchoolCycleLabel,
+} from '@/lib/ciclo-escolar';
+import {
   APERTURA_PORTAL,
   CIERRE_RENOVACION,
   HORA_APERTURA_CDMX,
   formatPortalFechaEs,
   getPortalStatus,
-} from '@/lib/portal-ventanas';type Flujo = 'renovacion' | 'solicitud';
+} from '@/lib/portal-ventanas';
+
+type Flujo = 'renovacion' | 'solicitud';
 
 type AccesoEstado =
   | 'puede_solicitar'
@@ -48,12 +46,25 @@ type DocRequeridoUi = { tipo: string; label: string };
 
 export default function HomePage() {
   const router = useRouter();
-  const [alumnoRef, setAlumnoRef] = useState('');
-  const [alumnoClave, setAlumnoClave] = useState('');
-  const [flujo, setFlujo] = useState<Flujo>('renovacion');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [info, setInfo] = useState<string | null>(null);
+  const cicloPasadoLabel = useMemo(
+    () => getSchoolCycleLabel(getCicloBecaARenovar()),
+    []
+  );
+  const cicloNuevoLabel = useMemo(
+    () => getSchoolCycleLabel(getCurrentSchoolCycle()),
+    []
+  );
+
+  const [renovacionRef, setRenovacionRef] = useState('');
+  const [renovacionClave, setRenovacionClave] = useState('');
+  const [solicitudRef, setSolicitudRef] = useState('');
+  const [solicitudClave, setSolicitudClave] = useState('');
+
+  const [loadingRenovacion, setLoadingRenovacion] = useState(false);
+  const [loadingSolicitud, setLoadingSolicitud] = useState(false);
+  const [errorRenovacion, setErrorRenovacion] = useState<string | null>(null);
+  const [errorSolicitud, setErrorSolicitud] = useState<string | null>(null);
+  const [infoSolicitud, setInfoSolicitud] = useState<string | null>(null);
   const [docsAcceso, setDocsAcceso] = useState<{
     nivelLabel: string;
     docs: DocRequeridoUi[];
@@ -65,18 +76,22 @@ export default function HomePage() {
     mensaje: string;
     codigo?: string;
   } | null>(null);
-  const [desdeEnlaceCorreo, setDesdeEnlaceCorreo] = useState(false);
+  const [enlaceFlujo, setEnlaceFlujo] = useState<Flujo | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const fl = params.get('flujo');
     const ref = params.get('alumno_ref');
+    const refLimpio = ref ? ref.replace(/\D/g, '') : '';
     if (fl === 'solicitud' || fl === 'renovacion') {
-      setFlujo(fl);
-      setDesdeEnlaceCorreo(true);
-    }
-    if (ref) {
-      setAlumnoRef(ref.replace(/\D/g, ''));
+      setEnlaceFlujo(fl);
+      if (refLimpio) {
+        if (fl === 'renovacion') setRenovacionRef(refLimpio);
+        else setSolicitudRef(refLimpio);
+      }
+    } else if (refLimpio) {
+      setRenovacionRef(refLimpio);
+      setSolicitudRef(refLimpio);
     }
   }, []);
 
@@ -110,9 +125,14 @@ export default function HomePage() {
     });
   }
 
-  function limpiarFeedback() {
-    setError(null);
-    setInfo(null);
+  function limpiarRenovacion() {
+    setErrorRenovacion(null);
+    setModalRenovacion(false);
+  }
+
+  function limpiarSolicitud() {
+    setErrorSolicitud(null);
+    setInfoSolicitud(null);
     setDocsAcceso(null);
     setDocsExpandidos(false);
     setModalRenovacion(false);
@@ -133,7 +153,7 @@ export default function HomePage() {
     saveAccesoSession(String(json.token), ref);
   }
 
-  async function validarRenovacion(ref: string): Promise<boolean> {
+  async function validarRenovacion(ref: string): Promise<void> {
     const res = await fetchConAcceso(
       `/api/renovacion?alumno_ref=${encodeURIComponent(ref)}`
     );
@@ -144,55 +164,48 @@ export default function HomePage() {
           'No se pudo verificar si este alumno puede renovar su beca.'
       );
     }
-    return true;
   }
 
-  async function irARenovacion() {
-    const ref = alumnoRef.trim();
-    const clave = alumnoClave;
-    if (!ref || !clave) return;
-    // Renovación: el API decide si hay excepción por docs incorrectos post-cierre
+  async function entrarRenovacion(ref: string, clave: string) {
     setModalRenovacion(false);
-    setFlujo('renovacion');
-    setError(null);
-    setInfo(null);
-    setLoading(true);
+    setErrorRenovacion(null);
+    setLoadingRenovacion(true);
     try {
       await iniciarSesion(ref, clave);
       await validarRenovacion(ref);
       router.push(`/renovacion?alumno_ref=${encodeURIComponent(ref)}`);
     } catch (err) {
-      setError(
+      setErrorRenovacion(
         err instanceof Error ? err.message : 'Ocurrió un error inesperado.'
       );
     } finally {
-      setLoading(false);
+      setLoadingRenovacion(false);
     }
   }
 
-  async function handleSubmit(e: FormEvent) {
+  async function handleRenovacionSubmit(e: FormEvent) {
     e.preventDefault();
-    const ref = alumnoRef.trim();
-    const clave = alumnoClave;
+    const ref = renovacionRef.trim();
+    const clave = renovacionClave;
     if (!ref || !clave) return;
+    await entrarRenovacion(ref, clave);
+  }
 
-    // Solicitud nueva sigue bloqueada en cliente; renovación la valida el API
-    if (flujo === 'solicitud' && !assertVentanaAbierta(flujo)) return;
+  async function handleSolicitudSubmit(e: FormEvent) {
+    e.preventDefault();
+    const ref = solicitudRef.trim();
+    const clave = solicitudClave;
+    if (!ref || !clave) return;
+    if (!assertVentanaAbierta('solicitud')) return;
 
-    setError(null);
-    setInfo(null);
+    setErrorSolicitud(null);
+    setInfoSolicitud(null);
     setDocsAcceso(null);
     setModalRenovacion(false);
-    setLoading(true);
+    setLoadingSolicitud(true);
 
     try {
       await iniciarSesion(ref, clave);
-
-      if (flujo === 'renovacion') {
-        await validarRenovacion(ref);
-        router.push(`/renovacion?alumno_ref=${encodeURIComponent(ref)}`);
-        return;
-      }
 
       const statusRes = await fetchConAcceso(
         `/api/solicitud/acceso?alumno_ref=${encodeURIComponent(ref)}`
@@ -204,6 +217,8 @@ export default function HomePage() {
           statusJson.estado === 'ya_tiene_beca' ||
           statusJson.codigo === 'YA_TIENE_BECA'
         ) {
+          setRenovacionRef(ref);
+          setRenovacionClave(clave);
           setModalRenovacion(true);
           return;
         }
@@ -215,6 +230,8 @@ export default function HomePage() {
       const estado = statusJson.estado as AccesoEstado;
 
       if (estado === 'ya_tiene_beca') {
+        setRenovacionRef(ref);
+        setRenovacionClave(clave);
         setModalRenovacion(true);
         return;
       }
@@ -226,7 +243,7 @@ export default function HomePage() {
 
       if (estado === 'esperando_respuesta') {
         tomarDocsDeRespuesta(statusJson);
-        setInfo(
+        setInfoSolicitud(
           statusJson.mensaje ||
             'Ya envió su solicitud de acceso. Por favor espere la respuesta del área de becas del Instituto.'
         );
@@ -244,6 +261,8 @@ export default function HomePage() {
           postJson.estado === 'ya_tiene_beca' ||
           postJson.codigo === 'YA_TIENE_BECA'
         ) {
+          setRenovacionRef(ref);
+          setRenovacionClave(clave);
           setModalRenovacion(true);
           return;
         }
@@ -257,29 +276,31 @@ export default function HomePage() {
           return;
         }
         tomarDocsDeRespuesta(postJson);
-        setInfo(
+        setInfoSolicitud(
           postJson.mensaje ||
             'Solicitud de acceso enviada. Espere la respuesta del área de becas del Instituto.'
         );
         return;
       }
 
-      setError(statusJson.mensaje || 'No se pudo continuar con el trámite.');
+      setErrorSolicitud(
+        statusJson.mensaje || 'No se pudo continuar con el trámite.'
+      );
     } catch (err) {
-      setError(
+      setErrorSolicitud(
         err instanceof Error ? err.message : 'Ocurrió un error inesperado.'
       );
     } finally {
-      setLoading(false);
+      setLoadingSolicitud(false);
     }
   }
 
-  function elegirFlujo(next: Flujo) {
-    setFlujo(next);
-    limpiarFeedback();
-  }
-
-  const puedeEnviar = Boolean(alumnoRef.trim() && alumnoClave && !loading && !info);
+  const puedeRenovar =
+    Boolean(renovacionRef.trim() && renovacionClave) && !loadingRenovacion;
+  const puedeSolicitar =
+    Boolean(solicitudRef.trim() && solicitudClave) &&
+    !loadingSolicitud &&
+    !infoSolicitud;
 
   return (
     <div className="home-shell">
@@ -301,268 +322,330 @@ export default function HomePage() {
         </span>
       </header>
 
-      <main className="home-main">
-        <section className="home-hero ui-enter ui-enter-delay-1">
-          <p className="home-brand-kicker">Programa de becas</p>
-          <h1 className="home-hero-title">
-            Winston
-            <span>Portal de becas</span>
-          </h1>
-          <p className="home-hero-lead">
-            Renueva o solicita beca con claridad: número de control, contraseña
-            escolar y el trámite que corresponda.
-          </p>
-          <div className="home-hero-meta">
-            <span className="home-chip">Renovación</span>
-            <span className="home-chip">Solicitud nueva</span>
-            <span className="home-chip">Documentos en línea</span>
-          </div>
-          <figure className="home-photo">
-            <Image
-              src="/images/winston-comunidad.jpg"
-              alt="Comunidad estudiantil Winston"
-              width={640}
-              height={400}
-              className="home-photo-img"
-              sizes="(max-width: 899px) 100vw, 440px"
-              priority
-            />
-          </figure>
-        </section>
+      <main className="home-main home-main--trio">
+        {/* Izquierda — Renovación */}
+        <section
+          className={`home-lane home-lane--renovacion ui-enter ui-enter-delay-1${enlaceFlujo === 'renovacion' ? ' is-highlighted' : ''}`}
+          aria-labelledby="home-renovacion-title"
+        >
+          <div className="home-panel home-panel--renovacion">
+            <p className="home-lane-kicker">
+              <RefreshCw className="h-3.5 w-3.5" aria-hidden />
+              Columna izquierda
+            </p>
+            <h2 id="home-renovacion-title" className="home-panel-title">
+              Renovación de beca
+            </h2>
+            <p className="home-panel-sub">
+              Para alumnos que tuvieron <strong>beca Winston</strong> en el ciclo{' '}
+              <strong>{cicloPasadoLabel}</strong> (beca del Instituto,{' '}
+              <strong>no beca SEP</strong>).
+            </p>
 
-        <section className="home-panel ui-enter ui-enter-delay-2">
-          <h2 className="home-panel-title">Ingresar al trámite</h2>
-          <p className="home-panel-sub">
-            Elige el tipo de solicitud e inicia con los datos del alumno.
-          </p>
-
-          {desdeEnlaceCorreo ? (
-            <Alert variant="info" title="Enlace del correo">
-              <p className="leading-relaxed">
-                {flujo === 'solicitud'
-                  ? 'Su trámite es Solicitud de beca (no Renovación). Ya dejamos seleccionado el tipo de trámite y el número de control; escriba la contraseña del alumno y continúe.'
-                  : 'Su trámite es Renovación de beca. Ya dejamos seleccionado el tipo de trámite y el número de control; escriba la contraseña del alumno y continúe.'}
-              </p>
-            </Alert>
-          ) : null}
-
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <p
-                className="mb-1.5 block text-sm font-semibold text-text"
-                id="flujo-label"
-              >
-                Tipo de trámite
-              </p>
-              <div
-                className="mt-3 grid gap-3 sm:grid-cols-2"
-                role="radiogroup"
-                aria-labelledby="flujo-label"
-              >
-                <label
-                  className={`home-flow-card${flujo === 'renovacion' ? ' is-active' : ''}`}
-                >
-                  <input
-                    type="radio"
-                    name="flujo"
-                    value="renovacion"
-                    checked={flujo === 'renovacion'}
-                    onChange={() => elegirFlujo('renovacion')}
-                    aria-label="Renovación"
-                  />
-                  <span className="home-flow-icon" aria-hidden>
-                    <RefreshCw className="h-4 w-4" />
-                  </span>
-                  <span className="relative z-[1]">
-                    <span className="block text-base font-semibold text-text">
-                      Renovación
-                    </span>
-                    <span className="mt-1 block text-sm leading-snug text-text-secondary">
-                      Beca del ciclo pasado
-                    </span>
-                  </span>
-                </label>
-
-                <label
-                  className={`home-flow-card${flujo === 'solicitud' ? ' is-active' : ''}`}
-                >
-                  <input
-                    type="radio"
-                    name="flujo"
-                    value="solicitud"
-                    checked={flujo === 'solicitud'}
-                    onChange={() => elegirFlujo('solicitud')}
-                    aria-label="Solicitud nueva"
-                  />
-                  <span className="home-flow-icon" aria-hidden>
-                    <UserPlus className="h-4 w-4" />
-                  </span>
-                  <span className="relative z-[1]">
-                    <span className="block text-base font-semibold text-text">
-                      Solicitud nueva
-                    </span>
-                    <span className="mt-1 block text-sm leading-snug text-text-secondary">
-                      Sin beca el ciclo pasado
-                    </span>
-                  </span>
-                </label>
-              </div>
+            <div className="home-lane-box home-lane-box--ok">
+              <p className="home-lane-box__title">Use este acceso si:</p>
+              <ul className="home-lane-list">
+                <li>Su hijo(a) tuvo beca activa Winston el ciclo pasado.</li>
+                <li>Renueva para el ciclo {cicloNuevoLabel}.</li>
+                <li>Actualiza documentos y datos del mismo trámite.</li>
+              </ul>
             </div>
 
-            <div>
-              <Label htmlFor="alumno_ref" required>
-                No. de Control
-              </Label>
-              <Input
-                id="alumno_ref"
-                type="text"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                autoComplete="username"
-                value={alumnoRef}
-                onChange={(e) => {
-                  setAlumnoRef(e.target.value.replace(/\D/g, ''));
-                  limpiarFeedback();
-                }}
-                placeholder="Ej. 21628"
-                aria-label="Número de control del alumno"
-              />
-            </div>
+            <p className="home-lane-warn">
+              No use esta columna si no tuvo beca Winston el ciclo {cicloPasadoLabel}
+              — aunque la haya tenido años antes.
+            </p>
 
-            <div>
-              <Label htmlFor="alumno_clave" required>
-                Contraseña
-              </Label>
-              <Input
-                id="alumno_clave"
-                type="password"
-                autoComplete="current-password"
-                value={alumnoClave}
-                onChange={(e) => {
-                  setAlumnoClave(e.target.value);
-                  limpiarFeedback();
-                }}
-                placeholder="Contraseña del alumno"
-                aria-label="Contraseña del alumno"
-              />
-              <p className="mt-2 text-sm leading-relaxed text-text-secondary">
-                {flujo === 'solicitud'
-                  ? 'Misma contraseña del sistema escolar. Primero se solicita acceso; al autorizarlo, continúa el formulario.'
-                  : 'Misma contraseña del sistema escolar. Para alumnos con beca del ciclo anterior lista para renovar.'}
-              </p>
-            </div>
-
-            {error ? (
-              <Alert variant="warning" title="No se pudo continuar">
-                <p className="leading-relaxed">{error}</p>
-                <p className="mt-2 text-xs opacity-80">
-                  Verifica el número de control y la contraseña e inténtalo de
-                  nuevo.
+            {enlaceFlujo === 'renovacion' ? (
+              <Alert variant="info" title="Enlace del correo">
+                <p className="leading-relaxed">
+                  Su trámite es <strong>Renovación</strong>. Ya dejamos su número
+                  de control; escriba la contraseña y continúe.
                 </p>
               </Alert>
             ) : null}
 
-            {info ? (
-              <Alert variant="info" title="Solicitud de acceso">
-                {info}
+            <form onSubmit={handleRenovacionSubmit} className="home-lane-form">
+              <div>
+                <Label htmlFor="renovacion_ref" required>
+                  No. de Control
+                </Label>
+                <Input
+                  id="renovacion_ref"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  autoComplete="username"
+                  value={renovacionRef}
+                  onChange={(e) => {
+                    setRenovacionRef(e.target.value.replace(/\D/g, ''));
+                    limpiarRenovacion();
+                  }}
+                  placeholder="Ej. 21628"
+                />
+              </div>
+              <div>
+                <Label htmlFor="renovacion_clave" required>
+                  Contraseña
+                </Label>
+                <Input
+                  id="renovacion_clave"
+                  type="password"
+                  autoComplete="current-password"
+                  value={renovacionClave}
+                  onChange={(e) => {
+                    setRenovacionClave(e.target.value);
+                    limpiarRenovacion();
+                  }}
+                  placeholder="Contraseña del alumno"
+                />
+                <p className="home-lane-hint">
+                  Misma contraseña del sistema escolar Winston.
+                </p>
+              </div>
+
+              {errorRenovacion ? (
+                <Alert variant="warning" title="No se pudo continuar">
+                  <p className="leading-relaxed">{errorRenovacion}</p>
+                </Alert>
+              ) : null}
+
+              <Button type="submit" disabled={!puedeRenovar} fullWidth>
+                {loadingRenovacion ? 'Verificando…' : 'Entrar a renovación'}
+                {!loadingRenovacion ? (
+                  <ArrowRight className="h-4 w-4" aria-hidden />
+                ) : null}
+              </Button>
+            </form>
+          </div>
+        </section>
+
+        {/* Centro — Marca */}
+        <section className="home-lane home-lane--center ui-enter ui-enter-delay-2">
+          <div className="home-hero home-hero--center">
+            <p className="home-brand-kicker">Programa de becas</p>
+            <h1 className="home-hero-title">
+              Winston
+              <span>Portal de becas</span>
+            </h1>
+            <p className="home-hero-lead">
+              Elija la columna que corresponda a la situación de su familia. Son
+              dos trámites distintos; usar el incorrecto retrasa su proceso.
+            </p>
+
+            <div className="home-trio-guide" role="note">
+              <div className="home-trio-guide__item">
+                <span className="home-trio-guide__arrow" aria-hidden>
+                  ←
+                </span>
+                <span>
+                  <strong>Izquierda:</strong> ya tenía beca Winston el ciclo{' '}
+                  {cicloPasadoLabel}.
+                </span>
+              </div>
+              <div className="home-trio-guide__item">
+                <span className="home-trio-guide__arrow" aria-hidden>
+                  →
+                </span>
+                <span>
+                  <strong>Derecha:</strong> primera solicitud o sin beca el ciclo{' '}
+                  {cicloPasadoLabel}.
+                </span>
+              </div>
+            </div>
+
+            <figure className="home-photo">
+              <Image
+                src="/images/winston-comunidad.jpg"
+                alt="Comunidad estudiantil Winston"
+                width={640}
+                height={400}
+                className="home-photo-img"
+                sizes="(max-width: 1099px) 100vw, 360px"
+                priority
+              />
+            </figure>
+          </div>
+        </section>
+
+        {/* Derecha — Solicitud nueva */}
+        <section
+          className={`home-lane home-lane--solicitud ui-enter ui-enter-delay-3${enlaceFlujo === 'solicitud' ? ' is-highlighted' : ''}`}
+          aria-labelledby="home-solicitud-title"
+        >
+          <div className="home-panel home-panel--solicitud">
+            <p className="home-lane-kicker">
+              <UserPlus className="h-3.5 w-3.5" aria-hidden />
+              Columna derecha
+            </p>
+            <h2 id="home-solicitud-title" className="home-panel-title">
+              Solicitud de beca
+            </h2>
+            <p className="home-panel-sub">
+              Para quienes <strong>no tuvieron beca Winston</strong> en el ciclo{' '}
+              <strong>{cicloPasadoLabel}</strong> — primera vez o beca en ciclos
+              anteriores, pero no el pasado.
+            </p>
+
+            <div className="home-lane-box home-lane-box--info">
+              <p className="home-lane-box__title">Use este acceso si:</p>
+              <ul className="home-lane-list">
+                <li>Es la primera vez que piden beca Winston.</li>
+                <li>Tuvieron beca hace más de un ciclo, no en {cicloPasadoLabel}.</li>
+                <li>Primero solicita acceso; Control Escolar autoriza el formulario.</li>
+              </ul>
+            </div>
+
+            <p className="home-lane-warn">
+              Si tuvo beca Winston activa el ciclo {cicloPasadoLabel}, debe usar la
+              columna de <strong>Renovación</strong> (izquierda).
+            </p>
+
+            {enlaceFlujo === 'solicitud' ? (
+              <Alert variant="info" title="Enlace del correo">
+                <p className="leading-relaxed">
+                  Su trámite es <strong>Solicitud de beca</strong> (no Renovación).
+                  Ya dejamos su número de control; escriba la contraseña y continúe.
+                </p>
               </Alert>
             ) : null}
 
-            {info && docsAcceso ? (
-              <aside
-                className={`home-docs-card ui-enter${docsExpandidos ? ' is-open' : ''}`}
-                aria-label="Documentos para el trámite"
-              >
-                <div className="home-docs-card__head">
-                  <span className="home-docs-card__icon" aria-hidden>
-                    <FileText className="h-4 w-4" />
-                  </span>
-                  <div className="home-docs-card__copy">
-                    <p className="home-docs-card__kicker">
-                      Prepare su expediente
-                    </p>
-                    <h3 className="home-docs-card__title">
-                      Documentos para solicitud de beca
-                    </h3>
-                    <p className="home-docs-card__sub">
-                      Según el nivel ({docsAcceso.nivelLabel}). Cuando le
-                      autoricen el acceso, deberá subirlos en PDF en el portal.
-                    </p>
+            <form onSubmit={handleSolicitudSubmit} className="home-lane-form">
+              <div>
+                <Label htmlFor="solicitud_ref" required>
+                  No. de Control
+                </Label>
+                <Input
+                  id="solicitud_ref"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  autoComplete="username"
+                  value={solicitudRef}
+                  onChange={(e) => {
+                    setSolicitudRef(e.target.value.replace(/\D/g, ''));
+                    limpiarSolicitud();
+                  }}
+                  placeholder="Ej. 21628"
+                />
+              </div>
+              <div>
+                <Label htmlFor="solicitud_clave" required>
+                  Contraseña
+                </Label>
+                <Input
+                  id="solicitud_clave"
+                  type="password"
+                  autoComplete="current-password"
+                  value={solicitudClave}
+                  onChange={(e) => {
+                    setSolicitudClave(e.target.value);
+                    limpiarSolicitud();
+                  }}
+                  placeholder="Contraseña del alumno"
+                />
+                <p className="home-lane-hint">
+                  Misma contraseña del sistema escolar. Primero pide acceso; al
+                  autorizarlo, continúa el formulario.
+                </p>
+              </div>
+
+              {errorSolicitud ? (
+                <Alert variant="warning" title="No se pudo continuar">
+                  <p className="leading-relaxed">{errorSolicitud}</p>
+                </Alert>
+              ) : null}
+
+              {infoSolicitud ? (
+                <Alert variant="info" title="Solicitud de acceso">
+                  {infoSolicitud}
+                </Alert>
+              ) : null}
+
+              {infoSolicitud && docsAcceso ? (
+                <aside
+                  className={`home-docs-card ui-enter${docsExpandidos ? ' is-open' : ''}`}
+                  aria-label="Documentos para el trámite"
+                >
+                  <div className="home-docs-card__head">
+                    <span className="home-docs-card__icon" aria-hidden>
+                      <FileText className="h-4 w-4" />
+                    </span>
+                    <div className="home-docs-card__copy">
+                      <p className="home-docs-card__kicker">
+                        Prepare su expediente
+                      </p>
+                      <h3 className="home-docs-card__title">
+                        Documentos para solicitud de beca
+                      </h3>
+                      <p className="home-docs-card__sub">
+                        Según el nivel ({docsAcceso.nivelLabel}). Cuando le
+                        autoricen el acceso, deberá subirlos en PDF.
+                      </p>
+                    </div>
                   </div>
-                </div>
 
-                <button
-                  type="button"
-                  className="home-docs-toggle"
-                  aria-expanded={docsExpandidos}
-                  aria-controls="home-docs-panel"
-                  onClick={() => setDocsExpandidos((v) => !v)}
-                >
-                  <span>
-                    {docsExpandidos
-                      ? 'Colapsar'
-                      : `Ver documentos (${docsAcceso.docs.length})`}
-                  </span>
-                  <ChevronDown
-                    className={`home-docs-toggle__chevron h-4 w-4${docsExpandidos ? ' is-open' : ''}`}
-                    aria-hidden
-                  />
-                </button>
+                  <button
+                    type="button"
+                    className="home-docs-toggle"
+                    aria-expanded={docsExpandidos}
+                    aria-controls="home-docs-panel"
+                    onClick={() => setDocsExpandidos((v) => !v)}
+                  >
+                    <span>
+                      {docsExpandidos
+                        ? 'Colapsar'
+                        : `Ver documentos (${docsAcceso.docs.length})`}
+                    </span>
+                    <ChevronDown
+                      className={`home-docs-toggle__chevron h-4 w-4${docsExpandidos ? ' is-open' : ''}`}
+                      aria-hidden
+                    />
+                  </button>
 
-                <div
-                  id="home-docs-panel"
-                  className="home-docs-panel"
-                  hidden={!docsExpandidos}
-                >
-                  <ol className="home-docs-list">
-                    {docsAcceso.docs.map((doc, idx) => (
-                      <li key={doc.tipo} className="home-docs-list__item">
-                        <span className="home-docs-list__num" aria-hidden>
-                          {idx + 1}
-                        </span>
-                        <span className="home-docs-list__label">
-                          {doc.label}
-                        </span>
-                      </li>
-                    ))}
-                  </ol>
-                  <p className="home-docs-card__note">
-                    Solo archivos PDF, legibles y a nombre del alumno o tutor
-                    correspondiente.
-                  </p>
-                </div>
-              </aside>
-            ) : null}
+                  <div
+                    id="home-docs-panel"
+                    className="home-docs-panel"
+                    hidden={!docsExpandidos}
+                  >
+                    <ol className="home-docs-list">
+                      {docsAcceso.docs.map((doc, idx) => (
+                        <li key={doc.tipo} className="home-docs-list__item">
+                          <span className="home-docs-list__num" aria-hidden>
+                            {idx + 1}
+                          </span>
+                          <span className="home-docs-list__label">
+                            {doc.label}
+                          </span>
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                </aside>
+              ) : null}
 
-            <Button type="submit" disabled={!puedeEnviar} fullWidth>
-              {loading
-                ? 'Verificando…'
-                : flujo === 'renovacion'
-                  ? 'Continuar'
-                  : info
+              <Button type="submit" disabled={!puedeSolicitar} fullWidth>
+                {loadingSolicitud
+                  ? 'Verificando…'
+                  : infoSolicitud
                     ? 'Esperando respuesta'
-                    : 'Solicitar acceso'}
-              {!loading && flujo === 'renovacion' ? (
-                <ArrowRight className="h-4 w-4" aria-hidden />
-              ) : null}
-              {!loading && flujo === 'solicitud' && !info ? (
-                <UserPlus className="h-4 w-4" aria-hidden />
-              ) : null}
-            </Button>
+                    : 'Solicitar acceso a beca'}
+                {!loadingSolicitud && !infoSolicitud ? (
+                  <UserPlus className="h-4 w-4" aria-hidden />
+                ) : null}
+              </Button>
 
-            {flujo === 'solicitud' ? (
-              <p className="text-center text-xs leading-relaxed text-text-secondary">
-                Si ya le autorizaron el acceso, el mismo botón lo lleva al
-                formulario.
+              <p className="home-lane-hint home-lane-hint--center">
+                Si ya le autorizaron el acceso, el mismo botón abre el formulario.
               </p>
-            ) : null}
-          </form>
+            </form>
+          </div>
         </section>
       </main>
 
       <footer className="home-footer ui-enter ui-enter-delay-3">
         <span>Instituto Winston Churchill · Sistema de Becas</span>
-        <span>Portal de Becas v0.1.0</span>
+        <span>Ciclo {cicloNuevoLabel}</span>
       </footer>
 
       <Modal
@@ -592,10 +675,6 @@ export default function HomePage() {
                 hora de la CDMX
               </p>
             </div>
-            <p className="ui-modal-hint">
-              Vuelva a intentarlo a partir de ese momento. Mientras tanto puede
-              preparar documentos y datos del alumno.
-            </p>
           </>
         ) : modalVentana?.codigo === 'RENOVACION_CERRADA' ? (
           <>
@@ -606,9 +685,6 @@ export default function HomePage() {
                 {formatPortalFechaEs(CIERRE_RENOVACION)}
               </p>
             </div>
-            <p className="ui-modal-hint">
-              Para orientación, acuda al área de becas del Instituto.
-            </p>
           </>
         ) : (
           <p>{modalVentana?.mensaje}</p>
@@ -617,29 +693,28 @@ export default function HomePage() {
 
       <Modal
         open={modalRenovacion}
-        title="Su trámite es Renovación"
-        onClose={() => {
-          setModalRenovacion(false);
-          setFlujo('renovacion');
-        }}
+        title="Debe usar Renovación (columna izquierda)"
+        onClose={() => setModalRenovacion(false)}
         secondaryLabel="Cerrar"
         primaryLabel="Ir a renovación"
         onPrimary={() => {
-          void irARenovacion();
+          const ref = renovacionRef.trim() || solicitudRef.trim();
+          const clave = renovacionClave || solicitudClave;
+          if (ref && clave) void entrarRenovacion(ref, clave);
         }}
         tone="notice"
         eyebrow="Orientación"
         icon={<RefreshCw className="h-5 w-5" strokeWidth={2.25} />}
       >
         <p>
-          Este alumno tuvo beca activa el ciclo pasado, por eso su trámite
-          correcto es Renovación.
+          Este alumno tuvo <strong>beca Winston activa</strong> el ciclo{' '}
+          {cicloPasadoLabel}. Su trámite correcto es{' '}
+          <strong>Renovación</strong>, no Solicitud de beca.
         </p>
         <p className="mt-3">
-          La <strong className="font-semibold text-text">Solicitud nueva</strong>{' '}
-          aplica cuando no hubo beca el ciclo pasado (aunque la haya tenido en
-          años anteriores). En su caso debe usar{' '}
-          <strong className="font-semibold text-text">Renovación</strong>.
+          La columna derecha es solo para quienes{' '}
+          <strong>no</strong> tuvieron beca Winston ese ciclo (aunque la hayan
+          tenido en años anteriores).
         </p>
       </Modal>
     </div>
