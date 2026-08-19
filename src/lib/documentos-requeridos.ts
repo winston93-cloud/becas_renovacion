@@ -41,6 +41,9 @@ const EXTRA_KINDER2: DocumentoTipo[] = [
   'carta_buena_conducta',
 ];
 
+/** Solicitud nueva: constancia + carta en todos los niveles (incl. Maternal/Kinder 1). */
+const EXTRA_SOLICITUD_NUEVA = EXTRA_KINDER2;
+
 const LABELS: Record<DocumentoTipo, string> = {
   ingresos:
     'Comprobante(s) de ingresos de un mes (padre, madre y/o tutor)',
@@ -107,18 +110,14 @@ export function docsRequeridosConEtiqueta(
 
 /**
  * Renovación: 3 PDFs (ingresos, domicilio, inscripción).
- * Solicitud (nuevo ingreso): 3 base; +2 si Kinder 2+; +ingresos si convenio.
+ * Solicitud nueva: acta, CURPs + constancia de no adeudo + carta de buena conducta (todos los niveles).
  */
 export function docsRequeridos(opts: DocsRequeridosOpts): DocumentoTipo[] {
   if (opts.flujo === 'renovacion') {
     return [...RENOVACION_CIRCULAR];
   }
 
-  const maternalKinder1 = esMaternalOKinder1(opts.nivel, opts.grado);
-  const list: DocumentoTipo[] = [...BASE_NUEVO_INGRESO];
-  if (!maternalKinder1) {
-    list.push(...EXTRA_KINDER2);
-  }
+  const list: DocumentoTipo[] = [...BASE_NUEVO_INGRESO, ...EXTRA_SOLICITUD_NUEVA];
   if (
     esBecaConvenio({ becaId: opts.becaId, becaClase: opts.becaClase }) &&
     !list.includes('ingresos')
