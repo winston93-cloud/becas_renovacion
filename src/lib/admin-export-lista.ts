@@ -79,38 +79,28 @@ export function formatGradoExport(
   return s;
 }
 
-/** Nivel y grado comunes del listado (para encabezado del export). */
-export function contextoEscolarExport(rows: AdminExportRow[]): {
-  nivel: string;
-  grado: string;
-} {
+/** Igual que la columna Grado del dashboard admin. */
+export function formatGradoGrupoExport(row: AdminExportRow): string {
+  const grado = formatGradoExport(row.grado);
+  const grupo = String(row.grupo ?? '').trim();
+  if (grado === '—' && !grupo) return '—';
+  if (grado === '—') return grupo || '—';
+  if (!grupo) return grado;
+  return `${grado} / ${grupo}`;
+}
+
+/** Nivel común del listado (para encabezado del export). */
+export function contextoNivelExport(rows: AdminExportRow[]): string {
   const niveles = [
     ...new Set(rows.map((r) => r.nivel_label.trim()).filter(Boolean)),
   ];
-  const grados = [
-    ...new Set(
-      rows.map((r) => formatGradoExport(r.grado)).filter((g) => g !== '—')
-    ),
-  ];
-  return {
-    nivel:
-      niveles.length === 1
-        ? niveles[0]
-        : niveles.length === 0
-          ? '—'
-          : 'Varios niveles',
-    grado:
-      grados.length === 1
-        ? grados[0]
-        : grados.length === 0
-          ? '—'
-          : 'Varios grados',
-  };
+  if (niveles.length === 1) return niveles[0];
+  if (niveles.length === 0) return '—';
+  return 'Varios niveles';
 }
 
 export function lineaContextoEscolarExport(rows: AdminExportRow[]): string {
-  const { nivel, grado } = contextoEscolarExport(rows);
-  return `Nivel: ${nivel} · Grado: ${grado}`;
+  return `Nivel: ${contextoNivelExport(rows)}`;
 }
 
 export function formatFechaExport(iso: string | null): string {
