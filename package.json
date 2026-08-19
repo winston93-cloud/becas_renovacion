@@ -12,6 +12,7 @@
   "dependencies": {
     "@insforge/sdk": "^1.4.4",
     "bcrypt": "^6.0.0",
+    "exceljs": "^4.4.0",
     "lucide-react": "^1.24.0",
     "mysql2": "^3.23.3",
     "next": "16.2.10",

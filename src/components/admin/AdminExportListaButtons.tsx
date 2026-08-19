@@ -64,7 +64,7 @@ export function AdminExportListaButtons({
       const match = /filename="([^"]+)"/.exec(cd);
       const fallback =
         formato === 'excel'
-          ? `${flujo}-revision.xls`
+          ? `${flujo}-revision.xlsx`
           : `${flujo}-revision.pdf`;
       await descargarBlob(blob, match?.[1] || fallback);
     } catch (err) {

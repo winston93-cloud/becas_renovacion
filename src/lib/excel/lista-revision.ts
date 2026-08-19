@@ -1,7 +1,7 @@
 /**
- * Excel (.xls SpreadsheetML) institucional para revisión de listados admin.
- * Sin dependencias extra; Excel / LibreOffice lo abren con formato.
+ * Excel (.xlsx) para listados admin — compatible Excel Windows / LibreOffice.
  */
+import ExcelJS from 'exceljs';
 import {
   estadoRevisionTexto,
   formatFechaExport,
@@ -9,29 +9,106 @@ import {
   type AdminExportPayload,
 } from '@/lib/admin-export-lista';
 
-function esc(v: string): string {
-  return v
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+const NAVY = 'FF14233F';
+const NAVY_HEADER = 'FF1C3258';
+const SLATE = 'FF4D5D73';
+const BORDER = 'FFE5EAF1';
+const OK_BG = 'FFE6F4EC';
+const OK_FG = 'FF1F6B4A';
+const WARN_BG = 'FFFFF3E0';
+const WARN_FG = 'FFA84A2A';
+const INFO_BG = 'FFE8EEF6';
+const INFO_FG = 'FF1C3258';
+
+function thinBorder(): Partial<ExcelJS.Borders> {
+  const side: Partial<ExcelJS.Border> = {
+    style: 'thin',
+    color: { argb: BORDER },
+  };
+  return {
+    top: side,
+    left: side,
+    bottom: side,
+    right: side,
+  };
 }
 
-function cell(v: string | number, style = 'Normal'): string {
-  if (typeof v === 'number') {
-    return `<Cell ss:StyleID="${style}"><Data ss:Type="Number">${v}</Data></Cell>`;
-  }
-  return `<Cell ss:StyleID="${style}"><Data ss:Type="String">${esc(String(v))}</Data></Cell>`;
-}
-
-export function buildListaRevisionExcel(payload: AdminExportPayload): Buffer {
+export async function buildListaRevisionExcel(
+  payload: AdminExportPayload
+): Promise<Buffer> {
   const rows = payload.rows;
   const sum = resumenExport(rows);
   const flujoLabel =
     payload.flujo === 'renovacion' ? 'Renovaciones' : 'Solicitudes nuevas';
   const generado = new Date().toLocaleString('es-MX');
 
-  const headerCells = [
+  const wb = new ExcelJS.Workbook();
+  wb.creator = 'Instituto Winston Churchill · Control Escolar';
+  wb.created = new Date();
+
+  const ws = wb.addWorksheet(flujoLabel.slice(0, 31), {
+    views: [{ state: 'frozen', ySplit: 8 }],
+  });
+
+  ws.columns = [
+    { width: 5 },
+    { width: 11 },
+    { width: 34 },
+    { width: 14 },
+    { width: 8 },
+    { width: 8 },
+    { width: 14 },
+    { width: 11 },
+    { width: 11 },
+    { width: 18 },
+  ];
+
+  ws.mergeCells('A1:J1');
+  const titleCell = ws.getCell('A1');
+  titleCell.value = 'Instituto Winston Churchill · Control Escolar · Becas';
+  titleCell.font = { name: 'Calibri', size: 14, bold: true, color: { argb: 'FFFFFFFF' } };
+  titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
+  titleCell.alignment = { vertical: 'middle' };
+  ws.getRow(1).height = 28;
+
+  ws.mergeCells('A2:J2');
+  const subCell = ws.getCell('A2');
+  subCell.value = `${payload.titulo} · Filtro: ${payload.filtro_label} · Generado: ${generado}`;
+  subCell.font = { name: 'Calibri', size: 11, color: { argb: SLATE } };
+  subCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF2EFE8' } };
+  subCell.alignment = { wrapText: true, vertical: 'middle' };
+  ws.getRow(2).height = 22;
+
+  const statLabels = ['Total', 'Pendientes', 'Verificadas', 'Autorizadas', 'Borradores'];
+  const statValues = [
+    sum.total,
+    sum.pendientes,
+    sum.verificadas,
+    sum.autorizadas,
+    sum.borradores,
+  ];
+  const labelRow = ws.getRow(4);
+  statLabels.forEach((label, i) => {
+    const c = labelRow.getCell(i + 1);
+    c.value = label;
+    c.font = { name: 'Calibri', size: 9, bold: true, color: { argb: SLATE } };
+    c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEEF3F9' } };
+    c.alignment = { horizontal: 'center' };
+    c.border = thinBorder();
+  });
+  const valueRow = ws.getRow(5);
+  statValues.forEach((val, i) => {
+    const c = valueRow.getCell(i + 1);
+    c.value = val;
+    c.font = { name: 'Calibri', size: 14, bold: true, color: { argb: NAVY } };
+    c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEEF3F9' } };
+    c.alignment = { horizontal: 'center' };
+    c.border = thinBorder();
+  });
+  valueRow.height = 24;
+
+  const headerRow = ws.getRow(7);
+  const headers = [
     '#',
     'No. control',
     'Alumno',
@@ -42,151 +119,62 @@ export function buildListaRevisionExcel(payload: AdminExportPayload): Buffer {
     'Verificado',
     'Autorizado',
     'Enviado',
-  ]
-    .map((h) => cell(h, 'Header'))
-    .join('');
+  ];
+  headers.forEach((h, i) => {
+    const c = headerRow.getCell(i + 1);
+    c.value = h;
+    c.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
+    c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY_HEADER } };
+    c.alignment = { horizontal: 'center', vertical: 'middle' };
+    c.border = thinBorder();
+  });
+  headerRow.height = 22;
 
-  const dataRows = rows
-    .map((r, i) => {
-      const estado = estadoRevisionTexto(r);
-      const styleEstado =
-        estado === 'Autorizada'
-          ? 'Ok'
-          : estado === 'Verificada'
-            ? 'Info'
-            : estado === 'Pendiente'
-              ? 'Warn'
-              : 'Normal';
-      return `<Row>
-${cell(i + 1, 'Center')}
-${cell(r.alumno_ref, 'Center')}
-${cell(r.nombre)}
-${cell(r.nivel_label)}
-${cell(r.grado ?? '—', 'Center')}
-${cell(r.grupo || '—', 'Center')}
-${cell(estado, styleEstado)}
-${cell(r.verificado ? 'Sí' : 'No', r.verificado ? 'Ok' : 'Center')}
-${cell(r.beca_autorizada ? 'Sí' : 'No', r.beca_autorizada ? 'Ok' : 'Center')}
-${cell(formatFechaExport(r.enviado_en), 'Center')}
-</Row>`;
-    })
-    .join('\n');
+  rows.forEach((r, idx) => {
+    const rowNum = 8 + idx;
+    const estado = estadoRevisionTexto(r);
+    const values: (string | number)[] = [
+      idx + 1,
+      r.alumno_ref,
+      r.nombre,
+      r.nivel_label,
+      r.grado ?? '—',
+      r.grupo || '—',
+      estado,
+      r.verificado ? 'Sí' : 'No',
+      r.beca_autorizada ? 'Sí' : 'No',
+      formatFechaExport(r.enviado_en),
+    ];
+    const row = ws.getRow(rowNum);
+    values.forEach((val, col) => {
+      const c = row.getCell(col + 1);
+      c.value = val;
+      c.font = { name: 'Calibri', size: 11, color: { argb: NAVY } };
+      c.border = thinBorder();
+      c.alignment = {
+        horizontal: col === 0 || col >= 4 ? 'center' : 'left',
+        vertical: 'middle',
+        wrapText: col === 2,
+      };
+      if (col === 6) {
+        if (estado === 'Autorizada') {
+          c.font = { ...c.font, bold: true, color: { argb: OK_FG } };
+          c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: OK_BG } };
+        } else if (estado === 'Verificada') {
+          c.font = { ...c.font, bold: true, color: { argb: INFO_FG } };
+          c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: INFO_BG } };
+        } else if (estado === 'Pendiente') {
+          c.font = { ...c.font, bold: true, color: { argb: WARN_FG } };
+          c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: WARN_BG } };
+        }
+      }
+      if ((col === 7 && r.verificado) || (col === 8 && r.beca_autorizada)) {
+        c.font = { ...c.font, bold: true, color: { argb: OK_FG } };
+        c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: OK_BG } };
+      }
+    });
+  });
 
-  const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<?mso-application progid="Excel.Sheet"?>
-<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
- xmlns:o="urn:schemas-microsoft-com:office:office"
- xmlns:x="urn:schemas-microsoft-com:office:excel"
- xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
- xmlns:html="http://www.w3.org/TR/REC-html40">
- <DocumentProperties xmlns="urn:schemas-microsoft-com:office:office">
-  <Title>${esc(payload.titulo)}</Title>
-  <Author>Instituto Winston Churchill · Control Escolar</Author>
-  <Created>${new Date().toISOString()}</Created>
- </DocumentProperties>
- <Styles>
-  <Style ss:ID="Default" ss:Name="Normal">
-   <Alignment ss:Vertical="Center"/>
-   <Font ss:FontName="Calibri" ss:Size="11" ss:Color="#14233F"/>
-  </Style>
-  <Style ss:ID="Normal">
-   <Alignment ss:Vertical="Center" ss:WrapText="1"/>
-   <Borders>
-    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E5EAF1"/>
-   </Borders>
-  </Style>
-  <Style ss:ID="Center">
-   <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
-   <Borders>
-    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E5EAF1"/>
-   </Borders>
-  </Style>
-  <Style ss:ID="Title">
-   <Font ss:FontName="Calibri" ss:Size="16" ss:Bold="1" ss:Color="#FFFFFF"/>
-   <Interior ss:Color="#14233F" ss:Pattern="Solid"/>
-   <Alignment ss:Vertical="Center"/>
-  </Style>
-  <Style ss:ID="Subtitle">
-   <Font ss:FontName="Calibri" ss:Size="11" ss:Color="#4D5D73"/>
-   <Interior ss:Color="#F2EFE8" ss:Pattern="Solid"/>
-  </Style>
-  <Style ss:ID="StatLabel">
-   <Font ss:FontName="Calibri" ss:Size="9" ss:Bold="1" ss:Color="#4D5D73"/>
-   <Interior ss:Color="#EEF3F9" ss:Pattern="Solid"/>
-   <Alignment ss:Horizontal="Center"/>
-  </Style>
-  <Style ss:ID="StatValue">
-   <Font ss:FontName="Calibri" ss:Size="14" ss:Bold="1" ss:Color="#14233F"/>
-   <Interior ss:Color="#EEF3F9" ss:Pattern="Solid"/>
-   <Alignment ss:Horizontal="Center"/>
-  </Style>
-  <Style ss:ID="Header">
-   <Font ss:FontName="Calibri" ss:Size="10" ss:Bold="1" ss:Color="#FFFFFF"/>
-   <Interior ss:Color="#1C3258" ss:Pattern="Solid"/>
-   <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
-  </Style>
-  <Style ss:ID="Ok">
-   <Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1" ss:Color="#1F6B4A"/>
-   <Interior ss:Color="#E6F4EC" ss:Pattern="Solid"/>
-   <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
-  </Style>
-  <Style ss:ID="Warn">
-   <Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1" ss:Color="#A84A2A"/>
-   <Interior ss:Color="#FFF3E0" ss:Pattern="Solid"/>
-   <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
-  </Style>
-  <Style ss:ID="Info">
-   <Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1" ss:Color="#1C3258"/>
-   <Interior ss:Color="#E8EEF6" ss:Pattern="Solid"/>
-   <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
-  </Style>
- </Styles>
- <Worksheet ss:Name="${esc(flujoLabel.slice(0, 31))}">
-  <Table>
-   <Column ss:Width="36"/>
-   <Column ss:Width="72"/>
-   <Column ss:Width="220"/>
-   <Column ss:Width="90"/>
-   <Column ss:Width="48"/>
-   <Column ss:Width="48"/>
-   <Column ss:Width="90"/>
-   <Column ss:Width="72"/>
-   <Column ss:Width="72"/>
-   <Column ss:Width="120"/>
-   <Row ss:Height="28">
-    <Cell ss:MergeAcross="9" ss:StyleID="Title"><Data ss:Type="String">${esc('Instituto Winston Churchill · Control Escolar · Becas')}</Data></Cell>
-   </Row>
-   <Row ss:Height="22">
-    <Cell ss:MergeAcross="9" ss:StyleID="Subtitle"><Data ss:Type="String">${esc(`${payload.titulo} · Filtro: ${payload.filtro_label} · Generado: ${generado}`)}</Data></Cell>
-   </Row>
-   <Row/>
-   <Row>
-    ${cell('Total', 'StatLabel')}
-    ${cell('Pendientes', 'StatLabel')}
-    ${cell('Verificadas', 'StatLabel')}
-    ${cell('Autorizadas', 'StatLabel')}
-    ${cell('Borradores', 'StatLabel')}
-   </Row>
-   <Row ss:Height="24">
-    ${cell(sum.total, 'StatValue')}
-    ${cell(sum.pendientes, 'StatValue')}
-    ${cell(sum.verificadas, 'StatValue')}
-    ${cell(sum.autorizadas, 'StatValue')}
-    ${cell(sum.borradores, 'StatValue')}
-   </Row>
-   <Row/>
-   <Row ss:Height="22">${headerCells}</Row>
-   ${dataRows}
-  </Table>
-  <WorksheetOptions xmlns="urn:schemas-microsoft-com:office:excel">
-   <FreezePanes/>
-   <FrozenNoSplit/>
-   <SplitHorizontal>7</SplitHorizontal>
-   <TopRowBottomPane>7</TopRowBottomPane>
-   <ActivePane>2</ActivePane>
-  </WorksheetOptions>
- </Worksheet>
-</Workbook>`;
-
-  return Buffer.from(xml, 'utf8');
+  const buf = await wb.xlsx.writeBuffer();
+  return Buffer.from(buf);
 }

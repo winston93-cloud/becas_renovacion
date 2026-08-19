@@ -69,12 +69,13 @@ export async function POST(request: NextRequest) {
         : `solicitudes-revision-${stamp}`;
 
     if (formato === 'excel') {
-      const buf = buildListaRevisionExcel(payload);
+      const buf = await buildListaRevisionExcel(payload);
       return new NextResponse(new Uint8Array(buf), {
         status: 200,
         headers: {
-          'Content-Type': 'application/vnd.ms-excel; charset=utf-8',
-          'Content-Disposition': `attachment; filename="${baseName}.xls"`,
+          'Content-Type':
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          'Content-Disposition': `attachment; filename="${baseName}.xlsx"`,
           'Cache-Control': 'no-store',
         },
       });
