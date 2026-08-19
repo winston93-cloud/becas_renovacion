@@ -1,8 +1,11 @@
 /**
- * 2026-08-19 - Tras cierre de renovación: excepción solo para corregir docs incorrectos.
+ * Tras cierre de renovación: excepciones controladas (docs incorrectos o lista CE).
  */
 import type { getInsforgeAdmin } from '@/lib/insforge-server';
 import { getCicloBecaARenovar } from '@/lib/ciclo-escolar';
+import {
+  alumnoRefTieneExcepcionRenovacionCompleta,
+} from '@/lib/renovacion-excepcion-completa-refs';
 import {
   assertPortalAbierto,
   getPortalStatus,
@@ -10,6 +13,21 @@ import {
 } from '@/lib/portal-ventanas';
 
 type AdminClient = ReturnType<typeof getInsforgeAdmin>;
+
+/** Lista CE: renovación completa post-cierre (por No. de control). */
+export async function renovacionExentaCompletaPostCierre(
+  admin: AdminClient,
+  alumnoId: number
+): Promise<boolean> {
+  const { data: alumno, error } = await admin.database
+    .from('alumno')
+    .select('alumno_ref')
+    .eq('alumno_id', alumnoId)
+    .maybeSingle();
+
+  if (error || !alumno?.alumno_ref) return false;
+  return alumnoRefTieneExcepcionRenovacionCompleta(String(alumno.alumno_ref));
+}
 
 /** Expediente enviado, no verificado, con al menos un doc marcado incorrecto. */
 export async function renovacionExentaPorDocsIncorrectos(
@@ -38,7 +56,15 @@ export async function renovacionExentaPorDocsIncorrectos(
   return (docs?.length ?? 0) > 0;
 }
 
-/** null = puede continuar; objeto = bloqueo 403. */
+async function renovacionExentaPostCierreAlguna(
+  admin: AdminClient,
+  alumnoId: number
+): Promise<boolean> {
+  if (await renovacionExentaCompletaPostCierre(admin, alumnoId)) return true;
+  return renovacionExentaPorDocsIncorrectos(admin, alumnoId);
+}
+
+/** null = puede continuar (GET, documentos); objeto = bloqueo 403. */
 export async function assertPortalRenovacionOExcepcionDocs(
   admin: AdminClient,
   alumnoId: number,
@@ -46,12 +72,23 @@ export async function assertPortalRenovacionOExcepcionDocs(
 ): Promise<{ error: string; codigo: string; titulo: string } | null> {
   const status = getPortalStatus('renovacion', now);
   if (status.open) return null;
-  const exento = await renovacionExentaPorDocsIncorrectos(admin, alumnoId);
-  if (exento) return null;
+  if (await renovacionExentaPostCierreAlguna(admin, alumnoId)) return null;
   return assertPortalAbierto('renovacion', now)!;
 }
 
-/** Por renovacion_id (POST documentos, antes de conocer alumno en algunos flujos). */
+/** POST formulario / finalizar: solo ventana abierta o excepción completa. */
+export async function assertPortalRenovacionOExcepcionCompleta(
+  admin: AdminClient,
+  alumnoId: number,
+  now?: Date
+): Promise<{ error: string; codigo: string; titulo: string } | null> {
+  const status = getPortalStatus('renovacion', now);
+  if (status.open) return null;
+  if (await renovacionExentaCompletaPostCierre(admin, alumnoId)) return null;
+  return assertPortalAbierto('renovacion', now)!;
+}
+
+/** Por renovacion_id (POST documentos). */
 export async function assertPortalRenovacionOExcepcionPorRenovacionId(
   admin: AdminClient,
   renovacionId: string,
@@ -69,6 +106,9 @@ export async function assertPortalRenovacionOExcepcionPorRenovacionId(
   if (renErr || !renovacion) {
     return assertPortalAbierto('renovacion', now)!;
   }
+
+  const alumnoId = Number(renovacion.alumno_id);
+  if (await renovacionExentaCompletaPostCierre(admin, alumnoId)) return null;
 
   if (!renovacion.correo_enviado || renovacion.verificado) {
     return assertPortalAbierto('renovacion', now)!;
@@ -90,6 +130,10 @@ export async function assertPortalRenovacionOExcepcionPorRenovacionId(
 
 export function mensajeExcepcionCorreccionPostCierre(): string {
   return 'El periodo de renovación cerró, pero puede entrar a subir nuevamente los documentos marcados como incorrectos.';
+}
+
+export function mensajeExcepcionRenovacionCompletaPostCierre(): string {
+  return 'El periodo de renovación cerró, pero tiene acceso especial para completar su renovación de beca (formulario, documentos y envío).';
 }
 
 /** Solo renovación; solicitud sin cambios. */

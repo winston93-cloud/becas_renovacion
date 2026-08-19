@@ -5,7 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getInsforgeAdmin } from '@/lib/insforge-server';
 import { forbidWrongAlumno, requireAcceso } from '@/lib/acceso-auth';
-import { assertPortalAbierto } from '@/lib/portal-ventanas';
+import { assertPortalRenovacionOExcepcionCompleta } from '@/lib/portal-renovacion-excepcion';
 import { getCurrentSchoolCycle, getSchoolCycleLabel } from '@/lib/ciclo-escolar';
 import { signDocLink } from '@/lib/doc-download-token';
 import { sendMail } from '@/lib/mailer';
@@ -26,11 +26,6 @@ async function blobToBuffer(blob: Blob): Promise<Buffer> {
 
 export async function POST(request: NextRequest) {
   try {
-    const cerrado = assertPortalAbierto('renovacion');
-    if (cerrado) {
-      return NextResponse.json(cerrado, { status: 403 });
-    }
-
     const auth = requireAcceso(request);
     if (!auth.ok) return auth.response;
 
@@ -61,6 +56,14 @@ export async function POST(request: NextRequest) {
         { error: 'Renovación no encontrada.' },
         { status: 404 }
       );
+    }
+
+    const cerrado = await assertPortalRenovacionOExcepcionCompleta(
+      admin,
+      Number(renovacion.alumno_id)
+    );
+    if (cerrado) {
+      return NextResponse.json(cerrado, { status: 403 });
     }
 
     const wrong = forbidWrongAlumno(auth.acceso, renovacion.alumno_id);

@@ -21,7 +21,10 @@ import SubirDocumentos from './components/SubirDocumentos';
 import ResumenConfirmacion from './components/ResumenConfirmacion';
 import { StepIndicator } from './components/StepIndicator';
 import { labelGrado } from '@/lib/label-grado';
-import { mensajeExcepcionCorreccionPostCierre } from '@/lib/portal-renovacion-excepcion';
+import {
+  mensajeExcepcionCorreccionPostCierre,
+  mensajeExcepcionRenovacionCompletaPostCierre,
+} from '@/lib/portal-renovacion-excepcion';
 
 type Step = 'form' | 'docs' | 'done';
 
@@ -101,7 +104,18 @@ function RenovacionContent() {
       cicloLabel={data?.ciclo_label}
     >
       <div className="ui-fade-in">
-        {!loading && !error && data?.acceso_correccion_post_cierre ? (
+        {!loading && !error && data?.acceso_renovacion_completa_post_cierre ? (
+          <Alert variant="info" title="Acceso especial de renovación" className="mb-6 ui-enter">
+            <p className="leading-relaxed">
+              {mensajeExcepcionRenovacionCompletaPostCierre()}
+            </p>
+          </Alert>
+        ) : null}
+
+        {!loading &&
+        !error &&
+        data?.acceso_correccion_post_cierre &&
+        !data?.acceso_renovacion_completa_post_cierre ? (
           <Alert variant="info" title="Corrección de documentos" className="mb-6 ui-enter">
             <p className="leading-relaxed">
               {mensajeExcepcionCorreccionPostCierre()}

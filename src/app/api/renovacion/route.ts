@@ -14,9 +14,10 @@ import {
 } from '@/lib/ciclo-escolar';
 import { requireAcceso, forbidWrongAlumno } from '@/lib/acceso-auth';
 import { esBecaNoTramitable } from '@/lib/becas-excluidas';
-import { assertPortalAbierto } from '@/lib/portal-ventanas';
 import {
+  assertPortalRenovacionOExcepcionCompleta,
   assertPortalRenovacionOExcepcionDocs,
+  renovacionExentaCompletaPostCierre,
   renovacionExentaPorDocsIncorrectos,
 } from '@/lib/portal-renovacion-excepcion';
 import { labelNivel } from '@/lib/email-renovacion';
@@ -124,6 +125,8 @@ export async function GET(request: NextRequest) {
       admin,
       alumnoId
     );
+    const accesoRenovacionCompletaPostCierre =
+      await renovacionExentaCompletaPostCierre(admin, alumnoId);
 
     // 2026-07-23 - Gate = legacy PHP: beca_estatus = 1 en ciclo a renovar (calendario − 1)
     const { data: becaRow, error: becaErr } = await admin.database
@@ -312,6 +315,7 @@ export async function GET(request: NextRequest) {
       ya_registrado: Boolean(renovacion?.correo_enviado),
       docs_por_corregir: docsPorCorregir,
       acceso_correccion_post_cierre: accesoCorreccionPostCierre,
+      acceso_renovacion_completa_post_cierre: accesoRenovacionCompletaPostCierre,
     };
 
     return NextResponse.json(payload);
@@ -323,15 +327,16 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const cerrado = assertPortalAbierto('renovacion');
-    if (cerrado) {
-      return NextResponse.json(cerrado, { status: 403 });
-    }
-
     const body = (await request.json()) as RenovacionPayload;
     const alumnoId = Number(body?.alumno_id);
     if (!Number.isFinite(alumnoId) || alumnoId <= 0) {
       return NextResponse.json({ error: 'Falta alumno_id válido.' }, { status: 400 });
+    }
+
+    const admin = getInsforgeAdmin();
+    const cerrado = await assertPortalRenovacionOExcepcionCompleta(admin, alumnoId);
+    if (cerrado) {
+      return NextResponse.json(cerrado, { status: 403 });
     }
 
     // 2026-07-22 - Exige sesión y que coincida el alumno
@@ -352,7 +357,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const admin = getInsforgeAdmin();
     // 2026-07-16 - Guardar renovación contra el ciclo de beca a renovar (anterior)
     const ciclo = getCicloBecaARenovar();
 

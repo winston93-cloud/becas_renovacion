@@ -132,6 +132,8 @@ export type RenovacionPrecarga = {
   docs_por_corregir?: boolean;
   /** Portal cerrado pero puede corregir docs incorrectos (excepción post-cierre). */
   acceso_correccion_post_cierre?: boolean;
+  /** Portal cerrado: acceso CE para renovación completa (formulario + envío). */
+  acceso_renovacion_completa_post_cierre?: boolean;
 };
 
 /**
