@@ -12,6 +12,16 @@ import {
   getSchoolCycleLabel,
 } from '@/lib/ciclo-escolar';
 
+export const maxDuration = 60;
+
+function mensajeErrorApi(err: unknown): string {
+  const raw = err instanceof Error ? err.message : 'Error en dashboard admin.';
+  if (raw.includes('<html>') || raw.includes('502 Bad Gateway')) {
+    return 'El servidor de datos no respondió. Espere unos segundos e intente de nuevo.';
+  }
+  return raw.length > 280 ? `${raw.slice(0, 280)}…` : raw;
+}
+
 export async function GET() {
   try {
     const auth = await requireAdmin();
@@ -78,8 +88,6 @@ export async function GET() {
       },
     });
   } catch (err) {
-    const message =
-      err instanceof Error ? err.message : 'Error en dashboard admin.';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: mensajeErrorApi(err) }, { status: 500 });
   }
 }

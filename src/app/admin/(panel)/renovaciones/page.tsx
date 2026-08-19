@@ -63,6 +63,14 @@ function ListInner() {
         const res = await fetch(
           `/api/admin/renovaciones?estado=${encodeURIComponent(estado)}`
         );
+        const ct = res.headers.get('content-type') || '';
+        if (!ct.includes('application/json')) {
+          throw new Error(
+            res.status === 502
+              ? 'El servidor no respondió (502). Intente de nuevo en unos segundos.'
+              : `Error del servidor (${res.status}).`
+          );
+        }
         const json = await res.json();
         if (!res.ok) throw new Error(json.error || 'Error');
         if (!cancelled) {

@@ -14,6 +14,8 @@ import {
   type DocIncorrectoResumen,
 } from '@/lib/admin-renovacion-docs-incorrectos';
 
+export type { DocIncorrectoResumen };
+
 export type AdminListEstado =
   | 'todas'
   | 'enviadas'
@@ -189,19 +191,15 @@ export async function listRenovaciones(opts: {
 
   if (estado === 'pendientes' || estado === 'correccion_documentos') {
     const renIds = renRows.map((r) => String(r.id));
-    const conIncorrectos = await fetchRenovacionIdsConDocsIncorrectos(
+    docsIncorrectosMap = await fetchDocsIncorrectosPorRenovacion(
       dbAdmin,
       renIds
     );
 
     if (estado === 'pendientes') {
-      renRows = renRows.filter((r) => !conIncorrectos.has(String(r.id)));
+      renRows = renRows.filter((r) => !docsIncorrectosMap.has(String(r.id)));
     } else {
-      renRows = renRows.filter((r) => conIncorrectos.has(String(r.id)));
-      docsIncorrectosMap = await fetchDocsIncorrectosPorRenovacion(
-        dbAdmin,
-        renRows.map((r) => String(r.id))
-      );
+      renRows = renRows.filter((r) => docsIncorrectosMap.has(String(r.id)));
     }
   }
 

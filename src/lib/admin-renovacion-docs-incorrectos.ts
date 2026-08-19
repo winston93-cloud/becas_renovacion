@@ -1,12 +1,11 @@
 /**
  * Renovaciones con documentos marcados incorrectos (familia avisada por correo).
+ * Una sola consulta a becas_documento (sin .in masivo de UUIDs → evita 502 InsForge).
  */
 import type { getInsforgeAdmin } from '@/lib/insforge-server';
 import { labelDocumentoTipo } from '@/lib/email-renovacion';
 
 type AdminClient = ReturnType<typeof getInsforgeAdmin>;
-
-const CHUNK_RENOVACION_IDS = 200;
 
 export type DocIncorrectoResumen = {
   tipo: string;
@@ -14,65 +13,63 @@ export type DocIncorrectoResumen = {
   nota: string | null;
 };
 
-function chunkIds(ids: string[], size: number): string[][] {
-  const out: string[][] = [];
-  for (let i = 0; i < ids.length; i += size) out.push(ids.slice(i, i + size));
-  return out;
-}
-
-/** IDs de renovación con al menos un doc en revision_estado = incorrecto. */
-export async function fetchRenovacionIdsConDocsIncorrectos(
-  admin: AdminClient,
-  renovacionIds: string[]
-): Promise<Set<string>> {
-  if (renovacionIds.length === 0) return new Set();
-
-  const ids = new Set<string>();
-
-  for (const slice of chunkIds(renovacionIds, CHUNK_RENOVACION_IDS)) {
-    const { data, error } = await admin.database
-      .from('becas_documento')
-      .select('renovacion_id')
-      .in('renovacion_id', slice)
-      .eq('revision_estado', 'incorrecto');
-
-    if (error) throw new Error(error.message);
-    for (const row of data || []) {
-      if (row.renovacion_id) ids.add(String(row.renovacion_id));
-    }
-  }
-
-  return ids;
-}
-
-/** Detalle de docs incorrectos por renovacion_id (solo estado incorrecto). */
-export async function fetchDocsIncorrectosPorRenovacion(
+/**
+ * Mapa renovacion_id → docs incorrectos, limitado a los IDs dados.
+ * Una query: revision_estado = incorrecto (pocos registros) + filtro en memoria.
+ */
+export async function fetchIndiceDocsIncorrectos(
   admin: AdminClient,
   renovacionIds: string[]
 ): Promise<Map<string, DocIncorrectoResumen[]>> {
   const map = new Map<string, DocIncorrectoResumen[]>();
   if (renovacionIds.length === 0) return map;
 
-  for (const slice of chunkIds(renovacionIds, CHUNK_RENOVACION_IDS)) {
-    const { data, error } = await admin.database
-      .from('becas_documento')
-      .select('renovacion_id, tipo, revision_nota')
-      .in('renovacion_id', slice)
-      .eq('revision_estado', 'incorrecto');
+  const allowed = new Set(renovacionIds);
 
-    if (error) throw new Error(error.message);
+  const { data, error } = await admin.database
+    .from('becas_documento')
+    .select('renovacion_id, tipo, revision_nota')
+    .eq('revision_estado', 'incorrecto')
+    .limit(5000);
 
-    for (const row of data || []) {
-      const renId = String(row.renovacion_id);
-      const list = map.get(renId) || [];
-      list.push({
-        tipo: String(row.tipo),
-        label: labelDocumentoTipo(String(row.tipo)),
-        nota: row.revision_nota || null,
-      });
-      map.set(renId, list);
+  if (error) {
+    const msg = String(error.message || 'Error al consultar documentos.');
+    if (msg.includes('<html>') || msg.includes('502')) {
+      throw new Error(
+        'El servidor de datos no respondió (502). Intente de nuevo en unos segundos.'
+      );
     }
+    throw new Error(msg);
+  }
+
+  for (const row of data || []) {
+    const renId = String(row.renovacion_id);
+    if (!allowed.has(renId)) continue;
+    const list = map.get(renId) || [];
+    list.push({
+      tipo: String(row.tipo),
+      label: labelDocumentoTipo(String(row.tipo)),
+      nota: row.revision_nota || null,
+    });
+    map.set(renId, list);
   }
 
   return map;
+}
+
+/** IDs de renovación con al menos un doc incorrecto (subconjunto de renovacionIds). */
+export async function fetchRenovacionIdsConDocsIncorrectos(
+  admin: AdminClient,
+  renovacionIds: string[]
+): Promise<Set<string>> {
+  const indice = await fetchIndiceDocsIncorrectos(admin, renovacionIds);
+  return new Set(indice.keys());
+}
+
+/** Alias explícito para el listado admin. */
+export async function fetchDocsIncorrectosPorRenovacion(
+  admin: AdminClient,
+  renovacionIds: string[]
+): Promise<Map<string, DocIncorrectoResumen[]>> {
+  return fetchIndiceDocsIncorrectos(admin, renovacionIds);
 }
