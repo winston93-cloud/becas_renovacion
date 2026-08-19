@@ -20,7 +20,6 @@ import {
   EXCEPCION_POST_CIERRE_BCC,
 } from '@/lib/email-excepcion-post-cierre';
 import {
-  portalBecasIngresoUrl,
   resolveAccesoAutorizadoDestinatarios,
 } from '@/lib/email-acceso-autorizado';
 import { sendMail, getMailFrom } from '@/lib/mailer';
@@ -93,13 +92,6 @@ export async function POST(request: NextRequest) {
     const { ciclo_label, familias } = await fetchExcepcionFamilias(admin, {
       niveles: todosNiveles ? undefined : auth.admin.niveles,
     });
-
-    const pdf = await buildExcepcionPostCierreListaPdf({
-      ciclo_label,
-      familias,
-    });
-    const stamp = new Date().toISOString().slice(0, 10);
-    const pdfName = `excepcion-post-cierre-${stamp}.pdf`;
 
     type EnvioRow = {
       alumno_ref: string;
@@ -179,27 +171,6 @@ export async function POST(request: NextRequest) {
 
         await sleep(800);
       }
-
-      const okCount = envios.filter((e) => e.ok).length;
-      const failCount = envios.filter((e) => !e.ok && !e.skipped).length;
-      const skipCount = envios.filter((e) => e.skipped).length;
-
-      await sendMail({
-        to: EXCEPCION_POST_CIERRE_BCC,
-        subject: `[Becas] Resumen aviso post-cierre — ${okCount} enviados / ${familias.length} familias`,
-        html: `
-          <p>Se envió el aviso institucional de corrección post-cierre.</p>
-          <ul>
-            <li>Total familias: ${familias.length}</li>
-            <li>Correos enviados: ${okCount}</li>
-            <li>Fallidos: ${failCount}</li>
-            <li>Sin correo padres: ${skipCount}</li>
-          </ul>
-          <p>Remitente: ${getMailFrom()}</p>
-          <p>Portal: ${portalBecasIngresoUrl({ flujo: 'renovacion', alumnoRef: '' }).replace(/alumno_ref=$/, '')}</p>
-        `,
-        attachments: [{ filename: pdfName, content: pdf }],
-      });
     }
 
     const meta = clientMetaFromRequest(request);
@@ -222,8 +193,6 @@ export async function POST(request: NextRequest) {
       ok: true,
       dry_run: dryRun,
       total_familias: familias.length,
-      pdf_filename: pdfName,
-      pdf_base64: dryRun ? Buffer.from(pdf).toString('base64') : undefined,
       envios: dryRun
         ? familias.map((f) => ({
             alumno_ref: f.alumno_ref,
