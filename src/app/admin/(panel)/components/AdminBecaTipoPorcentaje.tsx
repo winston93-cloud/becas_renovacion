@@ -1,10 +1,10 @@
 'use client';
 
 /**
- * Módulo admin: cambiar tipo de beca y porcentaje en revisión individual.
+ * Editor de tipo/porcentaje integrado en el encabezado del expediente admin.
  */
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, Button, Card, Input, Label, Select } from '@/components/ui';
+import { Alert, Button, Input, Select } from '@/components/ui';
 import type { ConceptoBecaAdmin } from '@/lib/admin-beca-catalogo';
 
 type BecaActual = {
@@ -13,7 +13,7 @@ type BecaActual = {
   beca_porcentaje: number | null;
 };
 
-type Props = {
+export type AdminBecaTipoPorcentajeProps = {
   flujo: 'renovacion' | 'solicitud';
   expedienteId: string;
   becaLabel: string;
@@ -31,7 +31,7 @@ export function AdminBecaTipoPorcentaje({
   conceptos,
   becaAutorizada = false,
   onSaved,
-}: Props) {
+}: AdminBecaTipoPorcentajeProps) {
   const [becaId, setBecaId] = useState('');
   const [porcentaje, setPorcentaje] = useState('');
   const [saving, setSaving] = useState(false);
@@ -96,33 +96,16 @@ export function AdminBecaTipoPorcentaje({
   }
 
   return (
-    <Card className="space-y-4">
-      <div>
-        <h3 className="text-sm font-semibold text-primary">
-          Tipo y porcentaje de beca
-        </h3>
-        <p className="mt-1 text-xs text-text-secondary">
-          Ajuste el {becaLabel.toLowerCase()} sin afectar la revisión de
-          documentos. Los cambios quedan registrados en bitácora.
-        </p>
-      </div>
-
-      {error ? <Alert variant="error">{error}</Alert> : null}
-      {okMsg ? <Alert variant="success">{okMsg}</Alert> : null}
-
-      {becaAutorizada ? (
-        <p className="text-xs text-amber-800">
-          Esta beca ya está autorizada: el cambio también actualiza el registro
-          de cobro del ciclo actual.
-        </p>
-      ) : null}
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-1.5">
-          <Label htmlFor="admin-beca-tipo">Tipo de beca</Label>
+    <div className="space-y-3">
+      <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
+        <div className="rounded-xl border border-border/80 bg-white/80 px-4 py-3">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-text-secondary">
+            {becaLabel} · tipo
+          </p>
           <Select
             id="admin-beca-tipo"
-            className="min-h-[44px] text-base sm:text-sm"
+            aria-label={`${becaLabel} · tipo`}
+            className="mt-2 min-h-[44px] w-full border-0 bg-transparent p-0 text-base font-semibold text-primary shadow-none focus:ring-0 sm:text-base"
             value={becaId}
             onChange={(e) => setBecaId(e.target.value)}
           >
@@ -135,49 +118,61 @@ export function AdminBecaTipoPorcentaje({
           </Select>
         </div>
 
-        <div className="space-y-1.5">
-          <Label htmlFor="admin-beca-pct">Porcentaje (%)</Label>
-          <Input
-            id="admin-beca-pct"
-            type="number"
-            min={0}
-            max={100}
-            inputMode="numeric"
-            className="min-h-[44px] text-base sm:text-sm"
-            value={porcentaje}
-            onChange={(e) => setPorcentaje(e.target.value)}
-          />
+        <div className="rounded-xl border border-border/80 bg-white/80 px-4 py-3">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-text-secondary">
+            {becaLabel} · porcentaje
+          </p>
+          <div className="mt-2 flex items-center gap-1">
+            <Input
+              id="admin-beca-pct"
+              type="number"
+              min={0}
+              max={100}
+              inputMode="numeric"
+              aria-label={`${becaLabel} · porcentaje`}
+              className="min-h-[44px] w-20 border-0 bg-transparent p-0 text-base font-semibold text-primary shadow-none focus:ring-0 sm:text-base"
+              value={porcentaje}
+              onChange={(e) => setPorcentaje(e.target.value)}
+            />
+            <span className="text-base font-semibold text-primary">%</span>
+          </div>
           {conceptoSel?.beca_porcentaje_default != null ? (
             <button
               type="button"
-              className="text-xs text-primary underline-offset-2 hover:underline"
+              className="mt-1 text-[11px] text-primary underline-offset-2 hover:underline"
               onClick={aplicarPorcentajeDefault}
             >
-              Usar sugerido:{' '}
-              {Math.round(conceptoSel.beca_porcentaje_default)}%
+              Sugerido: {Math.round(conceptoSel.beca_porcentaje_default)}%
             </button>
           ) : null}
         </div>
       </div>
 
+      {error ? <Alert variant="error">{error}</Alert> : null}
+      {okMsg ? <Alert variant="success">{okMsg}</Alert> : null}
+
+      {becaAutorizada ? (
+        <p className="text-xs text-amber-800">
+          Beca autorizada: el cambio también actualiza el registro de cobro del
+          ciclo actual.
+        </p>
+      ) : null}
+
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <Button
           type="button"
-          className="!min-h-[44px]"
+          className="!min-h-[44px] w-full sm:w-auto"
           disabled={saving || !dirty || !becaId || porcentaje.trim() === ''}
           onClick={() => void guardar()}
         >
           {saving ? 'Guardando…' : 'Guardar tipo y porcentaje'}
         </Button>
-        {!dirty && beca?.beca_clase ? (
+        {dirty ? (
           <p className="text-xs text-text-secondary">
-            Actual: {beca.beca_clase} ·{' '}
-            {beca.beca_porcentaje != null
-              ? `${Math.round(beca.beca_porcentaje)}%`
-              : '—'}
+            Hay cambios sin guardar.
           </p>
         ) : null}
       </div>
-    </Card>
+    </div>
   );
 }

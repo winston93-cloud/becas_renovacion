@@ -9,7 +9,6 @@ import {
   type DocAdminItem,
 } from '@/app/admin/(panel)/components/AdminDocumentosRevision';
 import { AdminPromedioBecado } from '@/app/admin/(panel)/components/AdminPromedioBecado';
-import { AdminBecaTipoPorcentaje } from '@/app/admin/(panel)/components/AdminBecaTipoPorcentaje';
 import {
   AdminExpedienteHeader,
   BadgeAutorizada,
@@ -152,16 +151,14 @@ export default function RenovacionDetallePage({
         becaLabel="Beca a renovar"
         tipoBeca={beca?.beca_clase ?? null}
         porcentajeBeca={beca?.beca_porcentaje ?? null}
-      />
-
-      <AdminBecaTipoPorcentaje
-        flujo="renovacion"
-        expedienteId={r.id}
-        becaLabel="Beca a renovar"
-        beca={beca}
-        conceptos={data.conceptos || []}
-        becaAutorizada={r.beca_autorizada}
-        onSaved={() => load({ soft: true })}
+        becaEdit={{
+          flujo: 'renovacion',
+          expedienteId: r.id,
+          beca,
+          conceptos: data.conceptos || [],
+          becaAutorizada: r.beca_autorizada,
+          onSaved: () => load({ soft: true }),
+        }}
       />
 
       {error ? <Alert variant="error">{error}</Alert> : null}

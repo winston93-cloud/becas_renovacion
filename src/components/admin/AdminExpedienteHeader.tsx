@@ -6,18 +6,24 @@
  */
 import type { ReactNode } from 'react';
 import { Badge, Card } from '@/components/ui';
+import {
+  AdminBecaTipoPorcentaje,
+  type AdminBecaTipoPorcentajeProps,
+} from '@/app/admin/(panel)/components/AdminBecaTipoPorcentaje';
 
 export type AdminExpedienteHeaderProps = {
   nombre: string;
   alumnoRef: string;
   metaLinea: string;
   badges: ReactNode;
-  /** Tipo de beca (catálogo) o texto descriptivo. */
+  /** Tipo de beca (catálogo) o texto descriptivo. Solo lectura si no hay becaEdit. */
   tipoBeca: string | null;
-  /** Porcentaje 0–100. */
+  /** Porcentaje 0–100. Solo lectura si no hay becaEdit. */
   porcentajeBeca: number | null;
   /** Etiqueta del bloque de beca, p. ej. "Beca a renovar" / "Beca solicitada". */
   becaLabel?: string;
+  /** Si se pasa, reemplaza las cajas de solo lectura por el editor integrado. */
+  becaEdit?: Omit<AdminBecaTipoPorcentajeProps, 'becaLabel'>;
 };
 
 export function AdminExpedienteHeader({
@@ -28,6 +34,7 @@ export function AdminExpedienteHeader({
   tipoBeca,
   porcentajeBeca,
   becaLabel = 'Beca',
+  becaEdit,
 }: AdminExpedienteHeaderProps) {
   const pct =
     porcentajeBeca != null && Number.isFinite(porcentajeBeca)
@@ -48,21 +55,29 @@ export function AdminExpedienteHeader({
         <div className="mt-3 flex flex-wrap gap-1.5">{badges}</div>
       </div>
 
-      <div className="grid gap-3 px-5 py-4 sm:grid-cols-2 sm:gap-4 sm:px-6 sm:py-5">
-        <div className="rounded-xl border border-border/80 bg-white/80 px-4 py-3">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-text-secondary">
-            {becaLabel} · tipo
-          </p>
-          <p className="mt-1 text-base font-semibold text-primary">
-            {tipo || '—'}
-          </p>
-        </div>
-        <div className="rounded-xl border border-border/80 bg-white/80 px-4 py-3">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-text-secondary">
-            {becaLabel} · porcentaje
-          </p>
-          <p className="mt-1 text-base font-semibold text-primary">{pct || '—'}</p>
-        </div>
+      <div className="px-5 py-4 sm:px-6 sm:py-5">
+        {becaEdit ? (
+          <AdminBecaTipoPorcentaje {...becaEdit} becaLabel={becaLabel} />
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
+            <div className="rounded-xl border border-border/80 bg-white/80 px-4 py-3">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-text-secondary">
+                {becaLabel} · tipo
+              </p>
+              <p className="mt-1 text-base font-semibold text-primary">
+                {tipo || '—'}
+              </p>
+            </div>
+            <div className="rounded-xl border border-border/80 bg-white/80 px-4 py-3">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-text-secondary">
+                {becaLabel} · porcentaje
+              </p>
+              <p className="mt-1 text-base font-semibold text-primary">
+                {pct || '—'}
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     </Card>
   );
