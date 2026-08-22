@@ -9,7 +9,6 @@ import { CheckCircle2, Clock, Download, Upload } from 'lucide-react';
 import { Alert, Button, Card } from '@/components/ui';
 import { labelGrupo } from '@/lib/label-grupo';
 import { fetchConAcceso } from '@/lib/acceso-session';
-import { getPortalStatus } from '@/lib/portal-ventanas';
 
 type Props = {
   renovacionId: string;
@@ -43,7 +42,6 @@ export default function ResumenConfirmacion({
 }: Props) {
   const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const portalCerrado = !getPortalStatus('renovacion').open;
 
   async function handleDownloadComprobante() {
     setError(null);
@@ -169,15 +167,6 @@ export default function ResumenConfirmacion({
               ? 'Su solicitud está en revisión. En las próximas semanas el área académica emitirá la resolución correspondiente.'
               : 'Se notificó a coordinación por correo. En las próximas semanas se le dará la resolución correspondiente. Descargue su comprobante de registro.'}
       </p>
-
-      {portalCerrado && !docsPorCorregir ? (
-        <Alert variant="warning" className="mx-auto mt-5 max-w-lg text-left">
-          El período general de renovación de beca ya concluyó. Su expediente
-          queda en revisión. Si Control Escolar le pide por correo corregir un
-          documento, vuelva a entrar: el portal se abre solo para subir ese
-          archivo.
-        </Alert>
-      ) : null}
 
       {error && (
         <Alert variant="error" className="mx-auto mt-4 max-w-md text-left">

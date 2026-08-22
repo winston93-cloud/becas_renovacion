@@ -116,6 +116,7 @@ function RenovacionContent() {
 
         {!loading &&
         !error &&
+        step === 'docs' &&
         data?.acceso_correccion_post_cierre &&
         !data?.acceso_renovacion_completa_post_cierre ? (
           <Alert variant="info" title="Corrección de documentos" className="mb-6 ui-enter">
