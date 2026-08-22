@@ -14,6 +14,7 @@ import {
 } from '@/lib/ciclo-escolar';
 import { requireAcceso, forbidWrongAlumno } from '@/lib/acceso-auth';
 import { esBecaNoTramitable } from '@/lib/becas-excluidas';
+import { normalizarRevisionEstado } from '@/lib/doc-revision';
 import {
   assertPortalRenovacionOExcepcionCompleta,
   assertPortalRenovacionOExcepcionDocs,
@@ -225,7 +226,7 @@ export async function GET(request: NextRequest) {
         storage_url: d.storage_url,
         nombre_original: d.nombre_original,
         subido_en: d.subido_en,
-        revision_estado: d.revision_estado || 'pendiente',
+        revision_estado: normalizarRevisionEstado(d.revision_estado),
         revision_nota: d.revision_nota || null,
       }));
     }

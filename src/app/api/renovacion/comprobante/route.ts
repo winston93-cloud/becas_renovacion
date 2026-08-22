@@ -5,7 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getInsforgeAdmin } from '@/lib/insforge-server';
 import { forbidWrongAlumno, requireAcceso } from '@/lib/acceso-auth';
-import { assertPortalRenovacionOExcepcionPorRenovacionId } from '@/lib/portal-renovacion-excepcion';
+import { assertPortalRenovacionConsultaPorRenovacionId } from '@/lib/portal-renovacion-excepcion';
 import { getCurrentSchoolCycle, getSchoolCycleLabel } from '@/lib/ciclo-escolar';
 import { buildComprobantePdf } from '@/lib/pdf/comprobante';
 import { formatFechaEsMx } from '@/lib/pdf/map-data';
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
 
     const admin = getInsforgeAdmin();
 
-    const cerrado = await assertPortalRenovacionOExcepcionPorRenovacionId(
+    const cerrado = await assertPortalRenovacionConsultaPorRenovacionId(
       admin,
       renovacionId
     );

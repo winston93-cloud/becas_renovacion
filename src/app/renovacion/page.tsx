@@ -38,6 +38,7 @@ function RenovacionContent() {
   const [step, setStep] = useState<Step>('form');
   const [renovacionId, setRenovacionId] = useState<string | null>(null);
   const [yaRegistrado, setYaRegistrado] = useState(false);
+  const [correccionEnviada, setCorreccionEnviada] = useState(false);
 
   useEffect(() => {
     if (!alumnoRef) {
@@ -79,6 +80,7 @@ function RenovacionContent() {
           if (json.renovacion?.id) setRenovacionId(json.renovacion.id);
           if (json.ya_registrado) {
             setYaRegistrado(true);
+            setCorreccionEnviada(false);
             setStep(json.docs_por_corregir ? 'docs' : 'done');
           }
         }
@@ -123,9 +125,9 @@ function RenovacionContent() {
           </Alert>
         ) : null}
 
-        {!loading && !error && data && !yaRegistrado && (
+        {!loading && !error && data && (!yaRegistrado || step === 'docs') && (
           <StepIndicator
-            current={step}
+            current={step === 'docs' ? 'docs' : step}
             ariaLabel="Progreso de renovación de beca"
           />
         )}
@@ -145,8 +147,9 @@ function RenovacionContent() {
             <Alert variant="warning" title="No se pudo abrir el trámite">
               <p className="leading-relaxed">{error}</p>
               <p className="mt-2 text-xs opacity-80">
-                Puedes corregir el número de control en el inicio e intentarlo
-                de nuevo.
+                Si le pidieron por correo corregir un documento, use el mismo
+                número de control y contraseña en Renovación. Si el error
+                persiste, puede corregir el número de control en el inicio.
               </p>
             </Alert>
             <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
@@ -203,6 +206,7 @@ function RenovacionContent() {
                         }
                       : prev
                   );
+                  setCorreccionEnviada(true);
                   setStep('done');
                 }}
               />
@@ -225,6 +229,9 @@ function RenovacionContent() {
               })()}
               grupo={data.alumno.alumno_grupo}
               yaRegistrado={yaRegistrado}
+              correccionEnviada={correccionEnviada}
+              docsPorCorregir={Boolean(data.docs_por_corregir)}
+              onIrACorregir={() => setStep('docs')}
               fechaRegistro={data.renovacion?.correo_enviado_en || null}
             />
           </div>

@@ -2,16 +2,14 @@
 
 /**
  * 2026-07-16 - Pantalla de confirmación al completar la renovación.
- * 2026-07-16 - Éxito sobrio con icono Lucide (sin círculo saturado).
- * 2026-07-16 - Menciona que se notificó a coordinación por correo.
- * 2026-07-16 - Botón para descargar comprobante PDF con QR.
- * 2026-07-16 - Modo yaRegistrado: solo consulta, pendiente de resolución académica.
+ * 2026-08-22 - Copy post-cierre: no bloquear a quien debe corregir docs.
  */
 import { useState } from 'react';
-import { CheckCircle2, Clock, Download } from 'lucide-react';
+import { CheckCircle2, Clock, Download, Upload } from 'lucide-react';
 import { Alert, Button, Card } from '@/components/ui';
 import { labelGrupo } from '@/lib/label-grupo';
 import { fetchConAcceso } from '@/lib/acceso-session';
+import { getPortalStatus } from '@/lib/portal-ventanas';
 
 type Props = {
   renovacionId: string;
@@ -23,6 +21,11 @@ type Props = {
   /** true si el alumno ya había finalizado en una visita previa */
   yaRegistrado?: boolean;
   fechaRegistro?: string | null;
+  /** Acaba de reenviar documentos marcados incorrectos. */
+  correccionEnviada?: boolean;
+  /** Hay docs incorrectos: no debería mostrarse esta pantalla, pero hay CTA de respaldo. */
+  docsPorCorregir?: boolean;
+  onIrACorregir?: () => void;
 };
 
 export default function ResumenConfirmacion({
@@ -34,9 +37,13 @@ export default function ResumenConfirmacion({
   grupo,
   yaRegistrado = false,
   fechaRegistro = null,
+  correccionEnviada = false,
+  docsPorCorregir = false,
+  onIrACorregir,
 }: Props) {
   const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const portalCerrado = !getPortalStatus('renovacion').open;
 
   async function handleDownloadComprobante() {
     setError(null);
@@ -70,7 +77,6 @@ export default function ResumenConfirmacion({
     }
   }
 
-  // 2026-07-18 - Grupo numérico → letra (A/B/C)
   const gradoGrupo =
     [grado, labelGrupo(grupo)].filter((p) => p && p !== '—').join(' / ') ||
     '—';
@@ -82,17 +88,29 @@ export default function ResumenConfirmacion({
       }).format(new Date(fechaRegistro))
     : null;
 
+  const titulo = docsPorCorregir
+    ? 'Hay documentos por corregir'
+    : correccionEnviada
+      ? 'Documentos reenviados'
+      : yaRegistrado
+        ? 'Renovación ya registrada'
+        : 'Renovación enviada';
+
   return (
     <Card className="ui-fade-in text-center">
       <div
         className={[
           'mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full',
-          yaRegistrado
-            ? 'bg-primary-light text-primary'
-            : 'bg-success-bg text-success',
+          docsPorCorregir
+            ? 'bg-warning-bg text-warning'
+            : yaRegistrado && !correccionEnviada
+              ? 'bg-primary-light text-primary'
+              : 'bg-success-bg text-success',
         ].join(' ')}
       >
-        {yaRegistrado ? (
+        {docsPorCorregir ? (
+          <Upload className="h-7 w-7" aria-hidden />
+        ) : yaRegistrado && !correccionEnviada ? (
           <Clock className="h-7 w-7" aria-hidden />
         ) : (
           <CheckCircle2 className="h-7 w-7" aria-hidden />
@@ -100,18 +118,26 @@ export default function ResumenConfirmacion({
       </div>
 
       <h2 className="mb-2 text-2xl font-semibold tracking-tight text-text">
-        {yaRegistrado
-          ? 'Solicitud ya registrada'
-          : 'Renovación enviada'}
+        {titulo}
       </h2>
 
-      {yaRegistrado && (
-        <Alert variant="info" className="mx-auto mb-5 max-w-lg text-left">
-          Este alumno ya realizó su renovación de beca. No es posible enviar el
-          formulario de nuevo. Puede descargar su comprobante; la solicitud
-          permanece pendiente de resolución por el área académica.
+      {docsPorCorregir ? (
+        <Alert variant="warning" className="mx-auto mb-5 max-w-lg text-left">
+          Control Escolar marcó uno o más documentos como incorrectos. No hace
+          falta volver a llenar el formulario: suba únicamente el archivo que le
+          pidieron corregir.
         </Alert>
-      )}
+      ) : correccionEnviada ? (
+        <Alert variant="success" className="mx-auto mb-5 max-w-lg text-left">
+          El documento corregido ya quedó en el expediente. Control Escolar lo
+          volverá a revisar.
+        </Alert>
+      ) : yaRegistrado ? (
+        <Alert variant="info" className="mx-auto mb-5 max-w-lg text-left">
+          Su renovación de beca ya está registrada. Puede descargar el
+          comprobante. El expediente sigue en revisión por el área académica.
+        </Alert>
+      ) : null}
 
       <p className="mb-1 text-sm text-text-secondary">
         {yaRegistrado
@@ -135,10 +161,23 @@ export default function ResumenConfirmacion({
       )}
 
       <p className="mx-auto mt-6 max-w-md text-sm leading-relaxed text-text-secondary">
-        {yaRegistrado
-          ? 'Su solicitud está en revisión. En las próximas semanas el área académica emitirá la resolución correspondiente.'
-          : 'Se notificó a coordinación por correo. En las próximas semanas se le dará la resolución correspondiente. Descargue su comprobante de registro.'}
+        {docsPorCorregir
+          ? 'Use el botón de abajo para ir a la carga de documentos.'
+          : correccionEnviada
+            ? 'En las próximas semanas el área académica emitirá la resolución. Conserve su comprobante.'
+            : yaRegistrado
+              ? 'Su solicitud está en revisión. En las próximas semanas el área académica emitirá la resolución correspondiente.'
+              : 'Se notificó a coordinación por correo. En las próximas semanas se le dará la resolución correspondiente. Descargue su comprobante de registro.'}
       </p>
+
+      {portalCerrado && !docsPorCorregir ? (
+        <Alert variant="warning" className="mx-auto mt-5 max-w-lg text-left">
+          El período general de renovación de beca ya concluyó. Su expediente
+          queda en revisión. Si Control Escolar le pide por correo corregir un
+          documento, vuelva a entrar: el portal se abre solo para subir ese
+          archivo.
+        </Alert>
+      ) : null}
 
       {error && (
         <Alert variant="error" className="mx-auto mt-4 max-w-md text-left">
@@ -146,13 +185,24 @@ export default function ResumenConfirmacion({
         </Alert>
       )}
 
-      <div className="mt-6 flex justify-center">
+      <div className="mt-6 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+        {docsPorCorregir && onIrACorregir ? (
+          <Button
+            type="button"
+            variant="primary"
+            onClick={onIrACorregir}
+            className="w-full min-h-[44px] sm:w-auto"
+          >
+            <Upload className="h-4 w-4" aria-hidden />
+            Corregir documentos
+          </Button>
+        ) : null}
         <Button
           type="button"
-          variant={yaRegistrado ? 'primary' : 'secondary'}
+          variant={docsPorCorregir ? 'secondary' : yaRegistrado ? 'primary' : 'secondary'}
           onClick={handleDownloadComprobante}
           disabled={downloading}
-          className="w-full sm:w-auto"
+          className="w-full min-h-[44px] sm:w-auto"
         >
           <Download className="h-4 w-4" aria-hidden />
           {downloading ? 'Generando…' : 'Descargar comprobante'}

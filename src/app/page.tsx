@@ -159,6 +159,13 @@ export default function HomePage() {
     );
     const json = await res.json().catch(() => ({}));
     if (!res.ok) {
+      const codigo = String(json.codigo || '');
+      if (codigo === 'RENOVACION_CERRADA') {
+        throw new Error(
+          (json.error as string) ||
+            'El período de renovación concluyó. Si le pidieron corregir un documento por correo, use Renovación con el No. de Control y la contraseña: el portal se abre solo para esa corrección.'
+        );
+      }
       throw new Error(
         json.error ||
           'No se pudo verificar si este alumno puede renovar su beca.'

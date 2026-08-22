@@ -202,7 +202,7 @@ export default function SubirDocumentos({
         </h2>
         <p className="mt-1 text-sm text-text-secondary">
           {modoCorreccion
-            ? 'Su renovación ya está registrada. Suba únicamente los documentos marcados como incorrectos. Los verificados no se modifican.'
+            ? 'Su renovación ya está registrada. Suba únicamente los documentos marcados como incorrectos. Los verificados no se modifican. Aunque el periodo general haya cerrado, esta corrección sí está permitida.'
             : `Sube los ${docsList.length} PDFs requeridos para completar la renovación.`}
         </p>
         {modoCorreccion && pendientesCorregir > 0 ? (

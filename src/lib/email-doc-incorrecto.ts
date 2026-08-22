@@ -168,6 +168,7 @@ export function buildDocIncorrectoEmailHtml(
                 En <strong style="color:#16213E;">Carga de documentos</strong> verá los documentos ya verificados
                 y podrá subir únicamente el (o los) documento(s) marcado(s) como incorrecto(s).
                 No es necesario volver a llenar el formulario completo.
+                Aunque el periodo general de renovación haya cerrado, <strong style="color:#16213E;">este acceso permanece abierto solo para corregir el documento</strong>.
               </p>
               ${
                 data.flujo === 'solicitud'
