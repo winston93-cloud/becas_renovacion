@@ -27,6 +27,7 @@ import {
   labelDocRequerido,
   TODOS_DOCUMENTO_TIPOS,
 } from '@/lib/documentos-requeridos';
+import { buildSolicitudDocsContext } from '@/lib/solicitud-docs-context';
 import {
   getCurrentSchoolCycle,
   getSchoolCycleLabel,
@@ -114,15 +115,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const tiposRequeridos = docsRequeridos({
-      flujo,
-      nivel: alumno.alumno_nivel,
-      grado: alumno.alumno_grado,
-      becaId:
-        flujo === 'solicitud' && parent.beca_deseada_id != null
-          ? Number(parent.beca_deseada_id)
-          : null,
-    });
+    let tiposRequeridos: DocumentoTipo[];
+    if (flujo === 'solicitud') {
+      let becaClase: string | null = null;
+      if (parent.beca_deseada_id != null) {
+        const { data: concepto } = await db.database
+          .from('becas_concepto_beca')
+          .select('beca_clase')
+          .eq('beca_id', Number(parent.beca_deseada_id))
+          .maybeSingle();
+        becaClase = concepto?.beca_clase ? String(concepto.beca_clase) : null;
+      }
+      const ctx = await buildSolicitudDocsContext({
+        alumno,
+        solicitud: parent,
+        becaClase,
+      });
+      tiposRequeridos = ctx.tipos;
+    } else {
+      tiposRequeridos = docsRequeridos({
+        flujo: 'renovacion',
+        nivel: alumno.alumno_nivel,
+        grado: alumno.alumno_grado,
+      });
+    }
 
     const { data: docs, error: dErr } = await db.database
       .from(tabla)

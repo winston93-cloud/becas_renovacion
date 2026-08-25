@@ -8,6 +8,8 @@ import {
   docsListosParaVerificar,
   type DocAdminItem,
 } from '@/app/admin/(panel)/components/AdminDocumentosRevision';
+import { AdminPromedioBecado } from '@/app/admin/(panel)/components/AdminPromedioBecado';
+import type { PromedioBecadoRenovacion } from '@/lib/promedioBecadoRenovacion';
 import {
   AdminExpedienteHeader,
   BadgeAutorizada,
@@ -44,6 +46,9 @@ type Detail = {
   } | null;
   documentos: DocAdminItem[];
   docs_requeridos: { tipo: string; label: string }[];
+  promedio?: PromedioBecadoRenovacion | null;
+  exento_boleta_sep?: boolean;
+  alumno_reinscrito?: boolean;
   conceptos: ConceptoBecaAdmin[];
 };
 
@@ -224,6 +229,10 @@ export default function SolicitudDetallePage({
           {s.motivo || '—'}
         </p>
       </Card>
+
+      {data.exento_boleta_sep ? (
+        <AdminPromedioBecado promedio={data.promedio} />
+      ) : null}
 
       <AdminDocumentosRevision
         flujo="solicitud"

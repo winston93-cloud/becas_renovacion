@@ -4,9 +4,9 @@
  * 2026-07-27 - Renovación: checklist circular (ingresos/domicilio/inscripción).
  * 2026-08-13 - Renovación: ya no pide boleta SEP; promedio desde InsForge Boletas en admin.
  * 2026-08-17 - Solicitud convenio (PEMEX/IMSS/CFE/TELMEX): + comprobante de ingresos.
+ * 2026-08-25 - Solicitud: ingresos + boleta SEP; exenciones reinscrito / sin_boleta_sep (MK).
  */
 import type { DocumentoTipo } from '@/lib/types';
-import { esBecaConvenio } from '@/lib/becas-convenio';
 
 export type FlujoDocumentos = 'solicitud' | 'renovacion';
 
@@ -29,11 +29,12 @@ const RENOVACION_CIRCULAR: DocumentoTipo[] = [
   'comp_inscripcion',
 ];
 
-/** Solicitud nueva: expediente de ingreso (sin carta de conducta ni constancia no adeudo). */
-const BASE_NUEVO_INGRESO: DocumentoTipo[] = [
+/** Solicitud nueva: expediente base + ingresos (+ boleta SEP según exenciones). */
+const BASE_SOLICITUD: DocumentoTipo[] = [
   'acta_nacimiento',
   'curp',
   'curp_tutor',
+  'ingresos',
 ];
 
 const LABELS: Record<DocumentoTipo, string> = {
@@ -85,9 +86,12 @@ export type DocsRequeridosOpts = {
   flujo: FlujoDocumentos;
   nivel: number | null | undefined;
   grado: number | null | undefined;
-  /** Solicitud: beca deseada. Sin id (acceso previo) no se pide ingresos de convenio. */
   becaId?: number | null;
   becaClase?: string | null;
+  /** Reinscrito en Winston: promedio en Boletas; no pide boleta SEP. */
+  exentoBoletaSep?: boolean;
+  /** Maternal/Kinder: papá marcó que no trae boleta SEP. */
+  sinBoletaSep?: boolean;
 };
 
 /** Lista lista para UI: tipo + etiqueta según nivel/grado/beca. */
@@ -102,19 +106,18 @@ export function docsRequeridosConEtiqueta(
 
 /**
  * Renovación: 3 PDFs (ingresos, domicilio, inscripción).
- * Solicitud nueva: acta + CURPs (+ ingresos si beca convenio). Sin carta ni constancia no adeudo.
+ * Solicitud: acta + CURPs + ingresos + boleta SEP (salvo reinscrito o exención MK).
  */
 export function docsRequeridos(opts: DocsRequeridosOpts): DocumentoTipo[] {
   if (opts.flujo === 'renovacion') {
     return [...RENOVACION_CIRCULAR];
   }
 
-  const list: DocumentoTipo[] = [...BASE_NUEVO_INGRESO];
-  if (
-    esBecaConvenio({ becaId: opts.becaId, becaClase: opts.becaClase }) &&
-    !list.includes('ingresos')
-  ) {
-    list.push('ingresos');
+  const list: DocumentoTipo[] = [...BASE_SOLICITUD];
+  const exentoBoleta =
+    Boolean(opts.exentoBoletaSep) || Boolean(opts.sinBoletaSep);
+  if (!exentoBoleta) {
+    list.push('boleta');
   }
   return list;
 }

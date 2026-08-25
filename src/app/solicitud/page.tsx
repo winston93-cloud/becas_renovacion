@@ -191,6 +191,14 @@ function SolicitudContent() {
                 becaId={
                   becaDeseadaId ?? data.solicitud?.beca_deseada_id ?? null
                 }
+                sinBoletaSep={
+                  data.sin_boleta_sep ??
+                  data.solicitud?.sin_boleta_sep ??
+                  false
+                }
+                alumnoReinscrito={Boolean(data.alumno_reinscrito)}
+                exentoBoletaSep={Boolean(data.exento_boleta_sep)}
+                esMaternalKinder={Boolean(data.es_maternal_kinder)}
                 modoCorreccion={yaRegistrado}
                 onComplete={() => {
                   setData((prev) =>

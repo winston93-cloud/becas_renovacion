@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { assertNivelPermitido, requireAdmin } from '@/lib/admin-auth';
 import { getInsforgeAdmin } from '@/lib/insforge-server';
 import { mapAlumnoRow } from '@/lib/admin-queries';
-import { docsRequeridos, labelDocRequerido } from '@/lib/documentos-requeridos';
+import { labelDocRequerido } from '@/lib/documentos-requeridos';
+import { buildSolicitudDocsContext } from '@/lib/solicitud-docs-context';
 import { getSchoolCycleLabel } from '@/lib/ciclo-escolar';
 import { expedienteDocsTodosOk } from '@/lib/expediente-docs-ok';
 import { normalizarRevisionEstado } from '@/lib/doc-revision';
@@ -87,13 +88,12 @@ export async function GET(_request: NextRequest, ctx: Ctx) {
       beca_clase = concepto?.beca_clase ? String(concepto.beca_clase) : null;
     }
 
-    const tipos = docsRequeridos({
-      flujo: 'solicitud',
-      nivel: alumno.alumno_nivel,
-      grado: alumno.alumno_grado,
-      becaId: beca_id,
+    const tiposCtx = await buildSolicitudDocsContext({
+      alumno,
+      solicitud: sol,
       becaClase: beca_clase,
     });
+    const tipos = tiposCtx.tipos;
 
     const conceptosRaw = await cargarConceptosBecaAdmin(db.database);
     const conceptos = filtrarConceptosTramitables(conceptosRaw, beca_id);
@@ -135,6 +135,10 @@ export async function GET(_request: NextRequest, ctx: Ctx) {
         tipo: t,
         label: labelDocRequerido(t),
       })),
+      promedio: tiposCtx.promedio,
+      exento_boleta_sep: tiposCtx.exento_boleta_sep,
+      alumno_reinscrito: tiposCtx.alumno_reinscrito,
+      sin_boleta_sep: tiposCtx.sin_boleta_sep,
       conceptos,
     });
   } catch (err) {

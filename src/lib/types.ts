@@ -211,10 +211,17 @@ export type SolicitudPrecarga = {
     motivo: string | null;
     enviado: boolean;
     enviado_en: string | null;
+    sin_boleta_sep?: boolean;
   } | null;
   hermanos: Hermano[];
   documentos: Documento[];
   /** true si ya envió la solicitud (enviado=true); solo consulta salvo correcciones */
   ya_registrado: boolean;
   docs_por_corregir?: boolean;
+  sin_boleta_sep?: boolean;
+  alumno_reinscrito?: boolean;
+  exento_boleta_sep?: boolean;
+  es_maternal_kinder?: boolean;
+  promedio?: import('@/lib/promedioBecadoRenovacion').PromedioBecadoRenovacion | null;
+  tipos_documentos_requeridos?: DocumentoTipo[];
 };

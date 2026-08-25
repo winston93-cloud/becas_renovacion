@@ -12,7 +12,7 @@ import { forbidWrongAlumno, requireAcceso } from '@/lib/acceso-auth';
 import { getCurrentSchoolCycle, getSchoolCycleLabel } from '@/lib/ciclo-escolar';
 import { tieneBecaActivaCicloPasado } from '@/lib/beca-elegibilidad';
 import { esBecaNoTramitable, esConceptoTramitable } from '@/lib/becas-excluidas';
-import { docsRequeridos } from '@/lib/documentos-requeridos';
+import { buildSolicitudDocsContext } from '@/lib/solicitud-docs-context';
 import { assertPortalAbierto } from '@/lib/portal-ventanas';
 import { labelNivel } from '@/lib/email-renovacion';
 import { buildSolicitudPdf } from '@/lib/pdf/solicitud';
@@ -294,15 +294,31 @@ export async function GET(request: NextRequest) {
       };
     };
 
-    const tiposRequeridos = docsRequeridos({
-      flujo: 'solicitud',
-      nivel: alumno.alumno_nivel != null ? Number(alumno.alumno_nivel) : null,
-      grado: alumno.alumno_grado != null ? Number(alumno.alumno_grado) : null,
-      becaId:
-        solicitud?.beca_deseada_id != null
-          ? Number(solicitud.beca_deseada_id)
-          : null,
+    let becaClaseSolicitud: string | null = null;
+    if (solicitud?.beca_deseada_id != null) {
+      const concepto = (conceptos || []).find(
+        (c) => Number(c.beca_id) === Number(solicitud.beca_deseada_id)
+      );
+      becaClaseSolicitud = concepto?.beca_clase
+        ? String(concepto.beca_clase)
+        : null;
+    }
+
+    const docsCtx = await buildSolicitudDocsContext({
+      alumno: {
+        alumno_id: alumnoId,
+        alumno_ref:
+          alumno.alumno_ref != null ? Number(alumno.alumno_ref) : alumnoId,
+        alumno_nivel:
+          alumno.alumno_nivel != null ? Number(alumno.alumno_nivel) : null,
+        alumno_grado:
+          alumno.alumno_grado != null ? Number(alumno.alumno_grado) : null,
+      },
+      solicitud,
+      becaClase: becaClaseSolicitud,
     });
+
+    const tiposRequeridos = docsCtx.tipos;
     const tiposSubidos = new Set(documentos.map((d) => d.tipo));
     const faltaRequerido = tiposRequeridos.some((t) => !tiposSubidos.has(t));
     const docsPorCorregir =
@@ -366,12 +382,19 @@ export async function GET(request: NextRequest) {
             motivo: solicitud.motivo || null,
             enviado: Boolean(solicitud.enviado),
             enviado_en: solicitud.enviado_en || null,
+            sin_boleta_sep: Boolean(solicitud.sin_boleta_sep),
           }
         : null,
       hermanos,
       documentos,
       ya_registrado: Boolean(solicitud?.enviado),
       docs_por_corregir: docsPorCorregir,
+      sin_boleta_sep: docsCtx.sin_boleta_sep,
+      alumno_reinscrito: docsCtx.alumno_reinscrito,
+      exento_boleta_sep: docsCtx.exento_boleta_sep,
+      es_maternal_kinder: docsCtx.es_maternal_kinder,
+      promedio: docsCtx.promedio,
+      tipos_documentos_requeridos: tiposRequeridos,
     };
 
     return NextResponse.json(payload);

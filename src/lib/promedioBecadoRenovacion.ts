@@ -159,6 +159,23 @@ async function cargarDesdeInsforgeBoletas(opts: {
 /**
  * @param cicloDatos Ciclo de la beca a renovar (`getCicloBecaARenovar()`).
  */
+/** Hay calificación utilizable en Boletas (alumno reinscrito / continuidad Winston). */
+export function promedioTieneCalificacion(
+  p: PromedioBecadoRenovacion | null | undefined
+): boolean {
+  if (!p) return false;
+  if (p.promedioGeneral != null && Number.isFinite(p.promedioGeneral)) {
+    return true;
+  }
+  if (p.promedioEs != null && Number.isFinite(p.promedioEs)) {
+    return true;
+  }
+  if (p.promedioEn != null && Number.isFinite(p.promedioEn)) {
+    return true;
+  }
+  return false;
+}
+
 export async function cargarPromedioBecadoRenovacion(opts: {
   alumnoId: number;
   alumnoRef: string;

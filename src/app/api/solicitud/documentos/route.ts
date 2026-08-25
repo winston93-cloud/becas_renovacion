@@ -12,8 +12,8 @@ import type { DocumentoTipo } from '@/lib/types';
 import {
   DOCUMENTO_FLAG_COLUMN,
   TODOS_DOCUMENTO_TIPOS,
-  docsRequeridos,
 } from '@/lib/documentos-requeridos';
+import { buildSolicitudDocsContext } from '@/lib/solicitud-docs-context';
 import { REVISION_AL_REENVIAR, REVISION_AL_SUBIR } from '@/lib/doc-revision';
 
 export async function POST(request: NextRequest) {
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
 
     const { data: solicitud, error: solErr } = await admin.database
       .from('becas_solicitud')
-      .select('id, alumno_id, enviado, beca_deseada_id')
+      .select('id, alumno_id, enviado, beca_deseada_id, sin_boleta_sep')
       .eq('id', solicitudId)
       .maybeSingle();
 
@@ -76,19 +76,15 @@ export async function POST(request: NextRequest) {
 
     const { data: alumno } = await admin.database
       .from('alumno')
-      .select('alumno_nivel, alumno_grado')
+      .select('alumno_id, alumno_ref, alumno_nivel, alumno_grado')
       .eq('alumno_id', solicitud.alumno_id)
       .maybeSingle();
 
-    const tiposRequeridos = docsRequeridos({
-      flujo: 'solicitud',
-      nivel: alumno?.alumno_nivel != null ? Number(alumno.alumno_nivel) : null,
-      grado: alumno?.alumno_grado != null ? Number(alumno.alumno_grado) : null,
-      becaId:
-        solicitud.beca_deseada_id != null
-          ? Number(solicitud.beca_deseada_id)
-          : null,
+    const docsCtx = await buildSolicitudDocsContext({
+      alumno: alumno || { alumno_id: solicitud.alumno_id },
+      solicitud,
     });
+    const tiposRequeridos = docsCtx.tipos;
 
     if (!tiposRequeridos.includes(tipo)) {
       return NextResponse.json(

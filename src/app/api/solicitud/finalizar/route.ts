@@ -26,7 +26,7 @@ import {
 } from '@/lib/email-solicitud';
 import { labelGrupo } from '@/lib/label-grupo';
 import { labelGrado } from '@/lib/label-grado';
-import { docsRequeridos } from '@/lib/documentos-requeridos';
+import { buildSolicitudDocsContext } from '@/lib/solicitud-docs-context';
 
 async function blobToBuffer(blob: Blob): Promise<Buffer> {
   return Buffer.from(await blob.arrayBuffer());
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
 
     const { data: solicitud, error: solErr } = await admin.database
       .from('becas_solicitud')
-      .select('id, alumno_id, enviado, pdf_solicitud_key, beca_deseada_id')
+      .select('id, alumno_id, enviado, pdf_solicitud_key, beca_deseada_id, sin_boleta_sep')
       .eq('id', solicitudId)
       .maybeSingle();
 
@@ -127,17 +127,16 @@ export async function POST(request: NextRequest) {
       alumno.alumno_nivel != null ? Number(alumno.alumno_nivel) : null;
     const gradoNum =
       alumno.alumno_grado != null ? Number(alumno.alumno_grado) : null;
-    // 2026-07-17 - Lista según maternal/kinder1 vs kinder2+
-    // 2026-08-17 - Convenio: + comprobante de ingresos (beca_deseada_id en BD)
-    const tiposRequeridos = docsRequeridos({
-      flujo: 'solicitud',
-      nivel,
-      grado: gradoNum,
-      becaId:
-        solicitud.beca_deseada_id != null
-          ? Number(solicitud.beca_deseada_id)
-          : null,
+    const docsCtx = await buildSolicitudDocsContext({
+      alumno: {
+        alumno_id: Number(alumno.alumno_id),
+        alumno_ref: alumno.alumno_ref,
+        alumno_nivel: nivel,
+        alumno_grado: gradoNum,
+      },
+      solicitud,
     });
+    const tiposRequeridos = docsCtx.tipos;
 
     const { data: docs, error: docsErr } = await admin.database
       .from('becas_solicitud_documento')
