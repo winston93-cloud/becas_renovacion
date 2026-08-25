@@ -6,11 +6,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Alert, Button, Input, Select } from '@/components/ui';
 import type { ConceptoBecaAdmin } from '@/lib/admin-beca-catalogo';
+import {
+  PROMEDIO_CARTA_ACADEMICA_DEFAULT,
+  esBecaAcademica,
+} from '@/lib/promedio-minimo-carta-beca';
 
 type BecaActual = {
   beca_id: number | null;
   beca_clase: string | null;
   beca_porcentaje: number | null;
+  promedio_minimo_carta?: number | null;
 };
 
 export type AdminBecaTipoPorcentajeProps = {
@@ -34,6 +39,7 @@ export function AdminBecaTipoPorcentaje({
 }: AdminBecaTipoPorcentajeProps) {
   const [becaId, setBecaId] = useState('');
   const [porcentaje, setPorcentaje] = useState('');
+  const [promedioCarta, setPromedioCarta] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [okMsg, setOkMsg] = useState<string | null>(null);
@@ -43,11 +49,21 @@ export function AdminBecaTipoPorcentaje({
     setPorcentaje(
       beca?.beca_porcentaje != null ? String(Math.round(beca.beca_porcentaje)) : ''
     );
-  }, [beca?.beca_id, beca?.beca_porcentaje]);
+    const pctCarta =
+      beca?.promedio_minimo_carta != null
+        ? String(beca.promedio_minimo_carta)
+        : String(PROMEDIO_CARTA_ACADEMICA_DEFAULT);
+    setPromedioCarta(pctCarta);
+  }, [beca?.beca_id, beca?.beca_porcentaje, beca?.promedio_minimo_carta]);
 
   const conceptoSel = useMemo(
     () => conceptos.find((c) => String(c.beca_id) === becaId),
     [conceptos, becaId]
+  );
+
+  const esAcademica = esBecaAcademica(
+    Number(becaId) || null,
+    conceptoSel?.beca_clase
   );
 
   const dirty = useMemo(() => {
@@ -56,8 +72,17 @@ export function AdminBecaTipoPorcentaje({
       beca?.beca_porcentaje != null
         ? String(Math.round(beca.beca_porcentaje))
         : '';
-    return becaId !== idActual || porcentaje.trim() !== pctActual;
-  }, [beca, becaId, porcentaje]);
+    const cartaActual =
+      beca?.promedio_minimo_carta != null
+        ? String(beca.promedio_minimo_carta)
+        : String(PROMEDIO_CARTA_ACADEMICA_DEFAULT);
+    const cartaDirty = esAcademica && promedioCarta.trim() !== cartaActual;
+    return (
+      becaId !== idActual ||
+      porcentaje.trim() !== pctActual ||
+      cartaDirty
+    );
+  }, [beca, becaId, porcentaje, promedioCarta, esAcademica]);
 
   function aplicarPorcentajeDefault() {
     if (conceptoSel?.beca_porcentaje_default != null) {
@@ -75,13 +100,23 @@ export function AdminBecaTipoPorcentaje({
           ? `/api/admin/renovaciones/${expedienteId}`
           : `/api/admin/solicitudes/${expedienteId}`;
 
+      const payload: Record<string, unknown> = {
+        beca_id: Number(becaId),
+        beca_porcentaje: Number(porcentaje),
+      };
+      if (esAcademica) {
+        payload.promedio_minimo_carta =
+          promedioCarta.trim() === ''
+            ? null
+            : Number(promedioCarta);
+      } else {
+        payload.promedio_minimo_carta = null;
+      }
+
       const res = await fetch(api, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          beca_id: Number(becaId),
-          beca_porcentaje: Number(porcentaje),
-        }),
+        body: JSON.stringify(payload),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'No se pudo guardar la beca.');
@@ -147,6 +182,32 @@ export function AdminBecaTipoPorcentaje({
           ) : null}
         </div>
       </div>
+
+      {esAcademica ? (
+        <div className="rounded-xl border border-border/80 bg-white/80 px-4 py-3">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-text-secondary">
+            Promedio mínimo · carta de aceptación
+          </p>
+          <p className="mt-1 text-xs text-text-secondary">
+            Beca Académica: default 9.5. Este valor aparece en la firma
+            electrónica si difiere del estándar.
+          </p>
+          <div className="mt-2 flex items-center gap-1">
+            <Input
+              id="admin-beca-prom-carta"
+              type="number"
+              min={0.1}
+              max={10}
+              step={0.1}
+              inputMode="decimal"
+              aria-label="Promedio mínimo carta de aceptación"
+              className="min-h-[44px] w-24 border-0 bg-transparent p-0 text-base font-semibold text-primary shadow-none focus:ring-0 sm:text-base"
+              value={promedioCarta}
+              onChange={(e) => setPromedioCarta(e.target.value)}
+            />
+          </div>
+        </div>
+      ) : null}
 
       {error ? <Alert variant="error">{error}</Alert> : null}
       {okMsg ? <Alert variant="success">{okMsg}</Alert> : null}

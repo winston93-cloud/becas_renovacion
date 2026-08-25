@@ -23,6 +23,10 @@ import {
   filtrarConceptosTramitables,
   parsePatchBecaAdmin,
 } from '@/lib/admin-beca-catalogo';
+import {
+  esBecaAcademica,
+  parsePromedioMinimoCartaAdmin,
+} from '@/lib/promedio-minimo-carta-beca';
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -141,6 +145,10 @@ export async function GET(_request: NextRequest, ctx: Ctx) {
         beca_id,
         beca_clase,
         beca_porcentaje,
+        promedio_minimo_carta:
+          ren.promedio_minimo_carta != null
+            ? Number(ren.promedio_minimo_carta)
+            : null,
       },
       promedio,
       documentos: (docs || []).map((d) => ({
@@ -241,7 +249,42 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
         porcentaje_nuevo: parsedBeca.data.beca_porcentaje,
         beca_autorizada: Boolean(ren.beca_autorizada),
       };
+      if (!esBecaAcademica(parsedBeca.data.beca_id)) {
+        patch.promedio_minimo_carta = null;
+      }
       accionesLog.push('renovacion.cambiar_beca');
+    }
+
+    if (body.promedio_minimo_carta !== undefined) {
+      let becaIdEff: number | null = null;
+      if (parsedBeca.ok) {
+        becaIdEff = parsedBeca.data.beca_id;
+      } else {
+        const { data: becaOrigen } = await db.database
+          .from('alumno_beca')
+          .select('beca_id')
+          .eq('alumno_id', Number(ren.alumno_id))
+          .eq('beca_ciclo_escolar', getCicloBecaARenovar())
+          .maybeSingle();
+        becaIdEff =
+          becaOrigen?.beca_id != null ? Number(becaOrigen.beca_id) : null;
+      }
+
+      if (body.promedio_minimo_carta === null) {
+        patch.promedio_minimo_carta = null;
+      } else {
+        const parsedProm = parsePromedioMinimoCartaAdmin({
+          promedio_minimo_carta: body.promedio_minimo_carta,
+          beca_id: becaIdEff,
+        });
+        if (!parsedProm.ok) {
+          return NextResponse.json({ error: parsedProm.error }, { status: 400 });
+        }
+        patch.promedio_minimo_carta = parsedProm.value;
+      }
+      if (!accionesLog.includes('renovacion.cambiar_beca')) {
+        accionesLog.push('renovacion.cambiar_beca');
+      }
     }
 
     if (typeof body.verificado === 'boolean') {

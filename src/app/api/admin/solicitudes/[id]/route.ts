@@ -19,6 +19,10 @@ import {
   filtrarConceptosTramitables,
   parsePatchBecaAdmin,
 } from '@/lib/admin-beca-catalogo';
+import {
+  esBecaAcademica,
+  parsePromedioMinimoCartaAdmin,
+} from '@/lib/promedio-minimo-carta-beca';
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -119,6 +123,10 @@ export async function GET(_request: NextRequest, ctx: Ctx) {
         beca_id,
         beca_clase,
         beca_porcentaje,
+        promedio_minimo_carta:
+          sol.promedio_minimo_carta != null
+            ? Number(sol.promedio_minimo_carta)
+            : null,
       },
       documentos: (docs || []).map((d) => ({
         id: String(d.id),
@@ -216,7 +224,34 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
         porcentaje_nuevo: parsedBeca.data.beca_porcentaje,
         beca_autorizada: Boolean(sol.beca_autorizada),
       };
+      if (!esBecaAcademica(parsedBeca.data.beca_id)) {
+        patch.promedio_minimo_carta = null;
+      }
       accionesLog.push('solicitud.cambiar_beca');
+    }
+
+    if (body.promedio_minimo_carta !== undefined) {
+      const becaIdEff = parsedBeca.ok
+        ? parsedBeca.data.beca_id
+        : sol.beca_deseada_id != null
+          ? Number(sol.beca_deseada_id)
+          : null;
+
+      if (body.promedio_minimo_carta === null) {
+        patch.promedio_minimo_carta = null;
+      } else {
+        const parsedProm = parsePromedioMinimoCartaAdmin({
+          promedio_minimo_carta: body.promedio_minimo_carta,
+          beca_id: becaIdEff,
+        });
+        if (!parsedProm.ok) {
+          return NextResponse.json({ error: parsedProm.error }, { status: 400 });
+        }
+        patch.promedio_minimo_carta = parsedProm.value;
+      }
+      if (!accionesLog.includes('solicitud.cambiar_beca')) {
+        accionesLog.push('solicitud.cambiar_beca');
+      }
     }
 
     if (typeof body.verificado === 'boolean') {
