@@ -290,7 +290,9 @@ export default function SubirDocumentosSolicitud({
   }
 
   const muestraExencionBoleta =
-    esMaternalKinder && !alumnoReinscrito && docsList.some((d) => d.tipo === 'boleta');
+    esMaternalKinder &&
+    !alumnoReinscrito &&
+    (docsList.some((d) => d.tipo === 'boleta') || sinBoletaSep);
 
   return (
     <Card>
@@ -517,6 +519,25 @@ export default function SubirDocumentosSolicitud({
             </div>
           );
         })}
+
+        {muestraExencionBoleta && !docsList.some((d) => d.tipo === 'boleta') ? (
+          <label className="rounded-[12px] border border-border bg-card/80 p-3 flex min-h-[44px] cursor-pointer items-start gap-3">
+            <input
+              type="checkbox"
+              className="mt-1 h-5 w-5 shrink-0 rounded border-border accent-primary"
+              checked={sinBoletaSep}
+              disabled={guardandoExencion || Boolean(uploading)}
+              onChange={(e) => void toggleSinBoletaSep(e.target.checked)}
+            />
+            <span className="text-sm leading-snug text-text-secondary">
+              <span className="font-medium text-text">
+                El alumno no trae boleta SEP
+              </span>{' '}
+              (viene de casa / educación en el hogar). Al marcar esta casilla
+              no será obligatorio subir la boleta SEP.
+            </span>
+          </label>
+        ) : null}
       </div>
 
       {error && (

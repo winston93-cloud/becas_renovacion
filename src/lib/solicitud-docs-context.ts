@@ -5,7 +5,7 @@
 import { getCicloBecaARenovar } from '@/lib/ciclo-escolar';
 import {
   docsRequeridos,
-  esMaternalOKinder1,
+  esMaternalOKinder,
   type DocsRequeridosOpts,
 } from '@/lib/documentos-requeridos';
 import {
@@ -51,7 +51,7 @@ export async function buildSolicitudDocsContext(params: {
     params.alumno.alumno_grado != null
       ? Number(params.alumno.alumno_grado)
       : null;
-  const esMaternalKinder = esMaternalOKinder1(nivel, grado);
+  const esMaternalKinder = esMaternalOKinder(nivel, grado);
   const sinBoletaSep = Boolean(params.solicitud?.sin_boleta_sep);
 
   const cicloPromedio = getCicloBecaARenovar();

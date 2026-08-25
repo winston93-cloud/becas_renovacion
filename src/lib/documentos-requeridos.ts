@@ -22,6 +22,15 @@ export function esMaternalOKinder1(
   return false;
 }
 
+/** Maternal (nivel 1) o cualquier grado de Kinder (nivel 2). Exención boleta SEP. */
+export function esMaternalOKinder(
+  nivel: number | null | undefined,
+  _grado?: number | null | undefined
+): boolean {
+  const n = nivel != null ? Number(nivel) : NaN;
+  return n === 1 || n === 2;
+}
+
 /** Renovación: 3 PDFs (sin boleta SEP; promedio en admin desde InsForge Boletas). */
 const RENOVACION_CIRCULAR: DocumentoTipo[] = [
   'ingresos',

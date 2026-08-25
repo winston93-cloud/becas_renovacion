@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getInsforgeAdmin } from '@/lib/insforge-server';
 import { forbidWrongAlumno, requireAcceso } from '@/lib/acceso-auth';
 import { assertPortalAbierto } from '@/lib/portal-ventanas';
-import { esMaternalOKinder1 } from '@/lib/documentos-requeridos';
+import { esMaternalOKinder } from '@/lib/documentos-requeridos';
 import { buildSolicitudDocsContext } from '@/lib/solicitud-docs-context';
 
 export async function PATCH(request: NextRequest) {
@@ -65,11 +65,11 @@ export async function PATCH(request: NextRequest) {
     const grado =
       alumno.alumno_grado != null ? Number(alumno.alumno_grado) : null;
 
-    if (!esMaternalOKinder1(nivel, grado)) {
+    if (!esMaternalOKinder(nivel, grado)) {
       return NextResponse.json(
         {
           error:
-            'La exención de boleta SEP solo aplica en Maternal o Kinder 1.',
+            'La exención de boleta SEP solo aplica en Maternal o Kinder.',
         },
         { status: 400 }
       );
