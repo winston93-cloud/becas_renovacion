@@ -17,6 +17,7 @@ import {
 } from '@/components/admin/AdminExpedienteHeader';
 import { normalizarRevisionEstado } from '@/lib/doc-revision';
 import type { PromedioBecadoRenovacion } from '@/lib/promedioBecadoRenovacion';
+import { AdminAutorizarBecaButton } from '@/app/admin/(panel)/components/AdminAutorizarBecaButton';
 import type { ConceptoBecaAdmin } from '@/lib/admin-beca-catalogo';
 
 type Detail = {
@@ -171,9 +172,10 @@ export default function RenovacionDetallePage({
           Primero revise cada documento (Revisar → correcto / incorrecto).
           Cuando todos estén OK, marque el expediente como verificado.
         </p>
-        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch sm:justify-between">
           <Button
             type="button"
+            className="!min-h-[44px] w-full sm:w-auto"
             disabled={
               saving || (!r.verificado && !docsOk)
             }
@@ -188,19 +190,12 @@ export default function RenovacionDetallePage({
               ? 'Quitar verificación'
               : '✓ Marcar como verificada'}
           </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            disabled={saving || (!r.beca_autorizada && !r.verificado)}
+          <AdminAutorizarBecaButton
+            autorizada={r.beca_autorizada}
+            verificado={r.verificado}
+            saving={saving}
             onClick={() => patch({ beca_autorizada: !r.beca_autorizada })}
-            title={
-              !r.beca_autorizada && !r.verificado
-                ? 'Marque el expediente como verificado antes de autorizar la beca'
-                : undefined
-            }
-          >
-            {r.beca_autorizada ? 'Quitar autorización' : 'Autorizar beca'}
-          </Button>
+          />
         </div>
         {!r.verificado && !docsOk ? (
           <p className="text-xs text-amber-800">

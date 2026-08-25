@@ -17,6 +17,7 @@ import {
   BadgeVerificada,
 } from '@/components/admin/AdminExpedienteHeader';
 import { normalizarRevisionEstado } from '@/lib/doc-revision';
+import { AdminAutorizarBecaButton } from '@/app/admin/(panel)/components/AdminAutorizarBecaButton';
 import type { ConceptoBecaAdmin } from '@/lib/admin-beca-catalogo';
 
 type Detail = {
@@ -173,10 +174,10 @@ export default function SolicitudDetallePage({
           Primero revise cada documento (Revisar → correcto / incorrecto).
           Cuando todos estén OK, marque el expediente como verificado.
         </p>
-        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch sm:justify-between">
           <Button
             type="button"
-            className="!min-h-[44px]"
+            className="!min-h-[44px] w-full sm:w-auto"
             disabled={saving || (!s.verificado && !docsOk)}
             onClick={() => patch({ verificado: !s.verificado })}
             title={
@@ -189,20 +190,12 @@ export default function SolicitudDetallePage({
               ? 'Quitar verificación'
               : '✓ Marcar como verificada'}
           </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            className="!min-h-[44px]"
-            disabled={saving || (!s.beca_autorizada && !s.verificado)}
+          <AdminAutorizarBecaButton
+            autorizada={s.beca_autorizada}
+            verificado={s.verificado}
+            saving={saving}
             onClick={() => patch({ beca_autorizada: !s.beca_autorizada })}
-            title={
-              !s.beca_autorizada && !s.verificado
-                ? 'Marque el expediente como verificado antes de autorizar la beca'
-                : undefined
-            }
-          >
-            {s.beca_autorizada ? 'Quitar autorización' : 'Autorizar beca'}
-          </Button>
+          />
         </div>
         {!s.verificado && !docsOk ? (
           <p className="text-xs text-amber-800">
