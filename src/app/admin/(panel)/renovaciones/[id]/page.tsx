@@ -19,6 +19,7 @@ import { normalizarRevisionEstado } from '@/lib/doc-revision';
 import type { PromedioBecadoRenovacion } from '@/lib/promedioBecadoRenovacion';
 import { AdminAutorizarBecaButton } from '@/app/admin/(panel)/components/AdminAutorizarBecaButton';
 import { AdminRechazoBecaButton } from '@/app/admin/(panel)/components/AdminRechazoBecaButton';
+import { AdminVerCartaAceptacionButton } from '@/app/admin/(panel)/components/AdminVerCartaAceptacionButton';
 import type { ConceptoBecaAdmin } from '@/lib/admin-beca-catalogo';
 
 type Detail = {
@@ -193,7 +194,13 @@ export default function RenovacionDetallePage({
               ? 'Quitar verificación'
               : '✓ Marcar como verificada'}
           </Button>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch sm:self-end">
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-stretch sm:justify-end sm:self-end">
+            <AdminVerCartaAceptacionButton
+              flujo="renovacion"
+              expedienteId={r.id}
+              disabled={saving}
+              onError={setError}
+            />
             <AdminRechazoBecaButton
               flujo="renovacion"
               expedienteId={r.id}
