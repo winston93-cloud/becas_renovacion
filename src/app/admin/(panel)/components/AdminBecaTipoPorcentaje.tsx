@@ -152,9 +152,10 @@ export function AdminBecaTipoPorcentaje({
       {okMsg ? <Alert variant="success">{okMsg}</Alert> : null}
 
       {becaAutorizada ? (
-        <p className="text-xs text-amber-800">
-          Beca autorizada: el cambio también actualiza el registro de cobro del
-          ciclo actual.
+        <p className="text-xs text-text-secondary">
+          Beca autorizada: el tipo y porcentaje quedan registrados en el
+          expediente; no activan descuento en cobro hasta el paso de firma
+          electrónica.
         </p>
       ) : null}
 
