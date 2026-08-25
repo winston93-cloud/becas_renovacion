@@ -23,7 +23,9 @@ export type AuditoriaAccion =
   | 'documento.marcar_ok'
   | 'documento.marcar_incorrecto'
   | 'documento.quitar_rechazo'
-  | 'documento.avisar_faltante';
+  | 'documento.avisar_faltante'
+  | 'renovacion.rechazo_beca'
+  | 'solicitud.rechazo_beca';
 
 export type AuditoriaEntidad =
   | 'sesion'

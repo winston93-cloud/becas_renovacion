@@ -18,6 +18,7 @@ import {
 import { normalizarRevisionEstado } from '@/lib/doc-revision';
 import type { PromedioBecadoRenovacion } from '@/lib/promedioBecadoRenovacion';
 import { AdminAutorizarBecaButton } from '@/app/admin/(panel)/components/AdminAutorizarBecaButton';
+import { AdminRechazoBecaButton } from '@/app/admin/(panel)/components/AdminRechazoBecaButton';
 import type { ConceptoBecaAdmin } from '@/lib/admin-beca-catalogo';
 
 type Detail = {
@@ -61,6 +62,7 @@ export default function RenovacionDetallePage({
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [actionMsg, setActionMsg] = useState<string | null>(null);
 
   const load = useCallback(async (opts?: { soft?: boolean }) => {
     if (!opts?.soft) setLoading(true);
@@ -163,6 +165,7 @@ export default function RenovacionDetallePage({
       />
 
       {error ? <Alert variant="error">{error}</Alert> : null}
+      {actionMsg ? <Alert variant="success">{actionMsg}</Alert> : null}
 
       <Card className="space-y-3">
         <h3 className="text-sm font-semibold text-primary">
@@ -172,24 +175,34 @@ export default function RenovacionDetallePage({
           Primero revise cada documento (Revisar → correcto / incorrecto).
           Cuando todos estén OK, marque el expediente como verificado.
         </p>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch sm:justify-between">
-          <Button
-            type="button"
-            className="!min-h-[44px] w-full sm:w-auto"
-            disabled={
-              saving || (!r.verificado && !docsOk)
-            }
-            onClick={() => patch({ verificado: !r.verificado })}
-            title={
-              !r.verificado && !docsOk
-                ? 'Revise todos los documentos y márquelos OK primero'
-                : undefined
-            }
-          >
-            {r.verificado
-              ? 'Quitar verificación'
-              : '✓ Marcar como verificada'}
-          </Button>
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch lg:justify-between">
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-stretch">
+            <AdminRechazoBecaButton
+              flujo="renovacion"
+              expedienteId={r.id}
+              tramiteEnviado={r.correo_enviado}
+              disabled={saving}
+              onEnviado={setActionMsg}
+              onError={setError}
+            />
+            <Button
+              type="button"
+              className="!min-h-[44px] w-full sm:w-auto"
+              disabled={
+                saving || (!r.verificado && !docsOk)
+              }
+              onClick={() => patch({ verificado: !r.verificado })}
+              title={
+                !r.verificado && !docsOk
+                  ? 'Revise todos los documentos y márquelos OK primero'
+                  : undefined
+              }
+            >
+              {r.verificado
+                ? 'Quitar verificación'
+                : '✓ Marcar como verificada'}
+            </Button>
+          </div>
           <AdminAutorizarBecaButton
             autorizada={r.beca_autorizada}
             verificado={r.verificado}

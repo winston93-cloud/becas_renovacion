@@ -18,6 +18,7 @@ import {
 } from '@/components/admin/AdminExpedienteHeader';
 import { normalizarRevisionEstado } from '@/lib/doc-revision';
 import { AdminAutorizarBecaButton } from '@/app/admin/(panel)/components/AdminAutorizarBecaButton';
+import { AdminRechazoBecaButton } from '@/app/admin/(panel)/components/AdminRechazoBecaButton';
 import type { ConceptoBecaAdmin } from '@/lib/admin-beca-catalogo';
 
 type Detail = {
@@ -63,6 +64,7 @@ export default function SolicitudDetallePage({
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [actionMsg, setActionMsg] = useState<string | null>(null);
 
   const load = useCallback(async (opts?: { soft?: boolean }) => {
     if (!opts?.soft) setLoading(true);
@@ -165,6 +167,7 @@ export default function SolicitudDetallePage({
       />
 
       {error ? <Alert variant="error">{error}</Alert> : null}
+      {actionMsg ? <Alert variant="success">{actionMsg}</Alert> : null}
 
       <Card className="space-y-3">
         <h3 className="text-sm font-semibold text-primary">
@@ -174,8 +177,17 @@ export default function SolicitudDetallePage({
           Primero revise cada documento (Revisar → correcto / incorrecto).
           Cuando todos estén OK, marque el expediente como verificado.
         </p>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch sm:justify-between">
-          <Button
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch lg:justify-between">
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-stretch">
+            <AdminRechazoBecaButton
+              flujo="solicitud"
+              expedienteId={s.id}
+              tramiteEnviado={s.enviado}
+              disabled={saving}
+              onEnviado={setActionMsg}
+              onError={setError}
+            />
+            <Button
             type="button"
             className="!min-h-[44px] w-full sm:w-auto"
             disabled={saving || (!s.verificado && !docsOk)}
@@ -189,7 +201,8 @@ export default function SolicitudDetallePage({
             {s.verificado
               ? 'Quitar verificación'
               : '✓ Marcar como verificada'}
-          </Button>
+            </Button>
+          </div>
           <AdminAutorizarBecaButton
             autorizada={s.beca_autorizada}
             verificado={s.verificado}
