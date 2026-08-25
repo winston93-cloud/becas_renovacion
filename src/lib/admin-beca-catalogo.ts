@@ -4,7 +4,6 @@
 import { esBecaNoTramitable, esConceptoTramitable } from '@/lib/becas-excluidas';
 import {
   getCicloBecaARenovar,
-  getCurrentSchoolCycle,
 } from '@/lib/ciclo-escolar';
 import type { ConceptoBeca } from '@/lib/types';
 
@@ -75,13 +74,12 @@ export async function cargarConceptosBecaAdmin(
   }));
 }
 
-/** Renovación: actualiza alumno_beca del ciclo origen (y ciclo actual si ya autorizó). */
+/** Renovación: actualiza alumno_beca del ciclo origen (beca a renovar). */
 export async function actualizarBecaRenovacionAdmin(opts: {
   db: Db;
   alumnoId: number;
   alumnoRef?: string | number | null;
   patch: PatchBecaAdmin;
-  becaAutorizada: boolean;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
   const cicloOrigen = getCicloBecaARenovar();
   const ahora = new Date().toISOString();
@@ -130,25 +128,14 @@ export async function actualizarBecaRenovacionAdmin(opts: {
   const origen = await upsertCiclo(cicloOrigen);
   if (!origen.ok) return origen;
 
-  if (opts.becaAutorizada) {
-    const destino = await upsertCiclo(getCurrentSchoolCycle(), 1);
-    if (!destino.ok) return destino;
-  }
-
   return { ok: true };
 }
 
-/** Solicitud: actualiza becas_solicitud (y alumno_beca actual si ya autorizó). */
+/** Solicitud: actualiza tipo y porcentaje deseado en becas_solicitud. */
 export async function actualizarBecaSolicitudAdmin(opts: {
   db: Db;
   solicitudId: string;
-  alumnoId: number;
   patch: PatchBecaAdmin;
-  becaAutorizada: boolean;
-  syncAutorizacion: (patch: PatchBecaAdmin) => Promise<
-    | { ok: true; cicloDestino: number; porcentaje: number }
-    | { ok: false; error: string }
-  >;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
   const { error } = await opts.db
     .from('becas_solicitud')
@@ -159,11 +146,6 @@ export async function actualizarBecaSolicitudAdmin(opts: {
     .eq('id', opts.solicitudId);
 
   if (error) return { ok: false, error: error.message };
-
-  if (opts.becaAutorizada) {
-    const sync = await opts.syncAutorizacion(opts.patch);
-    if (!sync.ok) return sync;
-  }
 
   return { ok: true };
 }

@@ -12,7 +12,7 @@ import {
   registrarAuditoria,
 } from '@/lib/admin-auditoria';
 import { nombreAlumnoAuditoria } from '@/lib/admin-auditoria-alumno';
-import { syncAlumnoBecaPorAutorizacion } from '@/lib/sync-alumno-beca-autorizacion';
+import { registrarAutorizacionFirmaBeca } from '@/lib/registrar-autorizacion-firma-beca';
 import {
   actualizarBecaSolicitudAdmin,
   cargarConceptosBecaAdmin,
@@ -199,17 +199,7 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
       const becaUpd = await actualizarBecaSolicitudAdmin({
         db: db.database,
         solicitudId: id,
-        alumnoId: Number(sol.alumno_id),
         patch: parsedBeca.data,
-        becaAutorizada: Boolean(sol.beca_autorizada),
-        syncAutorizacion: (p) =>
-          syncAlumnoBecaPorAutorizacion({
-            db: db.database,
-            alumnoId: Number(sol.alumno_id),
-            autorizada: true,
-            porcentajeFallback: p.beca_porcentaje,
-            becaIdFallback: p.beca_id,
-          }),
       });
       if (!becaUpd.ok) {
         return NextResponse.json({ error: becaUpd.error }, { status: 400 });
@@ -280,19 +270,16 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
     }
 
     if (typeof body.beca_autorizada === 'boolean') {
-      const sync = await syncAlumnoBecaPorAutorizacion({
+      const reg = await registrarAutorizacionFirmaBeca({
         db: db.database,
         alumnoId: Number(sol.alumno_id),
+        expedienteId: id,
+        flujo: 'solicitud',
         autorizada: body.beca_autorizada,
-        porcentajeFallback:
-          sol.beca_porcentaje_deseado != null
-            ? Number(sol.beca_porcentaje_deseado)
-            : null,
-        becaIdFallback:
-          sol.beca_deseada_id != null ? Number(sol.beca_deseada_id) : null,
+        autorizadoPor: auth.admin.label,
       });
-      if (!sync.ok) {
-        return NextResponse.json({ error: sync.error }, { status: 400 });
+      if (!reg.ok) {
+        return NextResponse.json({ error: reg.error }, { status: 400 });
       }
     }
 

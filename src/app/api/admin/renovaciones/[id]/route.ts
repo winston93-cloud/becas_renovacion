@@ -15,7 +15,7 @@ import {
   registrarAuditoria,
 } from '@/lib/admin-auditoria';
 import { nombreAlumnoAuditoria } from '@/lib/admin-auditoria-alumno';
-import { syncAlumnoBecaPorAutorizacion } from '@/lib/sync-alumno-beca-autorizacion';
+import { registrarAutorizacionFirmaBeca } from '@/lib/registrar-autorizacion-firma-beca';
 import { cargarPromedioBecadoRenovacion } from '@/lib/promedioBecadoRenovacion';
 import {
   actualizarBecaRenovacionAdmin,
@@ -225,7 +225,6 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
         alumnoId: Number(ren.alumno_id),
         alumnoRef: alumno?.alumno_ref,
         patch: parsedBeca.data,
-        becaAutorizada: Boolean(ren.beca_autorizada),
       });
       if (!becaUpd.ok) {
         return NextResponse.json({ error: becaUpd.error }, { status: 400 });
@@ -293,15 +292,17 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
       );
     }
 
-    // Último paso: activar/desactivar Winston en alumno_beca del ciclo actual (cobro).
     if (typeof body.beca_autorizada === 'boolean') {
-      const sync = await syncAlumnoBecaPorAutorizacion({
+      const reg = await registrarAutorizacionFirmaBeca({
         db: db.database,
         alumnoId: Number(ren.alumno_id),
+        expedienteId: id,
+        flujo: 'renovacion',
         autorizada: body.beca_autorizada,
+        autorizadoPor: auth.admin.label,
       });
-      if (!sync.ok) {
-        return NextResponse.json({ error: sync.error }, { status: 400 });
+      if (!reg.ok) {
+        return NextResponse.json({ error: reg.error }, { status: 400 });
       }
     }
 
