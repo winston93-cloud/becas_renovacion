@@ -45,41 +45,68 @@ export async function POST(request: NextRequest) {
     const parentTable =
       flujo === 'renovacion' ? 'becas_renovacion' : 'becas_solicitud';
 
-    const { data: parent, error: pErr } = await db.database
+    type ParentRenovacion = {
+      id: string;
+      alumno_id: number;
+      correo_enviado: boolean | null;
+      ciclo_escolar: number | null;
+    };
+    type ParentSolicitud = {
+      id: string;
+      alumno_id: number;
+      enviado: boolean | null;
+      ciclo_escolar: number | null;
+    };
+
+    const parentSelect =
+      flujo === 'renovacion'
+        ? 'id, alumno_id, correo_enviado, ciclo_escolar'
+        : 'id, alumno_id, enviado, ciclo_escolar';
+
+    const { data: parentRaw, error: pErr } = await db.database
       .from(parentTable)
-      .select('id, alumno_id, enviado, correo_enviado, ciclo_escolar')
+      .select(parentSelect)
       .eq('id', expedienteId)
       .maybeSingle();
 
     if (pErr) {
       return NextResponse.json({ error: pErr.message }, { status: 500 });
     }
-    if (!parent) {
+    if (!parentRaw) {
       return NextResponse.json(
         { error: 'Expediente no encontrado.' },
         { status: 404 }
       );
     }
 
-    if (flujo === 'solicitud' && !parent.enviado) {
-      return NextResponse.json(
-        {
-          error:
-            'La solicitud aún no está enviada; no hay trámite que rechazar.',
-        },
-        { status: 400 }
-      );
+    if (flujo === 'solicitud') {
+      const parent = parentRaw as ParentSolicitud;
+      if (!parent.enviado) {
+        return NextResponse.json(
+          {
+            error:
+              'La solicitud aún no está enviada; no hay trámite que rechazar.',
+          },
+          { status: 400 }
+        );
+      }
+    } else {
+      const parent = parentRaw as ParentRenovacion;
+      if (!parent.correo_enviado) {
+        return NextResponse.json(
+          {
+            error:
+              'La renovación aún no fue enviada; no hay trámite que rechazar.',
+          },
+          { status: 400 }
+        );
+      }
     }
 
-    if (flujo === 'renovacion' && !parent.correo_enviado) {
-      return NextResponse.json(
-        {
-          error:
-            'La renovación aún no fue enviada; no hay trámite que rechazar.',
-        },
-        { status: 400 }
-      );
-    }
+    const parent =
+      flujo === 'solicitud'
+        ? (parentRaw as ParentSolicitud)
+        : (parentRaw as ParentRenovacion);
 
     const { data: alumno } = await db.database
       .from('alumno')
