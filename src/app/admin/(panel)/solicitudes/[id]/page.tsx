@@ -178,16 +178,7 @@ export default function SolicitudDetallePage({
           Cuando todos estén OK, marque el expediente como verificado.
         </p>
         <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch lg:justify-between">
-          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-stretch">
-            <AdminRechazoBecaButton
-              flujo="solicitud"
-              expedienteId={s.id}
-              tramiteEnviado={s.enviado}
-              disabled={saving}
-              onEnviado={setActionMsg}
-              onError={setError}
-            />
-            <Button
+          <Button
             type="button"
             className="!min-h-[44px] w-full sm:w-auto"
             disabled={saving || (!s.verificado && !docsOk)}
@@ -201,14 +192,23 @@ export default function SolicitudDetallePage({
             {s.verificado
               ? 'Quitar verificación'
               : '✓ Marcar como verificada'}
-            </Button>
+          </Button>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch sm:self-end">
+            <AdminRechazoBecaButton
+              flujo="solicitud"
+              expedienteId={s.id}
+              tramiteEnviado={s.enviado}
+              disabled={saving}
+              onEnviado={setActionMsg}
+              onError={setError}
+            />
+            <AdminAutorizarBecaButton
+              autorizada={s.beca_autorizada}
+              verificado={s.verificado}
+              saving={saving}
+              onClick={() => patch({ beca_autorizada: !s.beca_autorizada })}
+            />
           </div>
-          <AdminAutorizarBecaButton
-            autorizada={s.beca_autorizada}
-            verificado={s.verificado}
-            saving={saving}
-            onClick={() => patch({ beca_autorizada: !s.beca_autorizada })}
-          />
         </div>
         {!s.verificado && !docsOk ? (
           <p className="text-xs text-amber-800">

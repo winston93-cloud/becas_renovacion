@@ -176,7 +176,24 @@ export default function RenovacionDetallePage({
           Cuando todos estén OK, marque el expediente como verificado.
         </p>
         <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch lg:justify-between">
-          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-stretch">
+          <Button
+            type="button"
+            className="!min-h-[44px] w-full sm:w-auto"
+            disabled={
+              saving || (!r.verificado && !docsOk)
+            }
+            onClick={() => patch({ verificado: !r.verificado })}
+            title={
+              !r.verificado && !docsOk
+                ? 'Revise todos los documentos y márquelos OK primero'
+                : undefined
+            }
+          >
+            {r.verificado
+              ? 'Quitar verificación'
+              : '✓ Marcar como verificada'}
+          </Button>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch sm:self-end">
             <AdminRechazoBecaButton
               flujo="renovacion"
               expedienteId={r.id}
@@ -185,30 +202,13 @@ export default function RenovacionDetallePage({
               onEnviado={setActionMsg}
               onError={setError}
             />
-            <Button
-              type="button"
-              className="!min-h-[44px] w-full sm:w-auto"
-              disabled={
-                saving || (!r.verificado && !docsOk)
-              }
-              onClick={() => patch({ verificado: !r.verificado })}
-              title={
-                !r.verificado && !docsOk
-                  ? 'Revise todos los documentos y márquelos OK primero'
-                  : undefined
-              }
-            >
-              {r.verificado
-                ? 'Quitar verificación'
-                : '✓ Marcar como verificada'}
-            </Button>
+            <AdminAutorizarBecaButton
+              autorizada={r.beca_autorizada}
+              verificado={r.verificado}
+              saving={saving}
+              onClick={() => patch({ beca_autorizada: !r.beca_autorizada })}
+            />
           </div>
-          <AdminAutorizarBecaButton
-            autorizada={r.beca_autorizada}
-            verificado={r.verificado}
-            saving={saving}
-            onClick={() => patch({ beca_autorizada: !r.beca_autorizada })}
-          />
         </div>
         {!r.verificado && !docsOk ? (
           <p className="text-xs text-amber-800">

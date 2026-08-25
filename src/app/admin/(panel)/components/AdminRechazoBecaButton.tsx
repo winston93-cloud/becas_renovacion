@@ -118,7 +118,7 @@ export function AdminRechazoBecaButton({
         }
         className={[
           'w-full sm:w-auto',
-          '!min-h-[44px] px-5 text-sm font-semibold',
+          '!min-h-[52px] px-6 py-3.5 text-base font-bold',
           '!border-transparent !bg-teal-500 !text-white hover:!bg-teal-600',
         ].join(' ')}
       >

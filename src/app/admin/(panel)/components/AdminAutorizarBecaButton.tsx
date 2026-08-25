@@ -28,7 +28,7 @@ export function AdminAutorizarBecaButton({
           : undefined
       }
       className={[
-        'w-full self-end sm:ml-auto sm:w-auto',
+        'w-full sm:w-auto',
         '!min-h-[52px] px-8 py-3.5 text-base font-bold',
         autorizada
           ? '!border-transparent !bg-primary !text-white hover:!bg-primary-hover'
