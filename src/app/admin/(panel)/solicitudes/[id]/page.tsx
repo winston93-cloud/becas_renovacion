@@ -243,9 +243,11 @@ export default function SolicitudDetallePage({
         </p>
       </Card>
 
-      {/* Misma tarjeta que en renovación: promedio Winston desde InsForge Boletas.
-          Nuevo ingreso externo verá «Sin promedio…»; reinscrito verá ES/EN/general. */}
-      <AdminPromedioBecado promedio={data.promedio} />
+      {/* Solo alumno Winston reinscrito (hay promedio en Boletas; no pide boleta SEP).
+          Si viene de otra escuela, se pide boleta SEP y no se muestra este bloque. */}
+      {data.alumno_reinscrito ? (
+        <AdminPromedioBecado promedio={data.promedio} />
+      ) : null}
 
       <AdminDocumentosRevision
         flujo="solicitud"
