@@ -102,6 +102,32 @@ async function cargarDesdeInsforgeBoletas(opts: {
     }
 
     if (!data) {
+      // Solicitud nueva Winston: a menudo no hay fila en promedio_ciclo (migración
+      // solo cubrió becados). Si el origen es secundaria, calcular desde califs.
+      if (origen?.fuente === 'secundaria') {
+        const { promedioSecundariaDesdeBoletaCalificacion } = await import(
+          '@/lib/promedioSecundariaDesdeBoletaCalificacion'
+        );
+        const calculado = await promedioSecundariaDesdeBoletaCalificacion({
+          alumnoId,
+          cicloDatos,
+        });
+        if (calculado != null) {
+          return {
+            cicloDatos,
+            cicloLabel: getSchoolCycleLabel(cicloDatos),
+            fuente: 'secundaria',
+            gradoOrigen: origen.gradoOrigen,
+            muestraEsEn: false,
+            promedioEs: null,
+            promedioEn: null,
+            letraEn: null,
+            promedioGeneral: calculado,
+            nota: null,
+          };
+        }
+      }
+
       return vacio(
         cicloDatos,
         origen
