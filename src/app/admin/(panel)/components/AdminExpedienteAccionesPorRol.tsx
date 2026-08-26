@@ -41,9 +41,9 @@ export function AdminExpedienteAccionesPorRol({
   const tituloDir = tituloDireccionNivel(nivelLabel);
 
   return (
-    <div className="space-y-4">
-      <Card className="space-y-3">
-        <div>
+    <div className="grid gap-4 lg:grid-cols-2 lg:items-stretch">
+      <Card className="flex h-full flex-col space-y-3">
+        <div className="min-w-0">
           <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-primary/70">
             Control Escolar
           </p>
@@ -56,37 +56,39 @@ export function AdminExpedienteAccionesPorRol({
           </p>
         </div>
 
-        <Button
-          type="button"
-          className="!min-h-[44px] w-full sm:w-auto"
-          disabled={saving || (!verificado && !docsOk)}
-          onClick={onToggleVerificado}
-          title={
-            !verificado && !docsOk
-              ? 'Revise todos los documentos y márquelos OK primero'
-              : undefined
-          }
-        >
-          {verificado ? 'Quitar verificación' : '✓ Marcar como verificada'}
-        </Button>
+        <div className="mt-auto space-y-3">
+          <Button
+            type="button"
+            className="!min-h-[44px] w-full sm:w-auto"
+            disabled={saving || (!verificado && !docsOk)}
+            onClick={onToggleVerificado}
+            title={
+              !verificado && !docsOk
+                ? 'Revise todos los documentos y márquelos OK primero'
+                : undefined
+            }
+          >
+            {verificado ? 'Quitar verificación' : '✓ Marcar como verificada'}
+          </Button>
 
-        {!verificado && !docsOk ? (
-          <p className="text-xs text-amber-800">
-            Aún no se puede verificar: faltan documentos por revisar o hay
-            alguno marcado como incorrecto.
-          </p>
-        ) : null}
+          {!verificado && !docsOk ? (
+            <p className="text-xs text-amber-800">
+              Aún no se puede verificar: faltan documentos por revisar o hay
+              alguno marcado como incorrecto.
+            </p>
+          ) : null}
 
-        {fechaVerificado ? (
-          <p className="text-xs text-text-secondary">
-            Verificada el{' '}
-            {new Date(fechaVerificado).toLocaleString('es-MX')}
-          </p>
-        ) : null}
+          {fechaVerificado ? (
+            <p className="text-xs text-text-secondary">
+              Verificada el{' '}
+              {new Date(fechaVerificado).toLocaleString('es-MX')}
+            </p>
+          ) : null}
+        </div>
       </Card>
 
-      <Card className="space-y-3 border-primary/20 bg-gradient-to-br from-white via-[#fffaf3]/70 to-[#f3f7fb]/80">
-        <div>
+      <Card className="flex h-full flex-col space-y-3 border-primary/20 bg-gradient-to-br from-white via-[#fffaf3]/70 to-[#f3f7fb]/80">
+        <div className="min-w-0">
           <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-primary/70">
             {tituloDir}
           </p>
@@ -99,9 +101,10 @@ export function AdminExpedienteAccionesPorRol({
           </p>
         </div>
 
-        <div className="space-y-3">{accionesDireccion}</div>
-
-        {avisoDireccion}
+        <div className="mt-auto space-y-3">
+          <div className="space-y-3">{accionesDireccion}</div>
+          {avisoDireccion}
+        </div>
       </Card>
     </div>
   );
