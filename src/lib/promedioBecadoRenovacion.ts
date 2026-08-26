@@ -103,7 +103,8 @@ async function cargarDesdeInsforgeBoletas(opts: {
 
     if (!data) {
       // Solicitud nueva Winston: a menudo no hay fila en promedio_ciclo (migración
-      // solo cubrió becados). Si el origen es secundaria, calcular desde califs.
+      // solo cubrió becados).
+      // 8vo/9no ← secundaria; 7mo ← 6° primaria (si no hay, fallback secundaria).
       if (origen?.fuente === 'secundaria') {
         const { promedioSecundariaDesdeBoletaCalificacion } = await import(
           '@/lib/promedioSecundariaDesdeBoletaCalificacion'
@@ -128,17 +129,45 @@ async function cargarDesdeInsforgeBoletas(opts: {
         }
       }
 
+      if (origen?.fuente === 'primaria') {
+        // 7mo reingreso: intentar califs secundaria del ciclo (ya inscrito en 7mo)
+        // solo si no hay agregado primaria; la fuente preferida sigue siendo 6° primaria.
+        const { promedioSecundariaDesdeBoletaCalificacion } = await import(
+          '@/lib/promedioSecundariaDesdeBoletaCalificacion'
+        );
+        const calculado = await promedioSecundariaDesdeBoletaCalificacion({
+          alumnoId,
+          cicloDatos,
+        });
+        if (calculado != null) {
+          return {
+            cicloDatos,
+            cicloLabel: getSchoolCycleLabel(cicloDatos),
+            fuente: 'secundaria',
+            gradoOrigen: 1,
+            muestraEsEn: false,
+            promedioEs: null,
+            promedioEn: null,
+            letraEn: null,
+            promedioGeneral: calculado,
+            nota:
+              'Sin boleta de 6° primaria en promedio_ciclo; se muestra promedio de secundaria del ciclo (fallback 7mo).',
+          };
+        }
+      }
+
       return vacio(
         cicloDatos,
         origen
-          ? `Sin promedio en InsForge Boletas para este alumno (ciclo ${cicloDatos}, origen ${origen.fuente} grado ${origen.gradoOrigen}).`
+          ? origen.fuente === 'primaria' && Number(nivelFicha) === 4
+            ? `Sin promedio de 6° primaria (ciclo ${cicloDatos}) para este 7mo. Hay que backfill desde boletas primaria.`
+            : `Sin promedio en InsForge Boletas para este alumno (ciclo ${cicloDatos}, origen ${origen.fuente} grado ${origen.gradoOrigen}).`
           : `Sin promedio en boletas del ciclo (sin grado previo).`,
         origen
           ? {
               fuente: origen.fuente,
               gradoOrigen: origen.gradoOrigen,
-              muestraEsEn:
-                origen.fuente !== 'secundaria' && Number(nivelFicha) !== 4,
+              muestraEsEn: origen.fuente === 'kinder' || origen.fuente === 'primaria',
             }
           : undefined
       );
@@ -148,9 +177,8 @@ async function cargarDesdeInsforgeBoletas(opts: {
       | 'kinder'
       | 'primaria'
       | 'secundaria';
-    const soloGeneral = Number(nivelFicha) === 4 && fuente === 'primaria';
-    const muestraEsEn =
-      (fuente === 'kinder' || fuente === 'primaria') && !soloGeneral;
+    // 7mo (nivel 4) reingreso ← 6° primaria: mostrar ES/EN igual que renovación primaria.
+    const muestraEsEn = fuente === 'kinder' || fuente === 'primaria';
 
     return {
       cicloDatos,
@@ -176,7 +204,7 @@ async function cargarDesdeInsforgeBoletas(opts: {
       fuente: origen?.fuente ?? null,
       gradoOrigen: origen?.gradoOrigen ?? null,
       muestraEsEn: Boolean(
-        origen && origen.fuente !== 'secundaria' && Number(nivelFicha) !== 4
+        origen && (origen.fuente === 'kinder' || origen.fuente === 'primaria')
       ),
     });
   }

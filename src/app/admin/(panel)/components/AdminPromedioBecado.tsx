@@ -35,7 +35,9 @@ export function AdminPromedioBecado({ promedio }: Props) {
     promedio.fuente === 'kinder'
       ? 'Kinder (ES + EN)'
       : promedio.fuente === 'primaria'
-        ? 'Primaria (ES + EN)'
+        ? promedio.gradoOrigen === 6
+          ? '6° Primaria (ES + EN) · origen 7mo'
+          : `Primaria${promedio.gradoOrigen != null ? ` ${promedio.gradoOrigen}°` : ''} (ES + EN)`
         : promedio.fuente === 'secundaria'
           ? 'Secundaria'
           : null;
@@ -92,8 +94,8 @@ export function AdminPromedioBecado({ promedio }: Props) {
       )}
 
       <p className="text-xs text-text-secondary">
-        Calculado desde InsForge Boletas (ciclo previo). La ficha puede ir un
-        grado adelante (ej. 6° aquí ↔ boleta 5°). Si el alumno es reinscrito
+        Calculado desde InsForge Boletas (ciclo previo). Ej.: 7mo ↔ boleta 6°
+        primaria (ES+EN); 8vo ↔ 7mo; 6° primaria ↔ boleta 5°. Si es reinscrito
         Winston, no se pide boleta SEP al papá.
       </p>
     </Card>
