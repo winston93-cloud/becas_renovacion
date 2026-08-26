@@ -243,9 +243,9 @@ export default function SolicitudDetallePage({
         </p>
       </Card>
 
-      {data.exento_boleta_sep ? (
-        <AdminPromedioBecado promedio={data.promedio} />
-      ) : null}
+      {/* Misma tarjeta que en renovación: promedio Winston desde InsForge Boletas.
+          Nuevo ingreso externo verá «Sin promedio…»; reinscrito verá ES/EN/general. */}
+      <AdminPromedioBecado promedio={data.promedio} />
 
       <AdminDocumentosRevision
         flujo="solicitud"
