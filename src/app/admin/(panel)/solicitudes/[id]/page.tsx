@@ -20,6 +20,7 @@ import { normalizarRevisionEstado } from '@/lib/doc-revision';
 import { AdminAutorizarBecaButton } from '@/app/admin/(panel)/components/AdminAutorizarBecaButton';
 import { AdminRechazoBecaButton } from '@/app/admin/(panel)/components/AdminRechazoBecaButton';
 import { AdminVerCartaAceptacionButton } from '@/app/admin/(panel)/components/AdminVerCartaAceptacionButton';
+import { AdminSeguimientoIndividualizado } from '@/app/admin/(panel)/components/AdminSeguimientoIndividualizado';
 import type { ConceptoBecaAdmin } from '@/lib/admin-beca-catalogo';
 
 type Detail = {
@@ -48,6 +49,8 @@ type Detail = {
     beca_porcentaje: number | null;
   } | null;
   documentos: DocAdminItem[];
+  seguimiento_individualizado?: boolean;
+  clausula_seguimiento_texto?: string | null;
   docs_requeridos: { tipo: string; label: string }[];
   promedio?: PromedioBecadoRenovacion | null;
   exento_boleta_sep?: boolean;
@@ -165,6 +168,16 @@ export default function SolicitudDetallePage({
           becaAutorizada: s.beca_autorizada,
           onSaved: () => load({ soft: true }),
         }}
+      />
+
+      <AdminSeguimientoIndividualizado
+        flujo="solicitud"
+        expedienteId={s.id}
+        activo={Boolean(data.seguimiento_individualizado)}
+        texto={data.clausula_seguimiento_texto ?? null}
+        disabled={saving}
+        onSaved={() => load({ soft: true })}
+        onError={setError}
       />
 
       {error ? <Alert variant="error">{error}</Alert> : null}

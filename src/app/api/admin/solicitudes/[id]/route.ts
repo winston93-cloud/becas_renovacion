@@ -23,6 +23,7 @@ import {
   esBecaAcademica,
   parsePromedioMinimoCartaAdmin,
 } from '@/lib/promedio-minimo-carta-beca';
+import { parseSeguimientoIndividualizadoAdmin } from '@/lib/clausula-seguimiento-carta';
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -128,6 +129,10 @@ export async function GET(_request: NextRequest, ctx: Ctx) {
             ? Number(sol.promedio_minimo_carta)
             : null,
       },
+      seguimiento_individualizado: Boolean(sol.seguimiento_individualizado),
+      clausula_seguimiento_texto: sol.clausula_seguimiento_texto
+        ? String(sol.clausula_seguimiento_texto)
+        : null,
       documentos: (docs || []).map((d) => ({
         id: String(d.id),
         tipo: d.tipo,
@@ -168,7 +173,7 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
     const { data: sol, error } = await db.database
       .from('becas_solicitud')
       .select(
-        'id, alumno_id, beca_deseada_id, beca_porcentaje_deseado, verificado, beca_autorizada'
+        'id, alumno_id, beca_deseada_id, beca_porcentaje_deseado, verificado, beca_autorizada, seguimiento_individualizado, clausula_seguimiento_texto'
       )
       .eq('id', id)
       .maybeSingle();
@@ -252,6 +257,32 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
       if (!accionesLog.includes('solicitud.cambiar_beca')) {
         accionesLog.push('solicitud.cambiar_beca');
       }
+    }
+
+    if (
+      body.seguimiento_individualizado !== undefined ||
+      body.clausula_seguimiento_texto !== undefined
+    ) {
+      const parsedSeg = parseSeguimientoIndividualizadoAdmin({
+        seguimiento_individualizado:
+          body.seguimiento_individualizado !== undefined
+            ? body.seguimiento_individualizado
+            : sol.seguimiento_individualizado,
+        clausula_seguimiento_texto:
+          body.clausula_seguimiento_texto !== undefined
+            ? body.clausula_seguimiento_texto
+            : sol.clausula_seguimiento_texto,
+      });
+      if (!parsedSeg.ok) {
+        return NextResponse.json({ error: parsedSeg.error }, { status: 400 });
+      }
+      patch.seguimiento_individualizado = parsedSeg.activo;
+      patch.clausula_seguimiento_texto = parsedSeg.texto;
+      accionesLog.push(
+        parsedSeg.activo
+          ? 'solicitud.seguimiento_individualizado'
+          : 'solicitud.quitar_seguimiento_individualizado'
+      );
     }
 
     if (typeof body.verificado === 'boolean') {

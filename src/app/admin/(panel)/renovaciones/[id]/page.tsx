@@ -20,6 +20,7 @@ import type { PromedioBecadoRenovacion } from '@/lib/promedioBecadoRenovacion';
 import { AdminAutorizarBecaButton } from '@/app/admin/(panel)/components/AdminAutorizarBecaButton';
 import { AdminRechazoBecaButton } from '@/app/admin/(panel)/components/AdminRechazoBecaButton';
 import { AdminVerCartaAceptacionButton } from '@/app/admin/(panel)/components/AdminVerCartaAceptacionButton';
+import { AdminSeguimientoIndividualizado } from '@/app/admin/(panel)/components/AdminSeguimientoIndividualizado';
 import type { ConceptoBecaAdmin } from '@/lib/admin-beca-catalogo';
 
 type Detail = {
@@ -51,6 +52,8 @@ type Detail = {
   documentos: DocAdminItem[];
   docs_requeridos: { tipo: string; label: string }[];
   conceptos: ConceptoBecaAdmin[];
+  seguimiento_individualizado?: boolean;
+  clausula_seguimiento_texto?: string | null;
 };
 
 export default function RenovacionDetallePage({
@@ -163,6 +166,16 @@ export default function RenovacionDetallePage({
           becaAutorizada: r.beca_autorizada,
           onSaved: () => load({ soft: true }),
         }}
+      />
+
+      <AdminSeguimientoIndividualizado
+        flujo="renovacion"
+        expedienteId={r.id}
+        activo={Boolean(data.seguimiento_individualizado)}
+        texto={data.clausula_seguimiento_texto ?? null}
+        disabled={saving}
+        onSaved={() => load({ soft: true })}
+        onError={setError}
       />
 
       {error ? <Alert variant="error">{error}</Alert> : null}

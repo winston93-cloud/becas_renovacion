@@ -21,6 +21,9 @@ export type CartaAceptacionPayload = {
     porcentaje: string;
     promedioMinimoCartaOverride?: number | null;
     cicloLabel?: string;
+    /** Si true, incluir cláusula especial al final. */
+    seguimientoIndividualizado?: boolean;
+    clausulaSeguimientoTexto?: string | null;
   };
 };
 
@@ -168,6 +171,13 @@ export async function construirCartaAceptacionPayload(opts: {
     '–'
   );
 
+  const seguimientoActivo = Boolean(parent.seguimiento_individualizado);
+  const clausulaSeguimiento = seguimientoActivo
+    ? parent.clausula_seguimiento_texto
+      ? String(parent.clausula_seguimiento_texto).trim()
+      : ''
+    : '';
+
   return {
     ok: true,
     data: {
@@ -188,6 +198,10 @@ export async function construirCartaAceptacionPayload(opts: {
         porcentaje: `${Math.round(Number(becaPorcentaje))}%`,
         promedioMinimoCartaOverride: promedioOverride,
         cicloLabel,
+        seguimientoIndividualizado: seguimientoActivo && Boolean(clausulaSeguimiento),
+        clausulaSeguimientoTexto: seguimientoActivo
+          ? clausulaSeguimiento || null
+          : null,
       },
     },
   };
