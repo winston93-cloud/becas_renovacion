@@ -24,6 +24,8 @@ type Props = {
   icon?: ReactNode;
   /** Texto corto encima del título (ej. Aviso del portal). */
   eyebrow?: string;
+  /** Ancho del diálogo: default ~28rem; wide ~48rem. */
+  size?: 'default' | 'wide';
 };
 
 export function Modal({
@@ -37,6 +39,7 @@ export function Modal({
   tone = 'default',
   icon,
   eyebrow,
+  size = 'default',
 }: Props) {
   const titleId = useId();
 
@@ -63,9 +66,11 @@ export function Modal({
         ? 'ui-modal--warning'
         : '';
 
+  const sizeClass = size === 'wide' ? 'ui-modal--wide' : '';
+
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4"
       role="presentation"
     >
       <button
@@ -78,7 +83,9 @@ export function Modal({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className={['ui-modal', toneClass, 'ui-enter'].filter(Boolean).join(' ')}
+        className={['ui-modal', toneClass, sizeClass, 'ui-enter']
+          .filter(Boolean)
+          .join(' ')}
       >
         <div className="ui-modal-accent" aria-hidden />
 

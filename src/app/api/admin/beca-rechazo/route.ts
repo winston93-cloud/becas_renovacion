@@ -1,6 +1,7 @@
 /**
  * POST: vista previa o envío del correo de rechazo de beca a los padres.
- * Body: { flujo, expediente_id, enviar?: boolean }
+ * JSON (preview) o multipart/form-data (envío con adjunto opcional).
+ * Campos: flujo, expediente_id, enviar?, subject?, mensaje_texto?, archivo?
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { assertNivelPermitido, requireAdmin } from '@/lib/admin-auth';
@@ -14,6 +15,7 @@ import { resolveAccesoAutorizadoDestinatarios } from '@/lib/email-acceso-autoriz
 import {
   buildBecaRechazoEmailHtml,
   buildBecaRechazoEmailSubject,
+  buildBecaRechazoMensajeTexto,
 } from '@/lib/email-beca-rechazo';
 import { labelNivel } from '@/lib/email-renovacion';
 import { labelGrupo } from '@/lib/label-grupo';
@@ -22,17 +24,103 @@ import {
   getCurrentSchoolCycle,
   getSchoolCycleLabel,
 } from '@/lib/ciclo-escolar';
-import { getMailFrom, sendMail } from '@/lib/mailer';
+import { getMailFrom, sendMail, type MailAttachment } from '@/lib/mailer';
+
+const MAX_ADJunto_BYTES = 8 * 1024 * 1024;
+const ADJUNTO_MIME_OK = new Set([
+  'application/pdf',
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+]);
+
+type BodyParsed = {
+  flujo: string;
+  expedienteId: string;
+  enviar: boolean;
+  subjectOverride: string | null;
+  mensajeTexto: string | null;
+  archivo: File | null;
+};
+
+async function parseRequestBody(request: NextRequest): Promise<BodyParsed> {
+  const ct = request.headers.get('content-type') || '';
+  if (ct.includes('multipart/form-data')) {
+    const form = await request.formData();
+    const archivoRaw = form.get('archivo');
+    return {
+      flujo: String(form.get('flujo') || '').trim(),
+      expedienteId: String(form.get('expediente_id') || '').trim(),
+      enviar: String(form.get('enviar') || '') === 'true',
+      subjectOverride: (() => {
+        const s = form.get('subject');
+        return s == null ? null : String(s);
+      })(),
+      mensajeTexto: (() => {
+        const s = form.get('mensaje_texto');
+        return s == null ? null : String(s);
+      })(),
+      archivo:
+        archivoRaw instanceof File && archivoRaw.size > 0 ? archivoRaw : null,
+    };
+  }
+
+  const body = await request.json().catch(() => ({}));
+  return {
+    flujo: String(body.flujo || '').trim(),
+    expedienteId: String(body.expediente_id || '').trim(),
+    enviar: body.enviar === true,
+    subjectOverride:
+      body.subject != null ? String(body.subject) : null,
+    mensajeTexto:
+      body.mensaje_texto != null ? String(body.mensaje_texto) : null,
+    archivo: null,
+  };
+}
+
+async function adjuntoDesdeFile(
+  file: File
+): Promise<{ ok: true; attachment: MailAttachment } | { ok: false; error: string }> {
+  if (file.size > MAX_ADJunto_BYTES) {
+    return {
+      ok: false,
+      error: 'El adjunto no puede superar 8 MB.',
+    };
+  }
+  const mime = (file.type || '').toLowerCase() || 'application/octet-stream';
+  const name = (file.name || 'adjunto').trim() || 'adjunto';
+  const ext = name.includes('.')
+    ? name.slice(name.lastIndexOf('.')).toLowerCase()
+    : '';
+  const extOk = ['.pdf', '.jpg', '.jpeg', '.png', '.webp', '.doc', '.docx'].includes(
+    ext
+  );
+  if (!ADJUNTO_MIME_OK.has(mime) && !extOk) {
+    return {
+      ok: false,
+      error: 'Adjunto no permitido. Use PDF, imagen (JPG/PNG/WebP) o Word.',
+    };
+  }
+  const buf = Buffer.from(await file.arrayBuffer());
+  return {
+    ok: true,
+    attachment: {
+      filename: name.slice(0, 180),
+      content: buf,
+      contentType: ADJUNTO_MIME_OK.has(mime) ? mime : undefined,
+    },
+  };
+}
 
 export async function POST(request: NextRequest) {
   try {
     const auth = await requireAdmin();
     if (!auth.ok) return auth.response;
 
-    const body = await request.json().catch(() => ({}));
-    const flujo = String(body.flujo || '').trim();
-    const expedienteId = String(body.expediente_id || '').trim();
-    const enviar = body.enviar === true;
+    const parsed = await parseRequestBody(request);
+    const { flujo, expedienteId, enviar } = parsed;
 
     if (!expedienteId || (flujo !== 'renovacion' && flujo !== 'solicitud')) {
       return NextResponse.json(
@@ -158,12 +246,31 @@ export async function POST(request: NextRequest) {
       flujo: flujo as 'renovacion' | 'solicitud',
     };
 
-    const subject = buildBecaRechazoEmailSubject(emailData);
-    const html = buildBecaRechazoEmailHtml(emailData);
+    const mensajeDefault = buildBecaRechazoMensajeTexto(emailData);
+    const mensajeTexto =
+      parsed.mensajeTexto != null && parsed.mensajeTexto.trim()
+        ? parsed.mensajeTexto.trim()
+        : mensajeDefault;
+    if (mensajeTexto.length > 12000) {
+      return NextResponse.json(
+        { error: 'El mensaje es demasiado largo (máx. 12 000 caracteres).' },
+        { status: 400 }
+      );
+    }
+
+    const subjectDefault = buildBecaRechazoEmailSubject(emailData);
+    const subject =
+      parsed.subjectOverride != null && parsed.subjectOverride.trim()
+        ? parsed.subjectOverride.trim().slice(0, 200)
+        : subjectDefault;
+    const html = buildBecaRechazoEmailHtml(emailData, mensajeTexto);
 
     const preview = {
       subject,
+      subject_default: subjectDefault,
       html,
+      mensaje_texto: mensajeTexto,
+      mensaje_default: mensajeDefault,
       from: getMailFrom(),
       destinatarios: dest.to,
       es_prueba: dest.es_prueba,
@@ -191,12 +298,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    let attachments: MailAttachment[] | undefined;
+    let adjuntoNombre: string | null = null;
+    if (parsed.archivo) {
+      const adj = await adjuntoDesdeFile(parsed.archivo);
+      if (!adj.ok) {
+        return NextResponse.json({ error: adj.error, preview }, { status: 400 });
+      }
+      attachments = [adj.attachment];
+      adjuntoNombre = adj.attachment.filename;
+    }
+
     let messageId = '';
     try {
       const sent = await sendMail({
         to: dest.to,
         subject,
         html,
+        attachments,
       });
       messageId = sent.messageId;
     } catch (err) {
@@ -223,6 +342,8 @@ export async function POST(request: NextRequest) {
         email_subject: subject,
         email_id: messageId || null,
         es_prueba: dest.es_prueba,
+        mensaje_editado: mensajeTexto !== mensajeDefault,
+        adjunto: adjuntoNombre,
       },
       ...meta,
     });
@@ -234,6 +355,7 @@ export async function POST(request: NextRequest) {
         to: dest.to.join(', '),
         subject,
         message_id: messageId || null,
+        adjunto: adjuntoNombre,
       },
     });
   } catch (err) {

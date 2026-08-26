@@ -1,5 +1,6 @@
 /**
  * Correo institucional: resolución de rechazo de beca a la familia.
+ * El cuerpo es editable en la vista previa admin antes del envío.
  */
 
 export type EmailBecaRechazoData = {
@@ -57,39 +58,60 @@ export function buildBecaRechazoEmailSubject(
   return `Resolución de beca — ${data.alumnoNombre} (${data.alumnoRef})`;
 }
 
-export function buildBecaRechazoEmailHtml(data: EmailBecaRechazoData): string {
+/** Texto plano editable en el modal de rechazo (sin HTML). */
+export function buildBecaRechazoMensajeTexto(
+  data: EmailBecaRechazoData
+): string {
   const tramite =
     data.flujo === 'renovacion'
       ? 'renovación de beca escolar'
       : 'solicitud de beca escolar';
 
-  return wrapEmail(
-    'Resolución de beca',
-    `
-              <p style="margin:0 0 16px;font-size:14px;line-height:1.55;color:#5E6C84;">
-                Estimada familia:
-              </p>
-              <p style="margin:0 0 16px;font-size:14px;line-height:1.55;color:#5E6C84;">
-                Por medio del presente, el <strong style="color:#16213E;">Instituto Winston Churchill</strong>
-                le informa que, tras la revisión de la <strong style="color:#16213E;">${escapeHtml(tramite)}</strong>
-                correspondiente al ciclo escolar <strong style="color:#16213E;">${escapeHtml(data.cicloLabel)}</strong>,
-                <strong style="color:#16213E;">no fue posible otorgar la beca</strong> al alumno referido.
-              </p>
-              <table role="presentation" width="100%" style="font-size:14px;line-height:1.6;margin:0 0 16px;">
-                <tr><td style="color:#5E6C84;padding:4px 0;width:140px;">Alumno</td><td style="font-weight:600;">${escapeHtml(data.alumnoNombre)}</td></tr>
-                <tr><td style="color:#5E6C84;padding:4px 0;">No. Control</td><td>${escapeHtml(data.alumnoRef)}</td></tr>
-                <tr><td style="color:#5E6C84;padding:4px 0;">Nivel</td><td>${escapeHtml(data.nivelLabel)}</td></tr>
-                <tr><td style="color:#5E6C84;padding:4px 0;">Grado / Grupo</td><td>${escapeHtml(data.gradoGrupo)}</td></tr>
-                <tr><td style="color:#5E6C84;padding:4px 0;">Ciclo</td><td>${escapeHtml(data.cicloLabel)}</td></tr>
-              </table>
-              <p style="margin:0 0 16px;font-size:14px;line-height:1.55;color:#5E6C84;">
-                Esta resolución forma parte del proceso de evaluación institucional.
-                Para cualquier aclaración, puede comunicarse con el área de Control Escolar
-                del Instituto Winston Churchill.
-              </p>
-              <p style="margin:0;font-size:14px;line-height:1.55;color:#5E6C84;">
-                Atentamente,<br/>
-                <strong style="color:#16213E;">Control Escolar — Instituto Winston Churchill</strong>
-              </p>`
-  );
+  return [
+    'Estimada familia:',
+    '',
+    `Por medio del presente, el Instituto Winston Churchill le informa que, tras la revisión de la ${tramite} correspondiente al ciclo escolar ${data.cicloLabel}, no fue posible otorgar la beca al alumno referido.`,
+    '',
+    `Alumno: ${data.alumnoNombre}`,
+    `No. Control: ${data.alumnoRef}`,
+    `Nivel: ${data.nivelLabel}`,
+    `Grado / Grupo: ${data.gradoGrupo}`,
+    `Ciclo: ${data.cicloLabel}`,
+    '',
+    'Esta resolución forma parte del proceso de evaluación institucional. Para cualquier aclaración, puede comunicarse con el área de Control Escolar del Instituto Winston Churchill.',
+    '',
+    'Atentamente,',
+    'Control Escolar — Instituto Winston Churchill',
+  ].join('\n');
+}
+
+function mensajeTextoAHtml(mensajeTexto: string): string {
+  const blocks = mensajeTexto
+    .replace(/\r\n/g, '\n')
+    .split(/\n{2,}/)
+    .map((b) => b.trim())
+    .filter(Boolean);
+
+  if (blocks.length === 0) {
+    return '<p style="margin:0;font-size:14px;line-height:1.55;color:#5E6C84;">(Sin mensaje)</p>';
+  }
+
+  return blocks
+    .map((block) => {
+      const lines = block.split('\n').map((l) => escapeHtml(l));
+      return `<p style="margin:0 0 16px;font-size:14px;line-height:1.55;color:#5E6C84;">${lines.join('<br/>')}</p>`;
+    })
+    .join('\n');
+}
+
+export function buildBecaRechazoEmailHtml(
+  data: EmailBecaRechazoData,
+  mensajeTexto?: string | null
+): string {
+  const texto =
+    mensajeTexto != null && String(mensajeTexto).trim()
+      ? String(mensajeTexto)
+      : buildBecaRechazoMensajeTexto(data);
+
+  return wrapEmail('Resolución de beca', mensajeTextoAHtml(texto));
 }
