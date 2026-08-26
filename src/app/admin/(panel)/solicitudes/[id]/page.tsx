@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState, use } from 'react';
 import Link from 'next/link';
-import { Alert, Button, Card } from '@/components/ui';
+import { Alert, Card } from '@/components/ui';
 import {
   AdminDocumentosRevision,
   docsListosParaVerificar,
@@ -21,6 +21,10 @@ import { AdminAutorizarBecaButton } from '@/app/admin/(panel)/components/AdminAu
 import { AdminRechazoBecaButton } from '@/app/admin/(panel)/components/AdminRechazoBecaButton';
 import { AdminVerCartaAceptacionButton } from '@/app/admin/(panel)/components/AdminVerCartaAceptacionButton';
 import { AdminSeguimientoIndividualizado } from '@/app/admin/(panel)/components/AdminSeguimientoIndividualizado';
+import {
+  AdminExpedienteAccionesPorRol,
+  AvisoAutorizarSinVerificar,
+} from '@/app/admin/(panel)/components/AdminExpedienteAccionesPorRol';
 import type { ConceptoBecaAdmin } from '@/lib/admin-beca-catalogo';
 
 type Detail = {
@@ -170,84 +174,58 @@ export default function SolicitudDetallePage({
         }}
       />
 
-      <AdminSeguimientoIndividualizado
-        flujo="solicitud"
-        expedienteId={s.id}
-        activo={Boolean(data.seguimiento_individualizado)}
-        texto={data.clausula_seguimiento_texto ?? null}
-        disabled={saving}
-        onSaved={() => load({ soft: true })}
-        onError={setError}
-      />
-
       {error ? <Alert variant="error">{error}</Alert> : null}
       {actionMsg ? <Alert variant="success">{actionMsg}</Alert> : null}
 
-      <Card className="space-y-3">
-        <h3 className="text-sm font-semibold text-primary">
-          Acciones de Control Escolar
-        </h3>
-        <p className="text-xs text-text-secondary">
-          Primero revise cada documento (Revisar → correcto / incorrecto).
-          Cuando todos estén OK, marque el expediente como verificado.
-        </p>
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch lg:justify-between">
-          <Button
-            type="button"
-            className="!min-h-[44px] w-full sm:w-auto"
-            disabled={saving || (!s.verificado && !docsOk)}
-            onClick={() => patch({ verificado: !s.verificado })}
-            title={
-              !s.verificado && !docsOk
-                ? 'Revise todos los documentos y márquelos OK primero'
-                : undefined
-            }
-          >
-            {s.verificado
-              ? 'Quitar verificación'
-              : '✓ Marcar como verificada'}
-          </Button>
-          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-stretch sm:justify-end sm:self-end">
-            <AdminVerCartaAceptacionButton
+      <AdminExpedienteAccionesPorRol
+        nivelLabel={a.nivel_label}
+        verificado={s.verificado}
+        fechaVerificado={s.fecha_verificado}
+        docsOk={docsOk}
+        saving={saving}
+        onToggleVerificado={() => patch({ verificado: !s.verificado })}
+        accionesDireccion={
+          <>
+            <AdminSeguimientoIndividualizado
               flujo="solicitud"
               expedienteId={s.id}
+              activo={Boolean(data.seguimiento_individualizado)}
+              texto={data.clausula_seguimiento_texto ?? null}
               disabled={saving}
+              onSaved={() => load({ soft: true })}
               onError={setError}
             />
-            <AdminRechazoBecaButton
-              flujo="solicitud"
-              expedienteId={s.id}
-              tramiteEnviado={s.enviado}
-              disabled={saving}
-              onEnviado={setActionMsg}
-              onError={setError}
-            />
-            <AdminAutorizarBecaButton
-              autorizada={s.beca_autorizada}
-              verificado={s.verificado}
-              saving={saving}
-              onClick={() => patch({ beca_autorizada: !s.beca_autorizada })}
-            />
-          </div>
-        </div>
-        {!s.verificado && !docsOk ? (
-          <p className="text-xs text-amber-800">
-            Aún no se puede verificar: faltan documentos por revisar o hay
-            alguno marcado como incorrecto.
-          </p>
-        ) : null}
-        {!s.beca_autorizada && !s.verificado ? (
-          <p className="text-xs text-amber-800">
-            No se puede autorizar la beca hasta que el expediente esté verificado.
-          </p>
-        ) : null}
-        {s.fecha_verificado ? (
-          <p className="text-xs text-text-secondary">
-            Verificada el{' '}
-            {new Date(s.fecha_verificado).toLocaleString('es-MX')}
-          </p>
-        ) : null}
-      </Card>
+            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-stretch">
+              <AdminVerCartaAceptacionButton
+                flujo="solicitud"
+                expedienteId={s.id}
+                disabled={saving}
+                onError={setError}
+              />
+              <AdminRechazoBecaButton
+                flujo="solicitud"
+                expedienteId={s.id}
+                tramiteEnviado={s.enviado}
+                disabled={saving}
+                onEnviado={setActionMsg}
+                onError={setError}
+              />
+              <AdminAutorizarBecaButton
+                autorizada={s.beca_autorizada}
+                verificado={s.verificado}
+                saving={saving}
+                onClick={() => patch({ beca_autorizada: !s.beca_autorizada })}
+              />
+            </div>
+          </>
+        }
+        avisoDireccion={
+          <AvisoAutorizarSinVerificar
+            autorizada={s.beca_autorizada}
+            verificado={s.verificado}
+          />
+        }
+      />
 
       <Card className="space-y-2">
         <h3 className="text-sm font-semibold text-primary">Motivo</h3>
