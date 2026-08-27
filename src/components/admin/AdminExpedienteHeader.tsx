@@ -101,7 +101,12 @@ export function BadgeVerificada({ verificada }: { verificada: boolean }) {
 
 export function BadgeAutorizada({ autorizada }: { autorizada: boolean }) {
   return autorizada ? (
-    <Badge variant="primary">Autorizada</Badge>
+    <Badge
+      variant="success"
+      className="!border-emerald-600 !bg-emerald-600 !px-2.5 !py-1 !text-[11px] !font-bold !uppercase !tracking-wide !text-white"
+    >
+      ✓ Autorizada
+    </Badge>
   ) : (
     <Badge>Sin autorizar</Badge>
   );

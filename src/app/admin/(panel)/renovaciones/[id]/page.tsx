@@ -23,6 +23,7 @@ import { AdminRechazoBecaButton } from '@/app/admin/(panel)/components/AdminRech
 import { AdminVerCartaAceptacionButton } from '@/app/admin/(panel)/components/AdminVerCartaAceptacionButton';
 import { AdminVerCartaFirmadaButton } from '@/app/admin/(panel)/components/AdminVerCartaFirmadaButton';
 import { AdminSeguimientoIndividualizado } from '@/app/admin/(panel)/components/AdminSeguimientoIndividualizado';
+import { AdminEstadoBecaExpediente } from '@/app/admin/(panel)/components/AdminEstadoBecaExpediente';
 import {
   AdminExpedienteAccionesPorRol,
   AvisoAutorizarSinVerificar,
@@ -181,6 +182,12 @@ export default function RenovacionDetallePage({
           becaAutorizada: r.beca_autorizada,
           onSaved: () => load({ soft: true }),
         }}
+      />
+
+      <AdminEstadoBecaExpediente
+        autorizada={r.beca_autorizada}
+        becaActivada={Boolean(data.firma_electronica?.beca_activada)}
+        firmadoPor={data.firma_electronica?.firmado_por}
       />
 
       {error ? <Alert variant="error">{error}</Alert> : null}

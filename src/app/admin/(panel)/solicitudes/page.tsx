@@ -231,7 +231,12 @@ function ListInner() {
                 <Badge variant="pending">Pendiente</Badge>
               )}
               {it.beca_autorizada ? (
-                <Badge variant="primary">Autorizada</Badge>
+                <Badge
+                  variant="success"
+                  className="!border-emerald-600 !bg-emerald-600 !font-bold !text-white"
+                >
+                  ✓ Autorizada
+                </Badge>
               ) : null}
               <span className="text-sm font-semibold text-primary">
                 Revisar →
@@ -306,7 +311,12 @@ function ListInner() {
                       <Badge variant="neutral">Borrador</Badge>
                     )}
                     {it.beca_autorizada ? (
-                      <Badge variant="primary">Autorizada</Badge>
+                      <Badge
+                        variant="success"
+                        className="!border-emerald-600 !bg-emerald-600 !font-bold !text-white"
+                      >
+                        ✓ Autorizada
+                      </Badge>
                     ) : null}
                   </div>
                 </td>
