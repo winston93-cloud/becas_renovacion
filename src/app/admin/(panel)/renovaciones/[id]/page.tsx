@@ -12,6 +12,7 @@ import { AdminPromedioBecado } from '@/app/admin/(panel)/components/AdminPromedi
 import {
   AdminExpedienteHeader,
   BadgeAutorizada,
+  BadgeBecaActivada,
   BadgeEnviada,
   BadgeVerificada,
 } from '@/components/admin/AdminExpedienteHeader';
@@ -20,6 +21,7 @@ import type { PromedioBecadoRenovacion } from '@/lib/promedioBecadoRenovacion';
 import { AdminAutorizarBecaButton } from '@/app/admin/(panel)/components/AdminAutorizarBecaButton';
 import { AdminRechazoBecaButton } from '@/app/admin/(panel)/components/AdminRechazoBecaButton';
 import { AdminVerCartaAceptacionButton } from '@/app/admin/(panel)/components/AdminVerCartaAceptacionButton';
+import { AdminVerCartaFirmadaButton } from '@/app/admin/(panel)/components/AdminVerCartaFirmadaButton';
 import { AdminSeguimientoIndividualizado } from '@/app/admin/(panel)/components/AdminSeguimientoIndividualizado';
 import {
   AdminExpedienteAccionesPorRol,
@@ -58,6 +60,12 @@ type Detail = {
   conceptos: ConceptoBecaAdmin[];
   seguimiento_individualizado?: boolean;
   clausula_seguimiento_texto?: string | null;
+  firma_electronica?: {
+    activo: boolean;
+    beca_activada: boolean;
+    tiene_carta_firmada: boolean;
+    firmado_por: string | null;
+  };
 };
 
 export default function RenovacionDetallePage({
@@ -157,6 +165,9 @@ export default function RenovacionDetallePage({
             <BadgeEnviada enviada={r.correo_enviado} />
             <BadgeVerificada verificada={r.verificado} />
             <BadgeAutorizada autorizada={r.beca_autorizada} />
+            <BadgeBecaActivada
+              activada={Boolean(data.firma_electronica?.beca_activada)}
+            />
           </>
         }
         becaLabel="Beca a renovar"
@@ -200,6 +211,14 @@ export default function RenovacionDetallePage({
                 disabled={saving}
                 onError={setError}
               />
+              {data.firma_electronica?.tiene_carta_firmada ? (
+                <AdminVerCartaFirmadaButton
+                  flujo="renovacion"
+                  expedienteId={r.id}
+                  disabled={saving}
+                  onError={setError}
+                />
+              ) : null}
               <AdminRechazoBecaButton
                 flujo="renovacion"
                 expedienteId={r.id}

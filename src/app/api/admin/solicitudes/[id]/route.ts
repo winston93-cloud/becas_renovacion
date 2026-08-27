@@ -13,6 +13,7 @@ import {
 } from '@/lib/admin-auditoria';
 import { nombreAlumnoAuditoria } from '@/lib/admin-auditoria-alumno';
 import { registrarAutorizacionFirmaBeca } from '@/lib/registrar-autorizacion-firma-beca';
+import { obtenerFirmaElectronicaExpediente } from '@/lib/firma-electronica-estado';
 import {
   actualizarBecaSolicitudAdmin,
   cargarConceptosBecaAdmin,
@@ -103,6 +104,12 @@ export async function GET(_request: NextRequest, ctx: Ctx) {
     const conceptosRaw = await cargarConceptosBecaAdmin(db.database);
     const conceptos = filtrarConceptosTramitables(conceptosRaw, beca_id);
 
+    const firma_electronica = await obtenerFirmaElectronicaExpediente({
+      flujo: 'solicitud',
+      expedienteId: String(sol.id),
+      alumnoId: Number(sol.alumno_id),
+    });
+
     return NextResponse.json({
       solicitud: {
         id: String(sol.id),
@@ -119,6 +126,7 @@ export async function GET(_request: NextRequest, ctx: Ctx) {
           tipos.map((t) => [t, Boolean(sol[t])])
         ),
       },
+      firma_electronica,
       alumno: mapAlumnoRow(alumno),
       beca: {
         beca_id,

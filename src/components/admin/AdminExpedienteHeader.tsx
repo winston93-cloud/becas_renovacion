@@ -106,3 +106,9 @@ export function BadgeAutorizada({ autorizada }: { autorizada: boolean }) {
     <Badge>Sin autorizar</Badge>
   );
 }
+
+/** Verde: padre ya firmó la carta y activó la beca. */
+export function BadgeBecaActivada({ activada }: { activada: boolean }) {
+  if (!activada) return null;
+  return <Badge variant="success">Beca activada</Badge>;
+}
