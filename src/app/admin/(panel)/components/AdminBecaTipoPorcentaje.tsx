@@ -8,7 +8,7 @@ import { Alert, Button, Input, Select } from '@/components/ui';
 import type { ConceptoBecaAdmin } from '@/lib/admin-beca-catalogo';
 import {
   PROMEDIO_CARTA_ACADEMICA_DEFAULT,
-  esBecaAcademica,
+  esBecaPromedioMinimoCartaEditable,
 } from '@/lib/promedio-minimo-carta-beca';
 
 type BecaActual = {
@@ -61,7 +61,7 @@ export function AdminBecaTipoPorcentaje({
     [conceptos, becaId]
   );
 
-  const esAcademica = esBecaAcademica(
+  const promedioCartaEditable = esBecaPromedioMinimoCartaEditable(
     Number(becaId) || null,
     conceptoSel?.beca_clase
   );
@@ -76,13 +76,13 @@ export function AdminBecaTipoPorcentaje({
       beca?.promedio_minimo_carta != null
         ? String(beca.promedio_minimo_carta)
         : String(PROMEDIO_CARTA_ACADEMICA_DEFAULT);
-    const cartaDirty = esAcademica && promedioCarta.trim() !== cartaActual;
+    const cartaDirty = promedioCartaEditable && promedioCarta.trim() !== cartaActual;
     return (
       becaId !== idActual ||
       porcentaje.trim() !== pctActual ||
       cartaDirty
     );
-  }, [beca, becaId, porcentaje, promedioCarta, esAcademica]);
+  }, [beca, becaId, porcentaje, promedioCarta, promedioCartaEditable]);
 
   function aplicarPorcentajeDefault() {
     if (conceptoSel?.beca_porcentaje_default != null) {
@@ -104,7 +104,7 @@ export function AdminBecaTipoPorcentaje({
         beca_id: Number(becaId),
         beca_porcentaje: Number(porcentaje),
       };
-      if (esAcademica) {
+      if (promedioCartaEditable) {
         payload.promedio_minimo_carta =
           promedioCarta.trim() === ''
             ? null
@@ -183,14 +183,14 @@ export function AdminBecaTipoPorcentaje({
         </div>
       </div>
 
-      {esAcademica ? (
+      {promedioCartaEditable ? (
         <div className="rounded-xl border border-border/80 bg-white/80 px-4 py-3">
           <p className="text-[11px] font-semibold uppercase tracking-wide text-text-secondary">
             Promedio mínimo · carta de aceptación
           </p>
           <p className="mt-1 text-xs text-text-secondary">
-            Beca Académica: default 9.5. Este valor aparece en la firma
-            electrónica si difiere del estándar.
+            Beca Académica o Excelencia: default 9.5. Este valor aparece en la
+            firma electrónica si difiere del estándar.
           </p>
           <div className="mt-2 flex items-center gap-1">
             <Input

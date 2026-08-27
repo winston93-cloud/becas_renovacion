@@ -26,7 +26,7 @@ import {
   parsePatchBecaAdmin,
 } from '@/lib/admin-beca-catalogo';
 import {
-  esBecaAcademica,
+  esBecaPromedioMinimoCartaEditable,
   parsePromedioMinimoCartaAdmin,
 } from '@/lib/promedio-minimo-carta-beca';
 import { parseSeguimientoIndividualizadoAdmin } from '@/lib/clausula-seguimiento-carta';
@@ -265,7 +265,7 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
         porcentaje_nuevo: parsedBeca.data.beca_porcentaje,
         beca_autorizada: Boolean(ren.beca_autorizada),
       };
-      if (!esBecaAcademica(parsedBeca.data.beca_id)) {
+      if (!esBecaPromedioMinimoCartaEditable(parsedBeca.data.beca_id)) {
         patch.promedio_minimo_carta = null;
       }
       accionesLog.push('renovacion.cambiar_beca');

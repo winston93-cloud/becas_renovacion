@@ -1,8 +1,9 @@
 /**
  * Promedio mínimo en carta de aceptación de beca (firma electrónica).
- * Socioeconómica 9.0 · Académica 9.5 (editable en admin) · demás 8.0
+ * Socioeconómica 9.0 · Académica / Excelencia 9.5 (editable en admin) · demás 8.0
  */
 export const BECA_ID_ACADEMICA = 8;
+export const BECA_ID_EXCELENCIA = 6;
 export const BECA_ID_SOCIOECONOMICA = 9;
 
 export const PROMEDIO_CARTA_ACADEMICA_DEFAULT = 9.5;
@@ -37,6 +38,22 @@ export function esBecaAcademica(
   return c.includes('academ') && !c.includes('socio');
 }
 
+export function esBecaExcelencia(
+  becaId?: number | null,
+  becaClase?: string | null
+): boolean {
+  if (Number(becaId) === BECA_ID_EXCELENCIA) return true;
+  return normalizarClase(becaClase).includes('excelencia');
+}
+
+/** Académica y Excelencia comparten default 9.5 editable en admin. */
+export function esBecaPromedioMinimoCartaEditable(
+  becaId?: number | null,
+  becaClase?: string | null
+): boolean {
+  return esBecaAcademica(becaId, becaClase) || esBecaExcelencia(becaId, becaClase);
+}
+
 export function esBecaSocioeconomica(
   becaId?: number | null,
   becaClase?: string | null
@@ -59,7 +76,7 @@ export function resolverPromedioMinimoCarta(opts: {
   if (esBecaSocioeconomica(opts.becaId, opts.becaClase)) {
     return PROMEDIO_CARTA_SOCIOECONOMICA;
   }
-  if (esBecaAcademica(opts.becaId, opts.becaClase)) {
+  if (esBecaPromedioMinimoCartaEditable(opts.becaId, opts.becaClase)) {
     const ov = normalizarPromedioCarta(opts.promedioAcademicoOverride);
     return ov ?? PROMEDIO_CARTA_ACADEMICA_DEFAULT;
   }
@@ -74,10 +91,10 @@ export function parsePromedioMinimoCartaAdmin(body: {
     return { ok: true, value: null };
   }
   const becaId = Number(body.beca_id);
-  if (!esBecaAcademica(becaId)) {
+  if (!esBecaPromedioMinimoCartaEditable(becaId)) {
     return {
       ok: false,
-      error: 'El promedio de carta solo aplica a beca Académica.',
+      error: 'El promedio de carta solo aplica a beca Académica o Excelencia.',
     };
   }
   const n = normalizarPromedioCarta(body.promedio_minimo_carta);
