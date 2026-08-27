@@ -361,6 +361,7 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
     let emailAvisoFirma: Awaited<
       ReturnType<typeof enviarAvisoBecaAutorizadaFirma>
     > | null = null;
+    /* INACTIVO: aviso a padres al autorizar beca (ver enviar-aviso-beca-autorizada-firma.ts)
     if (
       body.beca_autorizada === true &&
       !sol.beca_autorizada &&
@@ -382,6 +383,7 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
         cicloLabel: getSchoolCycleLabel(getCurrentSchoolCycle()),
       });
     }
+    */
 
     let updated: Record<string, unknown> | null = null;
     if (Object.keys(patch).length > 0) {

@@ -1,5 +1,8 @@
 /**
  * Aviso institucional a padres: beca autorizada → firma en servicios_admin.
+ *
+ * INACTIVO DE MOMENTO: no enviar correo al autorizar beca (tarjeta en portal).
+ * Reactivar el bloque marcado abajo cuando Mario lo indique.
  */
 import type { createAdminClient } from '@insforge/sdk';
 import {
@@ -80,6 +83,7 @@ export async function enviarAvisoBecaAutorizadaFirma(opts: {
     };
   }
 
+  /*
   try {
     const ccDesarrollo =
       process.env.BECAS_EMAIL_CC_AUTORIZACION?.trim() ||
@@ -106,4 +110,10 @@ export async function enviarAvisoBecaAutorizadaFirma(opts: {
       error: mailErr instanceof Error ? mailErr.message : 'Error SMTP',
     };
   }
+  */
+
+  return {
+    ok: false,
+    error: 'Aviso por correo desactivado temporalmente.',
+  };
 }
