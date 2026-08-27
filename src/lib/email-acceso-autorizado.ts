@@ -35,6 +35,21 @@ export function portalBecasPublicUrl(): string {
   return 'https://becas-renovacion.vercel.app';
 }
 
+/** Portal servicios_admin (firma electrónica / activación de beca). */
+export function portalServiciosAdminUrl(): string {
+  const fromEnv = process.env.SERVICIOS_ADMIN_URL?.trim();
+  if (fromEnv) return fromEnv.replace(/\/$/, '');
+  return 'https://servicios-admin.vercel.app';
+}
+
+export function portalServiciosAdminDashboardUrl(): string {
+  return `${portalServiciosAdminUrl()}/dashboard`;
+}
+
+export function portalServiciosAdminFirmaUrl(): string {
+  return `${portalServiciosAdminUrl()}/firma-electronica`;
+}
+
 /** Enlace de ingreso con trámite y no. de control preseleccionados (correos a padres). */
 export function portalBecasIngresoUrl(opts: {
   flujo: 'renovacion' | 'solicitud';

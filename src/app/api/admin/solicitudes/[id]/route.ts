@@ -4,7 +4,7 @@ import { getInsforgeAdmin } from '@/lib/insforge-server';
 import { mapAlumnoRow } from '@/lib/admin-queries';
 import { labelDocRequerido } from '@/lib/documentos-requeridos';
 import { buildSolicitudDocsContext } from '@/lib/solicitud-docs-context';
-import { getSchoolCycleLabel } from '@/lib/ciclo-escolar';
+import { getCurrentSchoolCycle, getSchoolCycleLabel } from '@/lib/ciclo-escolar';
 import { expedienteDocsTodosOk } from '@/lib/expediente-docs-ok';
 import { normalizarRevisionEstado } from '@/lib/doc-revision';
 import {
@@ -14,6 +14,7 @@ import {
 import { nombreAlumnoAuditoria } from '@/lib/admin-auditoria-alumno';
 import { registrarAutorizacionFirmaBeca } from '@/lib/registrar-autorizacion-firma-beca';
 import { obtenerFirmaElectronicaExpediente } from '@/lib/firma-electronica-estado';
+import { enviarAvisoBecaAutorizadaFirma } from '@/lib/enviar-aviso-beca-autorizada-firma';
 import {
   actualizarBecaSolicitudAdmin,
   cargarConceptosBecaAdmin,
@@ -199,7 +200,7 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
     const { data: alumno } = await db.database
       .from('alumno')
       .select(
-        'alumno_id, alumno_ref, alumno_app, alumno_apm, alumno_nombre, alumno_nivel, alumno_grado'
+        'alumno_id, alumno_ref, alumno_app, alumno_apm, alumno_nombre, alumno_nivel, alumno_grado, alumno_grupo'
       )
       .eq('alumno_id', Number(sol.alumno_id))
       .maybeSingle();
@@ -357,6 +358,31 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
       }
     }
 
+    let emailAvisoFirma: Awaited<
+      ReturnType<typeof enviarAvisoBecaAutorizadaFirma>
+    > | null = null;
+    if (
+      body.beca_autorizada === true &&
+      !sol.beca_autorizada &&
+      alumno
+    ) {
+      emailAvisoFirma = await enviarAvisoBecaAutorizadaFirma({
+        db: db.database,
+        flujo: 'solicitud',
+        alumno: {
+          alumno_id: Number(alumno.alumno_id),
+          alumno_ref: alumno.alumno_ref,
+          alumno_app: alumno.alumno_app as string | null,
+          alumno_apm: alumno.alumno_apm as string | null,
+          alumno_nombre: alumno.alumno_nombre as string | null,
+          alumno_nivel: alumno.alumno_nivel as number | null,
+          alumno_grado: alumno.alumno_grado as number | null,
+          alumno_grupo: alumno.alumno_grupo as number | null,
+        },
+        cicloLabel: getSchoolCycleLabel(getCurrentSchoolCycle()),
+      });
+    }
+
     let updated: Record<string, unknown> | null = null;
     if (Object.keys(patch).length > 0) {
       const { data: upd, error: upErr } = await db.database
@@ -399,6 +425,7 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
             beca_porcentaje: detalleBecaCambio.porcentaje_nuevo,
           }
         : undefined,
+      email_aviso_firma: emailAvisoFirma,
     });
   } catch (err) {
     const message =
