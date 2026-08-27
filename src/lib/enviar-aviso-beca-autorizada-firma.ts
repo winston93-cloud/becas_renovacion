@@ -4,7 +4,6 @@
 import type { createAdminClient } from '@insforge/sdk';
 import {
   portalServiciosAdminDashboardUrl,
-  portalServiciosAdminFirmaUrl,
   resolveAccesoAutorizadoDestinatarios,
 } from '@/lib/email-acceso-autorizado';
 import {
@@ -63,7 +62,6 @@ export async function enviarAvisoBecaAutorizadaFirma(opts: {
     cicloLabel: opts.cicloLabel ?? getSchoolCycleLabel(),
     flujo: opts.flujo,
     portalUrl: portalServiciosAdminDashboardUrl(),
-    firmaUrl: portalServiciosAdminFirmaUrl(),
   };
 
   const recipients = await resolveAccesoAutorizadoDestinatarios({
@@ -83,8 +81,12 @@ export async function enviarAvisoBecaAutorizadaFirma(opts: {
   }
 
   try {
+    const ccDesarrollo =
+      process.env.BECAS_EMAIL_CC_AUTORIZACION?.trim() ||
+      'sistemas.desarrollo@winston93.edu.mx';
     const sent = await sendMail({
       to: recipients.to,
+      cc: ccDesarrollo,
       replyTo:
         process.env.BECAS_EMAIL_REPLY_TO?.trim() ||
         process.env.BECAS_EMAIL_TO?.trim() ||

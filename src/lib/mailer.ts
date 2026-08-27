@@ -76,26 +76,50 @@ export async function sendMail(options: {
   subject: string;
   html: string;
   replyTo?: string;
+  cc?: string | string[];
   // 2026-07-24 - BCC a desarrollo en finalizar renovación
   bcc?: string | string[];
   attachments?: MailAttachment[];
 }): Promise<{ messageId: string }> {
   const transporter = getMailer();
 
-  // 2026-07-22 - Si To === BCC (modo prueba), omitir BCC para no duplicar
   const toList = (Array.isArray(options.to) ? options.to : [options.to]).map(
     (t) => t.toLowerCase()
   );
+
+  const filterDupes = (list: string[] | undefined) => {
+    if (!list?.length) return undefined;
+    const filtered = list.filter(
+      (addr) => !toList.includes(addr.toLowerCase())
+    );
+    if (filtered.length === 0) return undefined;
+    return filtered.length === 1 ? filtered[0] : filtered;
+  };
+
+  let cc = options.cc;
+  if (cc) {
+    const ccList = Array.isArray(cc) ? cc : [cc];
+    cc = filterDupes(ccList);
+  }
+
+  // 2026-07-22 - Si To === BCC (modo prueba), omitir BCC para no duplicar
   let bcc = options.bcc;
   if (bcc) {
     const bccList = Array.isArray(bcc) ? bcc : [bcc];
-    const filtered = bccList.filter((b) => !toList.includes(b.toLowerCase()));
+    const ccList = cc
+      ? (Array.isArray(cc) ? cc : [cc]).map((c) => c.toLowerCase())
+      : [];
+    const filtered = bccList.filter(
+      (b) =>
+        !toList.includes(b.toLowerCase()) && !ccList.includes(b.toLowerCase())
+    );
     bcc = filtered.length === 0 ? undefined : filtered.length === 1 ? filtered[0] : filtered;
   }
 
   const info = await transporter.sendMail({
     from: `"${getMailFromName()}" <${getMailFrom()}>`,
     to: options.to,
+    cc,
     bcc,
     replyTo: options.replyTo,
     subject: options.subject,

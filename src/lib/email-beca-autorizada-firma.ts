@@ -6,7 +6,6 @@ import type { EmailSolicitudInteresData } from '@/lib/email-solicitud';
 export type EmailBecaAutorizadaFirmaData = EmailSolicitudInteresData & {
   flujo: 'renovacion' | 'solicitud';
   portalUrl: string;
-  firmaUrl: string;
 };
 
 function escapeHtml(s: string): string {
@@ -72,7 +71,6 @@ export function buildBecaAutorizadaFirmaEmailHtml(
       ? 'renovación de beca escolar'
       : 'solicitud de beca escolar';
   const portal = escapeHtml(data.portalUrl);
-  const firma = escapeHtml(data.firmaUrl);
 
   return wrapEmail(
     'Beca autorizada — firma electrónica',
@@ -83,10 +81,11 @@ export function buildBecaAutorizadaFirmaEmailHtml(
                 para el ciclo ${escapeHtml(data.cicloLabel)}, tras la revisión de la ${tramite} del alumno referido.
               </p>
               <p style="margin:0 0 16px;font-size:14px;line-height:1.55;color:#5E6C84;">
-                Para <strong style="color:#16213E;">activar la beca</strong>, debe ingresar al
+                Para <strong style="color:#16213E;">activar la beca</strong>, ingrese al
                 <strong>Portal de Servicios Administrativos</strong> con el número de control y la
-                contraseña escolar del alumno, abrir la tarjeta <strong>Becas</strong> y completar la
-                <strong>firma electrónica</strong> de la carta de aceptación.
+                contraseña escolar del alumno. En el panel principal abra la tarjeta
+                <strong>Becas</strong> y complete la <strong>firma electrónica</strong> de la carta
+                de aceptación (escriba su nombre completo como padre, madre o tutor).
               </p>
               <table role="presentation" width="100%" style="font-size:14px;line-height:1.6;">
                 ${academicRows(data)}
@@ -94,11 +93,6 @@ export function buildBecaAutorizadaFirmaEmailHtml(
               <p style="margin:22px 0 12px;text-align:center;">
                 <a href="${portal}" style="display:inline-block;background:#0B173A;color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;padding:12px 22px;border-radius:10px;margin:4px;">
                   Portal de Servicios Administrativos
-                </a>
-              </p>
-              <p style="margin:0 0 12px;text-align:center;">
-                <a href="${firma}" style="display:inline-block;background:#1F6B4A;color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;padding:12px 22px;border-radius:10px;margin:4px;">
-                  Ir a firma electrónica
                 </a>
               </p>
               <p style="margin:0;padding:12px 14px;background:#EAF0FA;border-radius:8px;font-size:13px;line-height:1.5;color:#0B173A;">
