@@ -88,12 +88,24 @@ export async function actualizarBecaRenovacionAdmin(opts: {
     ciclo: number,
     estatus?: number
   ): Promise<{ ok: true } | { ok: false; error: string }> => {
-    const { data: existente } = await opts.db
+    const { data: porCiclo } = await opts.db
       .from('alumno_beca')
       .select('alumno_beca_id, beca_estatus')
       .eq('alumno_id', opts.alumnoId)
       .eq('beca_ciclo_escolar', ciclo)
       .maybeSingle();
+
+    // 2026-08-28 - alumno_beca tiene UNIQUE(alumno_id). Si no hay fila del ciclo
+    // (ej. Hellen 21546 Hermanos→Socioeconómica), actualizar esa fila; no INSERT.
+    let existente = porCiclo;
+    if (!existente?.alumno_beca_id) {
+      const { data: porAlumno } = await opts.db
+        .from('alumno_beca')
+        .select('alumno_beca_id, beca_estatus')
+        .eq('alumno_id', opts.alumnoId)
+        .maybeSingle();
+      existente = porAlumno;
+    }
 
     const fila: Record<string, unknown> = {
       alumno_id: opts.alumnoId,
