@@ -3,6 +3,7 @@
  */
 import { esBecaNoTramitable, esConceptoTramitable } from '@/lib/becas-excluidas';
 import {
+  getCurrentSchoolCycle,
   getCicloBecaARenovar,
 } from '@/lib/ciclo-escolar';
 import type { ConceptoBeca } from '@/lib/types';
@@ -172,6 +173,18 @@ export async function actualizarBecaRenovacionAdmin(opts: {
 
     if (existente?.alumno_beca_id) {
       if (estatus != null) fila.beca_estatus = estatus;
+      // No regresar una fila de cobro (ciclo actual) al ciclo origen.
+      const cicloActual = getCurrentSchoolCycle();
+      if (ciclo < cicloActual) {
+        const { data: rowActual } = await opts.db
+          .from('alumno_beca')
+          .select('beca_ciclo_escolar')
+          .eq('alumno_beca_id', existente.alumno_beca_id)
+          .maybeSingle();
+        if (Number(rowActual?.beca_ciclo_escolar) === cicloActual) {
+          fila.beca_ciclo_escolar = cicloActual;
+        }
+      }
       const { error } = await opts.db
         .from('alumno_beca')
         .update(fila)

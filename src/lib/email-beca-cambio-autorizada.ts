@@ -99,8 +99,9 @@ export function buildBecaCambioAutorizadaEmailHtml(
                 </tr>
               </table>
               <p style="margin:0;padding:12px 14px;background:#FFF8E6;border-radius:8px;font-size:13px;line-height:1.5;color:#7A5B00;">
-                Si la beca ya fue firmada en el portal, el porcentaje aplicado en cobranza reflejará este ajuste
-                conforme a los procesos del Instituto. Para dudas, contacte Control Escolar.
+                Si la beca ya estaba activa en cobranza, el ajuste se aplicó de inmediato en el sistema.
+                Si aún no ha firmado la carta en el portal, al activarla se usará el porcentaje y tipo actualizados.
+                Para dudas, contacte Control Escolar.
               </p>`
   );
 }

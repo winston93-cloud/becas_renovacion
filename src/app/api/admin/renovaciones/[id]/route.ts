@@ -20,6 +20,10 @@ import { obtenerFirmaElectronicaExpediente } from '@/lib/firma-electronica-estad
 import { enviarAvisoBecaAutorizadaFirma } from '@/lib/enviar-aviso-beca-autorizada-firma';
 import { enviarAvisoCambioBecaAutorizada } from '@/lib/enviar-aviso-cambio-beca-autorizada';
 import { huboCambioBecaAutorizada } from '@/lib/admin-beca-cambio';
+import {
+  becaYaActivadaEnCobro,
+  sincronizarBecaCobroTrasCambioAdmin,
+} from '@/lib/sincronizar-beca-cobro-cambio-admin';
 import { cargarPromedioBecadoRenovacion } from '@/lib/promedioBecadoRenovacion';
 import {
   actualizarBecaRenovacionAdmin,
@@ -242,14 +246,37 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
         Number(ren.alumno_id)
       );
 
-      const becaUpd = await actualizarBecaRenovacionAdmin({
+      const yaActivadaCobro = await becaYaActivadaEnCobro({
         db: db.database,
         alumnoId: Number(ren.alumno_id),
-        alumnoRef: alumno?.alumno_ref,
-        patch: parsedBeca.data,
+        expedienteId: id,
+        flujo: 'renovacion',
       });
-      if (!becaUpd.ok) {
-        return NextResponse.json({ error: becaUpd.error }, { status: 400 });
+
+      let syncCobro: Awaited<
+        ReturnType<typeof sincronizarBecaCobroTrasCambioAdmin>
+      > | null = null;
+
+      if (yaActivadaCobro) {
+        syncCobro = await sincronizarBecaCobroTrasCambioAdmin({
+          db: db.database,
+          alumnoId: Number(ren.alumno_id),
+          alumnoRef: alumno?.alumno_ref,
+          patch: parsedBeca.data,
+        });
+        if (!syncCobro.ok) {
+          return NextResponse.json({ error: syncCobro.error }, { status: 500 });
+        }
+      } else {
+        const becaUpd = await actualizarBecaRenovacionAdmin({
+          db: db.database,
+          alumnoId: Number(ren.alumno_id),
+          alumnoRef: alumno?.alumno_ref,
+          patch: parsedBeca.data,
+        });
+        if (!becaUpd.ok) {
+          return NextResponse.json({ error: becaUpd.error }, { status: 400 });
+        }
       }
 
       detalleBecaCambio = {
@@ -262,6 +289,8 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
             : null,
         porcentaje_nuevo: parsedBeca.data.beca_porcentaje,
         beca_autorizada: Boolean(ren.beca_autorizada),
+        ya_activada_cobro: yaActivadaCobro,
+        sync_cobro: syncCobro,
       };
       if (!esBecaPromedioMinimoCartaEditable(parsedBeca.data.beca_id)) {
         patch.promedio_minimo_carta = null;
