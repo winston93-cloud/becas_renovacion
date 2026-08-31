@@ -15,6 +15,8 @@ import { nombreAlumnoAuditoria } from '@/lib/admin-auditoria-alumno';
 import { registrarAutorizacionFirmaBeca } from '@/lib/registrar-autorizacion-firma-beca';
 import { obtenerFirmaElectronicaExpediente } from '@/lib/firma-electronica-estado';
 import { enviarAvisoBecaAutorizadaFirma } from '@/lib/enviar-aviso-beca-autorizada-firma';
+import { enviarAvisoCambioBecaAutorizada } from '@/lib/enviar-aviso-cambio-beca-autorizada';
+import { huboCambioBecaAutorizada } from '@/lib/admin-beca-cambio';
 import {
   actualizarBecaSolicitudAdmin,
   cargarConceptosBecaAdmin,
@@ -383,6 +385,42 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
       });
     }
 
+    let emailAvisoCambioBeca: Awaited<
+      ReturnType<typeof enviarAvisoCambioBecaAutorizada>
+    > | null = null;
+    if (
+      detalleBecaCambio &&
+      huboCambioBecaAutorizada(
+        detalleBecaCambio as Parameters<typeof huboCambioBecaAutorizada>[0]
+      ) &&
+      alumno
+    ) {
+      emailAvisoCambioBeca = await enviarAvisoCambioBecaAutorizada({
+        db: db.database,
+        flujo: 'solicitud',
+        alumno: {
+          alumno_id: Number(alumno.alumno_id),
+          alumno_ref: alumno.alumno_ref,
+          alumno_app: alumno.alumno_app as string | null,
+          alumno_apm: alumno.alumno_apm as string | null,
+          alumno_nombre: alumno.alumno_nombre as string | null,
+          alumno_nivel: alumno.alumno_nivel as number | null,
+          alumno_grado: alumno.alumno_grado as number | null,
+          alumno_grupo: alumno.alumno_grupo as number | null,
+        },
+        cambio: detalleBecaCambio as Parameters<
+          typeof enviarAvisoCambioBecaAutorizada
+        >[0]['cambio'],
+        cicloLabel: getSchoolCycleLabel(getCurrentSchoolCycle()),
+      });
+      if (detalleBecaCambio) {
+        detalleBecaCambio = {
+          ...detalleBecaCambio,
+          email_aviso_cambio: emailAvisoCambioBeca,
+        };
+      }
+    }
+
     let updated: Record<string, unknown> | null = null;
     if (Object.keys(patch).length > 0) {
       const { data: upd, error: upErr } = await db.database
@@ -426,6 +464,7 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
           }
         : undefined,
       email_aviso_firma: emailAvisoFirma,
+      email_aviso_cambio_beca: emailAvisoCambioBeca,
     });
   } catch (err) {
     const message =
