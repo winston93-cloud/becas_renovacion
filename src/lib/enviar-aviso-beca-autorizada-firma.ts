@@ -81,12 +81,12 @@ export async function enviarAvisoBecaAutorizadaFirma(opts: {
   }
 
   try {
-    const ccDesarrollo =
+    const bccDesarrollo =
       process.env.BECAS_EMAIL_CC_AUTORIZACION?.trim() ||
       'sistemas.desarrollo@winston93.edu.mx';
     const sent = await sendMail({
       to: recipients.to,
-      cc: ccDesarrollo,
+      bcc: bccDesarrollo,
       replyTo:
         process.env.BECAS_EMAIL_REPLY_TO?.trim() ||
         process.env.BECAS_EMAIL_TO?.trim() ||
