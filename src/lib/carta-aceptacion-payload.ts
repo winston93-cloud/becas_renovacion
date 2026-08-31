@@ -1,8 +1,8 @@
 /**
  * Arma payload de carta de aceptación desde expediente admin (InsForge).
  */
+import { cargarBecaRenovacionAdmin } from '@/lib/admin-beca-catalogo';
 import {
-  getCicloBecaARenovar,
   getCurrentSchoolCycle,
   getSchoolCycleLabel,
 } from '@/lib/ciclo-escolar';
@@ -138,15 +138,9 @@ export async function construirCartaAceptacionPayload(opts: {
         ? Number(parent.beca_porcentaje_deseado)
         : null;
   } else {
-    const { data: becaRow } = await db
-      .from('alumno_beca')
-      .select('beca_id, beca_porcentaje')
-      .eq('alumno_id', Number(alumno.alumno_id))
-      .eq('beca_ciclo_escolar', getCicloBecaARenovar())
-      .maybeSingle();
-    becaId = becaRow?.beca_id != null ? Number(becaRow.beca_id) : null;
-    becaPorcentaje =
-      becaRow?.beca_porcentaje != null ? Number(becaRow.beca_porcentaje) : null;
+    const becaRow = await cargarBecaRenovacionAdmin(db, Number(alumno.alumno_id));
+    becaId = becaRow.beca_id;
+    becaPorcentaje = becaRow.beca_porcentaje;
   }
 
   if (becaId != null && becaId > 0) {

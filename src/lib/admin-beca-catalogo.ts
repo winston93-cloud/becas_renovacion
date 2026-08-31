@@ -54,6 +54,57 @@ export function filtrarConceptosTramitables(
   );
 }
 
+export type BecaRenovacionAdminRow = {
+  beca_id: number | null;
+  beca_porcentaje: number | null;
+  beca_estatus: number | null;
+  beca_ciclo_escolar: number | null;
+};
+
+/** Ciclo origen primero; si ya firmó, la fila única puede estar en ciclo destino (23→24…). */
+export async function cargarBecaRenovacionAdmin(
+  db: Db,
+  alumnoId: number
+): Promise<BecaRenovacionAdminRow> {
+  const vacio: BecaRenovacionAdminRow = {
+    beca_id: null,
+    beca_porcentaje: null,
+    beca_estatus: null,
+    beca_ciclo_escolar: null,
+  };
+  const cicloOrigen = getCicloBecaARenovar();
+
+  const { data: porCiclo, error: errCiclo } = await db
+    .from('alumno_beca')
+    .select('beca_id, beca_porcentaje, beca_estatus, beca_ciclo_escolar')
+    .eq('alumno_id', alumnoId)
+    .eq('beca_ciclo_escolar', cicloOrigen)
+    .maybeSingle();
+  if (errCiclo) throw new Error(errCiclo.message);
+
+  let row = porCiclo;
+  if (!row) {
+    const { data: legacy, error: errLegacy } = await db
+      .from('alumno_beca')
+      .select('beca_id, beca_porcentaje, beca_estatus, beca_ciclo_escolar')
+      .eq('alumno_id', alumnoId)
+      .maybeSingle();
+    if (errLegacy) throw new Error(errLegacy.message);
+    row = legacy;
+  }
+
+  if (!row) return vacio;
+
+  return {
+    beca_id: row.beca_id != null ? Number(row.beca_id) : null,
+    beca_porcentaje:
+      row.beca_porcentaje != null ? Number(row.beca_porcentaje) : null,
+    beca_estatus: row.beca_estatus != null ? Number(row.beca_estatus) : null,
+    beca_ciclo_escolar:
+      row.beca_ciclo_escolar != null ? Number(row.beca_ciclo_escolar) : null,
+  };
+}
+
 export async function cargarConceptosBecaAdmin(
   db: Db
 ): Promise<ConceptoBecaAdmin[]> {

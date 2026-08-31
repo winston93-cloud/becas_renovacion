@@ -21,6 +21,7 @@ import { enviarAvisoBecaAutorizadaFirma } from '@/lib/enviar-aviso-beca-autoriza
 import { cargarPromedioBecadoRenovacion } from '@/lib/promedioBecadoRenovacion';
 import {
   actualizarBecaRenovacionAdmin,
+  cargarBecaRenovacionAdmin,
   cargarConceptosBecaAdmin,
   filtrarConceptosTramitables,
   parsePatchBecaAdmin,
@@ -89,14 +90,11 @@ export async function GET(_request: NextRequest, ctx: Ctx) {
       grado: alumno.alumno_grado,
     });
 
-    // Beca del ciclo origen (la que se está renovando).
-    const cicloBecaOrigen = getCicloBecaARenovar();
-    const { data: becaRow } = await db.database
-      .from('alumno_beca')
-      .select('beca_id, beca_porcentaje, beca_estatus')
-      .eq('alumno_id', Number(ren.alumno_id))
-      .eq('beca_ciclo_escolar', cicloBecaOrigen)
-      .maybeSingle();
+    // Beca del ciclo origen (la que se está renovando); fallback si ya activó cobro.
+    const becaRow = await cargarBecaRenovacionAdmin(
+      db.database,
+      Number(ren.alumno_id)
+    );
 
     let beca_clase: string | null = null;
     const beca_porcentaje =
@@ -119,7 +117,7 @@ export async function GET(_request: NextRequest, ctx: Ctx) {
       alumnoRef: alumnoMapped.alumno_ref,
       nivelFicha: Number(alumno.alumno_nivel),
       gradoFicha: Number(alumno.alumno_grado),
-      cicloDatos: cicloBecaOrigen,
+      cicloDatos: getCicloBecaARenovar(),
     });
 
     const conceptosRaw = await cargarConceptosBecaAdmin(db.database);
@@ -237,12 +235,10 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
         return NextResponse.json({ error: parsedBeca.error }, { status: 400 });
       }
 
-      const { data: becaOrigen } = await db.database
-        .from('alumno_beca')
-        .select('beca_id, beca_porcentaje')
-        .eq('alumno_id', Number(ren.alumno_id))
-        .eq('beca_ciclo_escolar', getCicloBecaARenovar())
-        .maybeSingle();
+      const becaOrigen = await cargarBecaRenovacionAdmin(
+        db.database,
+        Number(ren.alumno_id)
+      );
 
       const becaUpd = await actualizarBecaRenovacionAdmin({
         db: db.database,
@@ -276,14 +272,12 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
       if (parsedBeca.ok) {
         becaIdEff = parsedBeca.data.beca_id;
       } else {
-        const { data: becaOrigen } = await db.database
-          .from('alumno_beca')
-          .select('beca_id')
-          .eq('alumno_id', Number(ren.alumno_id))
-          .eq('beca_ciclo_escolar', getCicloBecaARenovar())
-          .maybeSingle();
+        const becaOrigen = await cargarBecaRenovacionAdmin(
+          db.database,
+          Number(ren.alumno_id)
+        );
         becaIdEff =
-          becaOrigen?.beca_id != null ? Number(becaOrigen.beca_id) : null;
+          becaOrigen.beca_id != null ? Number(becaOrigen.beca_id) : null;
       }
 
       if (body.promedio_minimo_carta === null) {
