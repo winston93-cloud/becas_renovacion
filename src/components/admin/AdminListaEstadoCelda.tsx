@@ -1,4 +1,3 @@
-import { Badge } from '@/components/ui';
 import type { FirmaListaResumen } from '@/lib/firma-electronica-estado';
 
 export type AdminListaEstadoItem = {
@@ -71,51 +70,54 @@ export function AdminListaEstadoCelda({
       }
     >
       <div className="admin-lista-estado__badges">
-        {activada ? (
-          <span className="admin-badge-activada" title="Carta firmada y beca activada">
-            ✓ Firmada y activada
-          </span>
+        {!verificado ? (
+          esCorreccionDocs || docs_incorrectos_count > 0 ? (
+            <span className="admin-badge-estado admin-badge-estado--correccion">
+              {layout === 'card' ? 'Docs incorrectos' : 'Esperando corrección'}
+            </span>
+          ) : enviadoFlag ? (
+            <span className="admin-badge-estado admin-badge-estado--pendiente">
+              Pendiente
+            </span>
+          ) : (
+            <span className="admin-badge-estado admin-badge-estado--borrador">
+              Borrador
+            </span>
+          )
         ) : null}
 
         {verificado ? (
-          <Badge variant="success">Verificada</Badge>
-        ) : esCorreccionDocs || docs_incorrectos_count > 0 ? (
-          <Badge variant="pending">
-            {layout === 'card' ? 'Docs incorrectos' : 'Esperando corrección'}
-          </Badge>
-        ) : enviadoFlag ? (
-          <Badge variant="pending">Pendiente</Badge>
-        ) : (
-          <Badge variant="neutral">Borrador</Badge>
-        )}
-
-        {beca_autorizada ? (
-          <Badge
-            variant="success"
-            className={
-              activada
-                ? '!border-emerald-700 !bg-emerald-50 !font-semibold !text-emerald-900'
-                : '!border-emerald-600 !bg-emerald-600 !font-bold !text-white'
-            }
-          >
-            {activada ? 'Autorizada' : '✓ Autorizada'}
-          </Badge>
+          <span className="admin-badge-estado admin-badge-estado--verificada">
+            Verificada
+          </span>
         ) : null}
 
-        {esperandoFirma ? (
-          <Badge
-            variant="pending"
-            className="!border-amber-500 !bg-amber-50 !font-semibold !text-amber-900"
+        {beca_autorizada ? (
+          <span className="admin-badge-estado admin-badge-estado--autorizada">
+            ✓ Autorizada
+          </span>
+        ) : null}
+
+        {activada ? (
+          <span
+            className="admin-badge-estado admin-badge-estado--activada"
+            title="Carta firmada y beca activada"
           >
+            ✓ Firmada y activada
+          </span>
+        ) : esperandoFirma ? (
+          <span className="admin-badge-estado admin-badge-estado--espera-firma">
             Esperando firma
-          </Badge>
+          </span>
         ) : null}
       </div>
 
       {activada && firma_electronica?.firmado_por ? (
         <p className="admin-lista-estado__firmante" title="Quién firmó la carta">
           <span className="admin-lista-estado__firmante-label">Firmó:</span>{' '}
-          {firma_electronica.firmado_por}
+          <span className="admin-lista-estado__firmante-nombre">
+            {firma_electronica.firmado_por}
+          </span>
         </p>
       ) : null}
     </div>

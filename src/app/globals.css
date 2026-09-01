@@ -1609,25 +1609,66 @@ body {
   gap: 6px;
 }
 
-.admin-lista-estado--card .admin-lista-estado__badges {
-  gap: 4px;
-}
-
-.admin-badge-activada {
+.admin-badge-estado {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   padding: 4px 10px;
   border-radius: 999px;
-  border: 1px solid #047857;
-  background: linear-gradient(135deg, #059669, #10b981);
-  color: #fff;
+  border: 1px solid transparent;
   font-size: 0.72rem;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0.02em;
   line-height: 1.2;
-  box-shadow: 0 2px 8px rgba(5, 150, 105, 0.28);
   white-space: nowrap;
+}
+
+/* Flujo: verificada → autorizada → firmada */
+.admin-badge-estado--verificada {
+  border-color: #2563eb;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.admin-badge-estado--autorizada {
+  border-color: #7c3aed;
+  background: #f5f3ff;
+  color: #6d28d9;
+}
+
+.admin-badge-estado--activada {
+  border-color: #047857;
+  background: linear-gradient(135deg, #059669, #10b981);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(5, 150, 105, 0.28);
+}
+
+.admin-badge-estado--espera-firma {
+  border-color: #d97706;
+  background: #fffbeb;
+  color: #b45309;
+}
+
+.admin-badge-estado--pendiente {
+  border-color: #ea580c;
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.admin-badge-estado--correccion {
+  border-color: #dc2626;
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.admin-badge-estado--borrador {
+  border-color: rgba(36, 52, 72, 0.2);
+  background: rgba(36, 52, 72, 0.06);
+  color: var(--color-text-secondary);
+}
+
+.admin-lista-estado--card .admin-lista-estado__badges {
+  gap: 4px;
 }
 
 .admin-lista-estado__firmante {
@@ -1643,6 +1684,11 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.04em;
   font-size: 0.65rem;
+}
+
+.admin-lista-estado__firmante-nombre {
+  font-weight: 600;
+  color: #065f46;
 }
 
 .admin-mobile-card {
@@ -1699,6 +1745,32 @@ body {
 
 [data-theme='dark'] .admin-lista-estado__firmante-label {
   color: #6ee7b7;
+}
+
+[data-theme='dark'] .admin-lista-estado__firmante-nombre {
+  color: #a7f3d0;
+}
+
+[data-theme='dark'] .admin-badge-estado--verificada {
+  background: rgba(37, 99, 235, 0.18);
+  color: #93c5fd;
+  border-color: rgba(59, 130, 246, 0.45);
+}
+
+[data-theme='dark'] .admin-badge-estado--autorizada {
+  background: rgba(124, 58, 237, 0.18);
+  color: #c4b5fd;
+  border-color: rgba(139, 92, 246, 0.45);
+}
+
+[data-theme='dark'] .admin-badge-estado--activada {
+  border-color: #34d399;
+}
+
+[data-theme='dark'] .admin-badge-estado--espera-firma {
+  background: rgba(217, 119, 6, 0.16);
+  color: #fcd34d;
+  border-color: rgba(245, 158, 11, 0.45);
 }
 
 .admin-export-btn {
