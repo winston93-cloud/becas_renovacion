@@ -108,9 +108,10 @@ export async function buildListaRevisionPdf(
     ['Pendientes', sum.pendientes, '#A84A2A'],
     ['Verificadas', sum.verificadas, '#1C3258'],
     ['Autorizadas', sum.autorizadas, '#1F6B4A'],
+    ['Activadas', sum.activadas, '#047857'],
   ];
   for (const [label, value, color] of chips) {
-    doc.roundedRect(x, chipY, 110, 34, 6).fill(PDF_COLORS.primaryLight);
+    doc.roundedRect(x, chipY, 102, 34, 6).fill(PDF_COLORS.primaryLight);
     doc
       .fillColor(PDF_COLORS.textSecondary)
       .fontSize(7)
@@ -121,18 +122,21 @@ export async function buildListaRevisionPdf(
       .fontSize(14)
       .font('Helvetica-Bold')
       .text(String(value), x + 8, chipY + 16, { width: 94 });
-    x += 118;
+    x += 110;
   }
 
   const cols = [
-    { key: 'n', label: '#', w: 28 },
-    { key: 'ref', label: 'No. control', w: 62 },
-    { key: 'nombre', label: 'Alumno', w: 210 },
-    { key: 'grado', label: 'Grado', w: 58 },
-    { key: 'estado', label: 'Estado', w: 72 },
-    { key: 'ver', label: 'Verif.', w: 42 },
-    { key: 'aut', label: 'Autoriz.', w: 48 },
-    { key: 'env', label: 'Enviado', w: 90 },
+    { key: 'n', label: '#', w: 24 },
+    { key: 'ref', label: 'No. control', w: 56 },
+    { key: 'nombre', label: 'Alumno', w: 132 },
+    { key: 'grado', label: 'Grado', w: 50 },
+    { key: 'estado', label: 'Estado', w: 62 },
+    { key: 'ver', label: 'Verif.', w: 34 },
+    { key: 'aut', label: 'Autoriz.', w: 38 },
+    { key: 'env', label: 'Enviado', w: 68 },
+    { key: 'act', label: 'Activ.', w: 32 },
+    { key: 'firm', label: 'Firmado por', w: 96 },
+    { key: 'fact', label: 'Fecha activ.', w: 68 },
   ] as const;
   const tableW = cols.reduce((a, c) => a + c.w, 0);
   const tableX = PAGE.margin;
@@ -184,6 +188,9 @@ export async function buildListaRevisionPdf(
       r.verificado ? 'Sí' : 'No',
       r.beca_autorizada ? 'Sí' : 'No',
       formatFechaExport(r.enviado_en),
+      r.beca_activada ? 'Sí' : 'No',
+      r.firmado_por?.trim() || '—',
+      formatFechaExport(r.beca_activada_en ?? null),
     ];
     let cx = tableX;
     values.forEach((val, idx) => {
@@ -199,13 +206,27 @@ export async function buildListaRevisionPdf(
       if ((c.key === 'ver' && r.verificado) || (c.key === 'aut' && r.beca_autorizada)) {
         fill = '#1F6B4A';
       }
+      if (c.key === 'act' && r.beca_activada) {
+        fill = '#047857';
+      }
+      if (c.key === 'firm' && r.firmado_por?.trim()) {
+        fill = '#047857';
+      }
       doc
         .fillColor(fill)
         .fontSize(7)
-        .font(isEstado || c.key === 'ver' || c.key === 'aut' ? 'Helvetica-Bold' : 'Helvetica')
+        .font(
+          isEstado ||
+          c.key === 'ver' ||
+          c.key === 'aut' ||
+          c.key === 'act' ||
+          c.key === 'firm'
+            ? 'Helvetica-Bold'
+            : 'Helvetica'
+        )
         .text(val, cx + 3, y + 5, {
           width: c.w - 6,
-          align: c.key === 'nombre' ? 'left' : 'center',
+          align: c.key === 'nombre' || c.key === 'firm' ? 'left' : 'center',
           lineBreak: false,
           ellipsis: true,
         });

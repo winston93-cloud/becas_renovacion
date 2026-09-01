@@ -15,6 +15,52 @@ type Props = {
   disabled?: boolean;
 };
 
+function IconExcel({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      aria-hidden
+      focusable="false"
+    >
+      <rect x="2" y="2" width="20" height="20" rx="3" fill="#217346" />
+      <path
+        d="M7 7.5 10.2 12 7 16.5h1.8l1.9-2.8 1.9 2.8H15l-3.2-4.5L15 7.5h-1.8l-1.9 2.7L9.2 7.5H7Z"
+        fill="#fff"
+      />
+      <path
+        d="M14.5 7.5H17.5V9H16V11.5H17.25V13H16V16.5H14.5V7.5Z"
+        fill="#fff"
+      />
+    </svg>
+  );
+}
+
+function IconPdf({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      aria-hidden
+      focusable="false"
+    >
+      <path
+        d="M6 2h8l4 4v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Z"
+        fill="#E53935"
+      />
+      <path d="M14 2v4h4" fill="#FFCDD2" />
+      <path
+        d="M7.2 13.2h1.1c.9 0 1.5.5 1.5 1.3 0 .9-.7 1.4-1.7 1.4H7.2V13.2Zm1 2.1c.4 0 .6-.2.6-.5 0-.3-.2-.5-.6-.5H8.1v1Zm2.5-2.1h1.8c1.2 0 2 .7 2 1.8 0 1.1-.8 1.8-2 1.8h-1.8V13.2Zm1.7 2.8c.5 0 .8-.3.8-.7 0-.4-.3-.7-.8-.7h-.6v1.4Zm2.3-2.8h2.4v.9h-1.3v.7h1.2v.9h-1.2v1.3h-1.1V13.2Z"
+        fill="#fff"
+      />
+    </svg>
+  );
+}
+
 async function descargarBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -80,22 +126,36 @@ export function AdminExportListaButtons({
         <Button
           type="button"
           variant="primary"
-          className="min-h-[44px] min-w-[5.5rem] px-4 shadow-sm"
+          className="admin-export-btn admin-export-btn--excel min-h-[44px] min-w-[6.5rem] px-3 shadow-sm"
           disabled={disabled || busy !== null || rows.length === 0}
           onClick={() => void exportar('excel')}
           title="Descargar Excel con las filas visibles"
         >
-          {busy === 'excel' ? 'Excel…' : 'Excel'}
+          {busy === 'excel' ? (
+            'Excel…'
+          ) : (
+            <>
+              <IconExcel className="admin-export-btn__icon" />
+              <span>Excel</span>
+            </>
+          )}
         </Button>
         <Button
           type="button"
           variant="primary"
-          className="min-h-[44px] min-w-[5.5rem] border border-[#7e6430] bg-[var(--color-accent)] px-4 text-white shadow-sm hover:bg-[#866836] hover:shadow-card disabled:hover:bg-[var(--color-accent)]"
+          className="admin-export-btn admin-export-btn--pdf min-h-[44px] min-w-[6.5rem] border border-[#c62828] bg-[#e53935] px-3 text-white shadow-sm hover:bg-[#d32f2f] hover:shadow-card disabled:hover:bg-[#e53935]"
           disabled={disabled || busy !== null || rows.length === 0}
           onClick={() => void exportar('pdf')}
           title="Descargar PDF con las filas visibles"
         >
-          {busy === 'pdf' ? 'PDF…' : 'PDF'}
+          {busy === 'pdf' ? (
+            'PDF…'
+          ) : (
+            <>
+              <IconPdf className="admin-export-btn__icon" />
+              <span>PDF</span>
+            </>
+          )}
         </Button>
       </div>
       {error ? (

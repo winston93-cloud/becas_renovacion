@@ -1701,6 +1701,26 @@ body {
   color: #6ee7b7;
 }
 
+.admin-export-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.admin-export-btn__icon {
+  flex-shrink: 0;
+}
+
+.admin-export-btn--excel {
+  background: #217346 !important;
+  border-color: #1b5e38 !important;
+}
+
+.admin-export-btn--excel:hover:not(:disabled) {
+  background: #1b5e38 !important;
+}
+
 /* ——— Modal portal (avisos) ——— */
 .ui-modal-backdrop {
   border: 0;

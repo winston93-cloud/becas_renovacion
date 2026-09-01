@@ -21,7 +21,7 @@ const WARN_BG = 'FFFFF3E0';
 const WARN_FG = 'FFA84A2A';
 const INFO_BG = 'FFE8EEF6';
 const INFO_FG = 'FF1C3258';
-const LAST_COL = 'H';
+const LAST_COL = 'K';
 
 function thinBorder(): Partial<ExcelJS.Borders> {
   const side: Partial<ExcelJS.Border> = {
@@ -57,11 +57,14 @@ export async function buildListaRevisionExcel(
   ws.columns = [
     { width: 5 },
     { width: 11 },
-    { width: 38 },
+    { width: 34 },
     { width: 14 },
-    { width: 14 },
+    { width: 16 },
     { width: 11 },
     { width: 11 },
+    { width: 17 },
+    { width: 12 },
+    { width: 28 },
     { width: 18 },
   ];
 
@@ -111,6 +114,7 @@ export async function buildListaRevisionExcel(
     'Pendientes',
     'Verificadas',
     'Autorizadas',
+    'Activadas',
     'Borradores',
   ];
   const statValues = [
@@ -118,6 +122,7 @@ export async function buildListaRevisionExcel(
     sum.pendientes,
     sum.verificadas,
     sum.autorizadas,
+    sum.activadas,
     sum.borradores,
   ];
   const labelRow = ws.getRow(5);
@@ -158,6 +163,9 @@ export async function buildListaRevisionExcel(
     'Verificado',
     'Autorizado',
     'Enviado',
+    'Activada',
+    'Firmado por',
+    'Fecha activación',
   ];
   headers.forEach((h, i) => {
     const c = headerRow.getCell(i + 1);
@@ -190,6 +198,9 @@ export async function buildListaRevisionExcel(
       r.verificado ? 'Sí' : 'No',
       r.beca_autorizada ? 'Sí' : 'No',
       formatFechaExport(r.enviado_en),
+      r.beca_activada ? 'Sí' : 'No',
+      r.firmado_por?.trim() || '—',
+      formatFechaExport(r.beca_activada_en ?? null),
     ];
     const row = ws.getRow(rowNum);
     values.forEach((val, col) => {
@@ -198,9 +209,10 @@ export async function buildListaRevisionExcel(
       c.font = { name: 'Calibri', size: 11, color: { argb: NAVY } };
       c.border = thinBorder();
       c.alignment = {
-        horizontal: col === 0 || col >= 3 ? 'center' : 'left',
+        horizontal:
+          col === 0 || (col >= 3 && col !== 9) ? 'center' : 'left',
         vertical: 'middle',
-        wrapText: col === 2,
+        wrapText: col === 2 || col === 9,
       };
       if (col === 4) {
         if (estado === 'Firmada y activada') {
@@ -240,6 +252,17 @@ export async function buildListaRevisionExcel(
           pattern: 'solid',
           fgColor: { argb: OK_BG },
         };
+      }
+      if (col === 8 && r.beca_activada) {
+        c.font = { ...c.font, bold: true, color: { argb: 'FF065F46' } };
+        c.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFD1FAE5' },
+        };
+      }
+      if (col === 9 && r.firmado_por?.trim()) {
+        c.font = { ...c.font, bold: true, color: { argb: 'FF065F46' } };
       }
     });
   });
