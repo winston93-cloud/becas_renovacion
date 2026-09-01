@@ -31,7 +31,8 @@ export type AdminListEstado =
   | 'correccion_documentos'
   | 'verificadas'
   | 'autorizadas'
-  | 'activadas';
+  | 'activadas'
+  | 'rechazadas';
 
 const CHUNK_ALUMNO_IDS = 200;
 
@@ -152,6 +153,7 @@ function applyEstadoRenovacionFilter(
   }
   if (estado === 'verificadas') return q.eq('verificado', true);
   if (estado === 'autorizadas') return q.eq('beca_autorizada', true);
+  if (estado === 'rechazadas') return q.eq('beca_rechazada', true);
   return q;
 }
 
@@ -166,6 +168,7 @@ function applyEstadoSolicitudFilter(
   }
   if (estado === 'verificadas') return q.eq('verificado', true);
   if (estado === 'autorizadas') return q.eq('beca_autorizada', true);
+  if (estado === 'rechazadas') return q.eq('beca_rechazada', true);
   return q;
 }
 
@@ -189,7 +192,7 @@ export async function listRenovaciones(opts: {
   let q = db.database
     .from('becas_renovacion')
     .select(
-      'id, alumno_id, ciclo_escolar, correo_enviado, correo_enviado_en, verificado, fecha_verificado, beca_autorizada, pdf_solicitud_key, motivo, created_at, updated_at'
+      'id, alumno_id, ciclo_escolar, correo_enviado, correo_enviado_en, verificado, fecha_verificado, beca_autorizada, beca_rechazada, beca_rechazada_en, pdf_solicitud_key, motivo, created_at, updated_at'
     )
     .eq('ciclo_escolar', opts.ciclo)
     .order('correo_enviado_en', { ascending: false })
@@ -261,6 +264,8 @@ export async function listRenovaciones(opts: {
         verificado: Boolean(r.verificado),
         fecha_verificado: r.fecha_verificado || null,
         beca_autorizada: Boolean(r.beca_autorizada),
+        beca_rechazada: Boolean(r.beca_rechazada),
+        beca_rechazada_en: r.beca_rechazada_en || null,
         tiene_pdf: Boolean(r.pdf_solicitud_key),
         motivo: r.motivo || null,
         created_at: r.created_at,
@@ -274,6 +279,9 @@ export async function listRenovaciones(opts: {
     .filter(Boolean) as RenovacionListItem[];
 
   items.sort((a, b) => {
+    const rechA = a.beca_rechazada ? 1 : 0;
+    const rechB = b.beca_rechazada ? 1 : 0;
+    if (rechA !== rechB) return rechB - rechA;
     const actA = a.firma_electronica?.beca_activada ? 1 : 0;
     const actB = b.firma_electronica?.beca_activada ? 1 : 0;
     if (actA !== actB) return actB - actA;
@@ -293,6 +301,8 @@ export type RenovacionListItem = {
   verificado: boolean;
   fecha_verificado: string | null;
   beca_autorizada: boolean;
+  beca_rechazada: boolean;
+  beca_rechazada_en: string | null;
   tiene_pdf: boolean;
   motivo: string | null;
   created_at: string;
@@ -375,7 +385,7 @@ export async function listSolicitudes(opts: {
   let q = db.database
     .from('becas_solicitud')
     .select(
-      'id, alumno_id, ciclo_escolar, enviado, enviado_en, verificado, fecha_verificado, beca_autorizada, pdf_solicitud_key, motivo, created_at, updated_at'
+      'id, alumno_id, ciclo_escolar, enviado, enviado_en, verificado, fecha_verificado, beca_autorizada, beca_rechazada, beca_rechazada_en, pdf_solicitud_key, motivo, created_at, updated_at'
     )
     .eq('ciclo_escolar', opts.ciclo)
     .order('enviado_en', { ascending: false })
@@ -447,6 +457,8 @@ export async function listSolicitudes(opts: {
         verificado: Boolean(r.verificado),
         fecha_verificado: r.fecha_verificado || null,
         beca_autorizada: Boolean(r.beca_autorizada),
+        beca_rechazada: Boolean(r.beca_rechazada),
+        beca_rechazada_en: r.beca_rechazada_en || null,
         tiene_pdf: Boolean(r.pdf_solicitud_key),
         motivo: r.motivo || null,
         created_at: r.created_at,
@@ -460,6 +472,9 @@ export async function listSolicitudes(opts: {
     .filter(Boolean) as SolicitudListItem[];
 
   items.sort((a, b) => {
+    const rechA = a.beca_rechazada ? 1 : 0;
+    const rechB = b.beca_rechazada ? 1 : 0;
+    if (rechA !== rechB) return rechB - rechA;
     const actA = a.firma_electronica?.beca_activada ? 1 : 0;
     const actB = b.firma_electronica?.beca_activada ? 1 : 0;
     if (actA !== actB) return actB - actA;
@@ -479,6 +494,8 @@ export type SolicitudListItem = {
   verificado: boolean;
   fecha_verificado: string | null;
   beca_autorizada: boolean;
+  beca_rechazada: boolean;
+  beca_rechazada_en: string | null;
   tiene_pdf: boolean;
   motivo: string | null;
   created_at: string;

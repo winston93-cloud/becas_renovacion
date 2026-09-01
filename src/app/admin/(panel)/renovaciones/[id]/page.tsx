@@ -14,6 +14,7 @@ import {
   BadgeAutorizada,
   BadgeBecaActivada,
   BadgeEnviada,
+  BadgeRechazada,
   BadgeVerificada,
 } from '@/components/admin/AdminExpedienteHeader';
 import { normalizarRevisionEstado } from '@/lib/doc-revision';
@@ -40,6 +41,7 @@ type Detail = {
     verificado: boolean;
     fecha_verificado: string | null;
     beca_autorizada: boolean;
+    beca_rechazada?: boolean;
     flags_docs: Record<string, boolean>;
   };
   alumno: {
@@ -165,6 +167,7 @@ export default function RenovacionDetallePage({
           <>
             <BadgeEnviada enviada={r.correo_enviado} />
             <BadgeVerificada verificada={r.verificado} />
+            <BadgeRechazada rechazada={Boolean(r.beca_rechazada)} />
             <BadgeAutorizada autorizada={r.beca_autorizada} />
             <BadgeBecaActivada
               activada={Boolean(data.firma_electronica?.beca_activada)}

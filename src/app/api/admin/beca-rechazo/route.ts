@@ -348,6 +348,25 @@ export async function POST(request: NextRequest) {
       ...meta,
     });
 
+    const ahoraRechazo = new Date().toISOString();
+    const { error: rechazoErr } = await db.database
+      .from(parentTable)
+      .update({
+        beca_rechazada: true,
+        beca_rechazada_en: ahoraRechazo,
+        beca_autorizada: false,
+      })
+      .eq('id', expedienteId);
+    if (rechazoErr) {
+      return NextResponse.json(
+        {
+          error: `Correo enviado, pero no se pudo marcar el expediente como rechazado: ${rechazoErr.message}`,
+          enviado: true,
+        },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json({
       ok: true,
       enviado: true,

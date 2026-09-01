@@ -29,6 +29,7 @@ function sanitizeRows(raw: unknown): AdminExportRow[] {
       enviado_en: r.enviado_en ? String(r.enviado_en) : null,
       verificado: Boolean(r.verificado),
       beca_autorizada: Boolean(r.beca_autorizada),
+      beca_rechazada: Boolean(r.beca_rechazada),
       beca_activada: Boolean(r.beca_activada),
       firmado_por: r.firmado_por ? String(r.firmado_por) : null,
       beca_activada_en: r.beca_activada_en ? String(r.beca_activada_en) : null,

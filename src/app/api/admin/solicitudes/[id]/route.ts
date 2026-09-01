@@ -128,6 +128,8 @@ export async function GET(_request: NextRequest, ctx: Ctx) {
         verificado: Boolean(sol.verificado),
         fecha_verificado: sol.fecha_verificado || null,
         beca_autorizada: Boolean(sol.beca_autorizada),
+        beca_rechazada: Boolean(sol.beca_rechazada),
+        beca_rechazada_en: sol.beca_rechazada_en || null,
         pdf_solicitud_key: sol.pdf_solicitud_key || null,
         flags_docs: Object.fromEntries(
           tipos.map((t) => [t, Boolean(sol[t])])
@@ -360,6 +362,10 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
         );
       }
       patch.beca_autorizada = body.beca_autorizada;
+      if (body.beca_autorizada) {
+        patch.beca_rechazada = false;
+        patch.beca_rechazada_en = null;
+      }
       accionesLog.push(
         body.beca_autorizada
           ? 'solicitud.autorizar'

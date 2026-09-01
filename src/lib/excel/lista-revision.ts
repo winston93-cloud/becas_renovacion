@@ -215,7 +215,14 @@ export async function buildListaRevisionExcel(
         wrapText: col === 2 || col === 9,
       };
       if (col === 4) {
-        if (estado === 'Firmada y activada') {
+        if (estado === 'Rechazada') {
+          c.font = { ...c.font, bold: true, color: { argb: 'FF9F1239' } };
+          c.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFFFE4E6' },
+          };
+        } else if (estado === 'Firmada y activada') {
           c.font = { ...c.font, bold: true, color: { argb: 'FF065F46' } };
           c.fill = {
             type: 'pattern',

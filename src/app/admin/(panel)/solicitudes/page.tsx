@@ -11,8 +11,8 @@ import {
 import { AdminExportListaButtons } from '@/components/admin/AdminExportListaButtons';
 import {
   AdminListaEstadoCelda,
-  adminListaCardActivadaClass,
-  adminListaRowActivadaClass,
+  adminListaCardClass,
+  adminListaRowClass,
   isBecaActivadaLista,
 } from '@/components/admin/AdminListaEstadoCelda';
 import {
@@ -33,6 +33,7 @@ type Item = {
   enviado_en: string | null;
   verificado: boolean;
   beca_autorizada: boolean;
+  beca_rechazada?: boolean;
   docs_incorrectos?: DocIncorrecto[];
   docs_incorrectos_count?: number;
   firma_electronica?: FirmaListaResumen | null;
@@ -131,6 +132,7 @@ function ListInner() {
         enviado_en: it.enviado_en,
         verificado: it.verificado,
         beca_autorizada: it.beca_autorizada,
+        beca_rechazada: Boolean(it.beca_rechazada),
         beca_activada: Boolean(it.firma_electronica?.beca_activada),
         firmado_por: it.firma_electronica?.firmado_por ?? null,
         beca_activada_en: it.firma_electronica?.beca_activada_en ?? null,
@@ -204,6 +206,7 @@ function ListInner() {
               <option value="verificadas">Verificadas</option>
               <option value="autorizadas">Autorizadas</option>
               <option value="activadas">Firmadas y activadas</option>
+              <option value="rechazadas">Rechazadas</option>
               <option value="todas">Todas</option>
             </Select>
           </div>
@@ -234,7 +237,7 @@ function ListInner() {
           <Link
             key={it.id}
             href={`/admin/solicitudes/${it.id}`}
-            className={`admin-mobile-card ${adminListaCardActivadaClass(it.firma_electronica)}`}
+            className={`admin-mobile-card ${adminListaCardClass(it.beca_rechazada, it.firma_electronica)}`}
           >
             <p className="font-semibold text-primary">{it.alumno.nombre}</p>
             <p className="text-sm text-text-secondary">
@@ -246,6 +249,7 @@ function ListInner() {
                 layout="card"
                 verificado={it.verificado}
                 beca_autorizada={it.beca_autorizada}
+                beca_rechazada={it.beca_rechazada}
                 enviado={it.enviado}
                 firma_electronica={it.firma_electronica}
                 esCorreccionDocs={esCorreccionDocs}
@@ -281,7 +285,7 @@ function ListInner() {
             {visibles.map((it) => (
               <tr
                 key={it.id}
-                className={adminListaRowActivadaClass(it.firma_electronica)}
+                className={adminListaRowClass(it.beca_rechazada, it.firma_electronica)}
               >
                 <td>
                   <Link
@@ -320,6 +324,7 @@ function ListInner() {
                     layout="table"
                     verificado={it.verificado}
                     beca_autorizada={it.beca_autorizada}
+                    beca_rechazada={it.beca_rechazada}
                     enviado={it.enviado}
                     firma_electronica={it.firma_electronica}
                     esCorreccionDocs={esCorreccionDocs}

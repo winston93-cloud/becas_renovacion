@@ -148,6 +148,8 @@ export async function GET(_request: NextRequest, ctx: Ctx) {
         verificado: Boolean(ren.verificado),
         fecha_verificado: ren.fecha_verificado || null,
         beca_autorizada: Boolean(ren.beca_autorizada),
+        beca_rechazada: Boolean(ren.beca_rechazada),
+        beca_rechazada_en: ren.beca_rechazada_en || null,
         pdf_solicitud_key: ren.pdf_solicitud_key || null,
         flags_docs: Object.fromEntries(
           tipos.map((t) => [t, Boolean(ren[t])])
@@ -388,6 +390,10 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
         );
       }
       patch.beca_autorizada = body.beca_autorizada;
+      if (body.beca_autorizada) {
+        patch.beca_rechazada = false;
+        patch.beca_rechazada_en = null;
+      }
       accionesLog.push(
         body.beca_autorizada
           ? 'renovacion.autorizar'

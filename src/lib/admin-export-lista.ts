@@ -13,6 +13,7 @@ export type AdminExportRow = {
   enviado_en: string | null;
   verificado: boolean;
   beca_autorizada: boolean;
+  beca_rechazada?: boolean;
   beca_activada?: boolean;
   firmado_por?: string | null;
   beca_activada_en?: string | null;
@@ -41,6 +42,8 @@ export function etiquetaFiltroEstado(estado: string): string {
       return 'Autorizadas';
     case 'activadas':
       return 'Firmadas y activadas';
+    case 'rechazadas':
+      return 'Rechazadas';
     case 'todas':
       return 'Todas';
     default:
@@ -49,6 +52,7 @@ export function etiquetaFiltroEstado(estado: string): string {
 }
 
 export function estadoRevisionTexto(row: AdminExportRow): string {
+  if (row.beca_rechazada) return 'Rechazada';
   if (row.beca_activada) return 'Firmada y activada';
   if (row.beca_autorizada) return 'Autorizada';
   if (row.verificado) return 'Verificada';

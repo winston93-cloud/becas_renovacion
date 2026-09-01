@@ -3,6 +3,7 @@ import type { FirmaListaResumen } from '@/lib/firma-electronica-estado';
 export type AdminListaEstadoItem = {
   verificado: boolean;
   beca_autorizada: boolean;
+  beca_rechazada?: boolean;
   correo_enviado?: boolean;
   enviado?: boolean;
   firma_electronica?: FirmaListaResumen | null;
@@ -19,20 +20,41 @@ export function isEsperandoFirmaLista(
 ): boolean {
   const firma = item.firma_electronica;
   return Boolean(
-    item.beca_autorizada && firma?.activo && !firma.beca_activada
+    item.beca_autorizada &&
+      !item.beca_rechazada &&
+      firma?.activo &&
+      !firma.beca_activada
   );
 }
 
-export function adminListaRowActivadaClass(
+export function adminListaRowClass(
+  rechazada: boolean | undefined,
   firma: FirmaListaResumen | null | undefined
 ): string {
+  if (rechazada) return 'admin-table-row--rechazada';
   return isBecaActivadaLista(firma) ? 'admin-table-row--activada' : '';
 }
 
+export function adminListaCardClass(
+  rechazada: boolean | undefined,
+  firma: FirmaListaResumen | null | undefined
+): string {
+  if (rechazada) return 'admin-mobile-card--rechazada';
+  return isBecaActivadaLista(firma) ? 'admin-mobile-card--activada' : '';
+}
+
+/** @deprecated Use adminListaRowClass */
+export function adminListaRowActivadaClass(
+  firma: FirmaListaResumen | null | undefined
+): string {
+  return adminListaRowClass(false, firma);
+}
+
+/** @deprecated Use adminListaCardClass */
 export function adminListaCardActivadaClass(
   firma: FirmaListaResumen | null | undefined
 ): string {
-  return isBecaActivadaLista(firma) ? 'admin-mobile-card--activada' : '';
+  return adminListaCardClass(false, firma);
 }
 
 type AdminListaEstadoCeldaProps = AdminListaEstadoItem & {
@@ -44,6 +66,7 @@ type AdminListaEstadoCeldaProps = AdminListaEstadoItem & {
 export function AdminListaEstadoCelda({
   verificado,
   beca_autorizada,
+  beca_rechazada = false,
   correo_enviado,
   enviado,
   firma_electronica,
@@ -55,6 +78,7 @@ export function AdminListaEstadoCelda({
   const esperandoFirma = isEsperandoFirmaLista({
     verificado,
     beca_autorizada,
+    beca_rechazada,
     correo_enviado,
     enviado,
     firma_electronica,
@@ -92,20 +116,27 @@ export function AdminListaEstadoCelda({
           </span>
         ) : null}
 
-        {beca_autorizada ? (
+        {beca_rechazada ? (
+          <span
+            className="admin-badge-estado admin-badge-estado--rechazada"
+            title="Correo de rechazo enviado a la familia"
+          >
+            ✕ Rechazada
+          </span>
+        ) : beca_autorizada ? (
           <span className="admin-badge-estado admin-badge-estado--autorizada">
             ✓ Autorizada
           </span>
         ) : null}
 
-        {activada ? (
+        {!beca_rechazada && activada ? (
           <span
             className="admin-badge-estado admin-badge-estado--activada"
             title="Carta firmada y beca activada"
           >
             ✓ Firmada y activada
           </span>
-        ) : esperandoFirma ? (
+        ) : !beca_rechazada && esperandoFirma ? (
           <span className="admin-badge-estado admin-badge-estado--espera-firma">
             Esperando firma
           </span>

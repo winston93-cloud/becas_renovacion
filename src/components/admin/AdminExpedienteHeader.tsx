@@ -112,6 +112,19 @@ export function BadgeAutorizada({ autorizada }: { autorizada: boolean }) {
   );
 }
 
+/** Rojo: beca rechazada por Dirección (correo a la familia). */
+export function BadgeRechazada({ rechazada }: { rechazada: boolean }) {
+  if (!rechazada) return null;
+  return (
+    <Badge
+      variant="neutral"
+      className="!border-rose-700 !bg-rose-700 !px-2.5 !py-1 !text-[11px] !font-bold !uppercase !tracking-wide !text-white"
+    >
+      ✕ Rechazada
+    </Badge>
+  );
+}
+
 /** Verde: padre ya firmó la carta y activó la beca. */
 export function BadgeBecaActivada({ activada }: { activada: boolean }) {
   if (!activada) return null;
