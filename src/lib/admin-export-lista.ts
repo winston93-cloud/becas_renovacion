@@ -13,6 +13,9 @@ export type AdminExportRow = {
   enviado_en: string | null;
   verificado: boolean;
   beca_autorizada: boolean;
+  beca_activada?: boolean;
+  firmado_por?: string | null;
+  beca_activada_en?: string | null;
 };
 
 export type AdminExportPayload = {
@@ -36,6 +39,8 @@ export function etiquetaFiltroEstado(estado: string): string {
       return 'Verificadas';
     case 'autorizadas':
       return 'Autorizadas';
+    case 'activadas':
+      return 'Firmadas y activadas';
     case 'todas':
       return 'Todas';
     default:
@@ -44,6 +49,7 @@ export function etiquetaFiltroEstado(estado: string): string {
 }
 
 export function estadoRevisionTexto(row: AdminExportRow): string {
+  if (row.beca_activada) return 'Firmada y activada';
   if (row.beca_autorizada) return 'Autorizada';
   if (row.verificado) return 'Verificada';
   if (row.enviado) return 'Pendiente';
@@ -54,8 +60,10 @@ export function resumenExport(rows: AdminExportRow[]) {
   let pendientes = 0;
   let verificadas = 0;
   let autorizadas = 0;
+  let activadas = 0;
   let borradores = 0;
   for (const r of rows) {
+    if (r.beca_activada) activadas += 1;
     if (r.beca_autorizada) autorizadas += 1;
     if (r.verificado) verificadas += 1;
     if (r.enviado && !r.verificado) pendientes += 1;
@@ -66,6 +74,7 @@ export function resumenExport(rows: AdminExportRow[]) {
     pendientes,
     verificadas,
     autorizadas,
+    activadas,
     borradores,
   };
 }

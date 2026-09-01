@@ -14,6 +14,13 @@ import {
   fetchRenovacionIdsConDocsIncorrectos,
   type DocIncorrectoResumen,
 } from '@/lib/admin-renovacion-docs-incorrectos';
+import {
+  fetchExpedienteIdsFirmaActivada,
+  fetchFirmaResumenPorExpedientes,
+  type FirmaListaResumen,
+} from '@/lib/firma-electronica-estado';
+
+export type { FirmaListaResumen };
 
 export type { DocIncorrectoResumen };
 
@@ -23,7 +30,8 @@ export type AdminListEstado =
   | 'pendientes'
   | 'correccion_documentos'
   | 'verificadas'
-  | 'autorizadas';
+  | 'autorizadas'
+  | 'activadas';
 
 const CHUNK_ALUMNO_IDS = 200;
 
@@ -170,6 +178,15 @@ export async function listRenovaciones(opts: {
   const estado = opts.estado || 'enviadas';
   const db = getInsforgeAdmin();
 
+  let activadaIds: string[] | null = null;
+  if (estado === 'activadas') {
+    activadaIds = await fetchExpedienteIdsFirmaActivada({
+      flujo: 'renovacion',
+      ciclo: opts.ciclo,
+    });
+    if (activadaIds.length === 0) return [];
+  }
+
   let q = db.database
     .from('becas_renovacion')
     .select(
@@ -179,7 +196,11 @@ export async function listRenovaciones(opts: {
     .order('correo_enviado_en', { ascending: false })
     .limit(2000);
 
-  q = applyEstadoRenovacionFilter(q, estado);
+  if (estado === 'activadas' && activadaIds) {
+    q = q.in('id', activadaIds);
+  } else {
+    q = applyEstadoRenovacionFilter(q, estado);
+  }
 
   const { data, error } = await q;
   if (error) throw new Error(error.message);
@@ -214,7 +235,14 @@ export async function listRenovaciones(opts: {
   );
   const byId = new Map(alumnos.map((a) => [Number(a.alumno_id), a]));
 
-  return renRows
+  const expedienteIds = renRows.map((r) => String(r.id));
+  const firmaMap = await fetchFirmaResumenPorExpedientes({
+    flujo: 'renovacion',
+    ciclo: opts.ciclo,
+    expedienteIds,
+  });
+
+  const items = renRows
     .map((r) => {
       const a = byId.get(Number(r.alumno_id));
       if (!a) return null;
@@ -234,26 +262,41 @@ export async function listRenovaciones(opts: {
         updated_at: r.updated_at,
         docs_incorrectos: docsIncorrectos,
         docs_incorrectos_count: docsIncorrectos?.length,
+        firma_electronica: firmaMap.get(id) ?? null,
         alumno: mapAlumnoRow(a),
       };
     })
-    .filter(Boolean) as {
-    id: string;
-    ciclo_escolar: number;
-    correo_enviado: boolean;
-    correo_enviado_en: string | null;
-    verificado: boolean;
-    fecha_verificado: string | null;
-    beca_autorizada: boolean;
-    tiene_pdf: boolean;
-    motivo: string | null;
-    created_at: string;
-    updated_at: string;
-    docs_incorrectos?: DocIncorrectoResumen[];
-    docs_incorrectos_count?: number;
-    alumno: ReturnType<typeof mapAlumnoRow>;
-  }[];
+    .filter(Boolean) as RenovacionListItem[];
+
+  items.sort((a, b) => {
+    const actA = a.firma_electronica?.beca_activada ? 1 : 0;
+    const actB = b.firma_electronica?.beca_activada ? 1 : 0;
+    if (actA !== actB) return actB - actA;
+    const ta = a.correo_enviado_en ? Date.parse(String(a.correo_enviado_en)) : 0;
+    const tb = b.correo_enviado_en ? Date.parse(String(b.correo_enviado_en)) : 0;
+    return tb - ta;
+  });
+
+  return items;
 }
+
+export type RenovacionListItem = {
+  id: string;
+  ciclo_escolar: number;
+  correo_enviado: boolean;
+  correo_enviado_en: string | null;
+  verificado: boolean;
+  fecha_verificado: string | null;
+  beca_autorizada: boolean;
+  tiene_pdf: boolean;
+  motivo: string | null;
+  created_at: string;
+  updated_at: string;
+  docs_incorrectos?: DocIncorrectoResumen[];
+  docs_incorrectos_count?: number;
+  firma_electronica: FirmaListaResumen | null;
+  alumno: ReturnType<typeof mapAlumnoRow>;
+};
 
 /** Conteos de renovaciones enviadas: pendientes CE vs esperando corrección de docs. */
 export async function contarRenovacionesRevision(enviadas: {
@@ -316,6 +359,15 @@ export async function listSolicitudes(opts: {
   const estado = opts.estado || 'enviadas';
   const db = getInsforgeAdmin();
 
+  let activadaIds: string[] | null = null;
+  if (estado === 'activadas') {
+    activadaIds = await fetchExpedienteIdsFirmaActivada({
+      flujo: 'solicitud',
+      ciclo: opts.ciclo,
+    });
+    if (activadaIds.length === 0) return [];
+  }
+
   let q = db.database
     .from('becas_solicitud')
     .select(
@@ -325,7 +377,11 @@ export async function listSolicitudes(opts: {
     .order('enviado_en', { ascending: false })
     .limit(2000);
 
-  q = applyEstadoSolicitudFilter(q, estado);
+  if (estado === 'activadas' && activadaIds) {
+    q = q.in('id', activadaIds);
+  } else {
+    q = applyEstadoSolicitudFilter(q, estado);
+  }
 
   const { data, error } = await q;
   if (error) throw new Error(error.message);
@@ -360,7 +416,14 @@ export async function listSolicitudes(opts: {
   );
   const byId = new Map(alumnos.map((a) => [Number(a.alumno_id), a]));
 
-  return solRows
+  const expedienteIds = solRows.map((r) => String(r.id));
+  const firmaMap = await fetchFirmaResumenPorExpedientes({
+    flujo: 'solicitud',
+    ciclo: opts.ciclo,
+    expedienteIds,
+  });
+
+  const items = solRows
     .map((r) => {
       const a = byId.get(Number(r.alumno_id));
       if (!a) return null;
@@ -380,23 +443,38 @@ export async function listSolicitudes(opts: {
         updated_at: r.updated_at,
         docs_incorrectos: docsIncorrectos,
         docs_incorrectos_count: docsIncorrectos?.length,
+        firma_electronica: firmaMap.get(id) ?? null,
         alumno: mapAlumnoRow(a),
       };
     })
-    .filter(Boolean) as {
-    id: string;
-    ciclo_escolar: number;
-    enviado: boolean;
-    enviado_en: string | null;
-    verificado: boolean;
-    fecha_verificado: string | null;
-    beca_autorizada: boolean;
-    tiene_pdf: boolean;
-    motivo: string | null;
-    created_at: string;
-    updated_at: string;
-    docs_incorrectos?: DocIncorrectoResumen[];
-    docs_incorrectos_count?: number;
-    alumno: ReturnType<typeof mapAlumnoRow>;
-  }[];
+    .filter(Boolean) as SolicitudListItem[];
+
+  items.sort((a, b) => {
+    const actA = a.firma_electronica?.beca_activada ? 1 : 0;
+    const actB = b.firma_electronica?.beca_activada ? 1 : 0;
+    if (actA !== actB) return actB - actA;
+    const ta = a.enviado_en ? Date.parse(String(a.enviado_en)) : 0;
+    const tb = b.enviado_en ? Date.parse(String(b.enviado_en)) : 0;
+    return tb - ta;
+  });
+
+  return items;
 }
+
+export type SolicitudListItem = {
+  id: string;
+  ciclo_escolar: number;
+  enviado: boolean;
+  enviado_en: string | null;
+  verificado: boolean;
+  fecha_verificado: string | null;
+  beca_autorizada: boolean;
+  tiene_pdf: boolean;
+  motivo: string | null;
+  created_at: string;
+  updated_at: string;
+  docs_incorrectos?: DocIncorrectoResumen[];
+  docs_incorrectos_count?: number;
+  firma_electronica: FirmaListaResumen | null;
+  alumno: ReturnType<typeof mapAlumnoRow>;
+};

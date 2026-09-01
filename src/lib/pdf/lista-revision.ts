@@ -191,7 +191,8 @@ export async function buildListaRevisionPdf(
       const isEstado = c.key === 'estado';
       let fill: string = PDF_COLORS.text;
       if (isEstado) {
-        if (estado === 'Autorizada') fill = '#1F6B4A';
+        if (estado === 'Firmada y activada') fill = '#047857';
+        else if (estado === 'Autorizada') fill = '#1F6B4A';
         else if (estado === 'Verificada') fill = '#1C3258';
         else if (estado === 'Pendiente') fill = '#A84A2A';
       }

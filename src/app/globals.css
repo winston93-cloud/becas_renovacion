@@ -1574,6 +1574,77 @@ body {
   background: rgba(20, 35, 63, 0.03);
 }
 
+.admin-table tbody tr.admin-table-row--activada {
+  background: linear-gradient(
+    90deg,
+    rgba(16, 185, 129, 0.14),
+    rgba(16, 185, 129, 0.04)
+  );
+  box-shadow: inset 3px 0 0 #059669;
+}
+
+.admin-table tbody tr.admin-table-row--activada:hover {
+  background: linear-gradient(
+    90deg,
+    rgba(16, 185, 129, 0.2),
+    rgba(16, 185, 129, 0.08)
+  );
+}
+
+.admin-table-col-estado {
+  min-width: 220px;
+  max-width: 320px;
+}
+
+.admin-lista-estado {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.admin-lista-estado__badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.admin-lista-estado--card .admin-lista-estado__badges {
+  gap: 4px;
+}
+
+.admin-badge-activada {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid #047857;
+  background: linear-gradient(135deg, #059669, #10b981);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  box-shadow: 0 2px 8px rgba(5, 150, 105, 0.28);
+  white-space: nowrap;
+}
+
+.admin-lista-estado__firmante {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: var(--color-text-secondary);
+}
+
+.admin-lista-estado__firmante-label {
+  font-weight: 700;
+  color: #047857;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.65rem;
+}
+
 .admin-mobile-card {
   display: block;
   border-radius: 16px;
@@ -1589,6 +1660,45 @@ body {
 .admin-mobile-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 14px 28px rgba(20, 35, 63, 0.1);
+}
+
+.admin-mobile-card--activada {
+  border-color: rgba(5, 150, 105, 0.45);
+  background: linear-gradient(
+    135deg,
+    rgba(236, 253, 245, 0.95),
+    color-mix(in srgb, var(--color-card) 94%, transparent)
+  );
+  box-shadow:
+    0 10px 24px rgba(5, 150, 105, 0.12),
+    inset 3px 0 0 #059669;
+}
+
+.admin-mobile-card--activada:hover {
+  box-shadow:
+    0 14px 28px rgba(5, 150, 105, 0.16),
+    inset 3px 0 0 #059669;
+}
+
+[data-theme='dark'] .admin-table tbody tr.admin-table-row--activada {
+  background: linear-gradient(
+    90deg,
+    rgba(16, 185, 129, 0.22),
+    rgba(16, 185, 129, 0.06)
+  );
+}
+
+[data-theme='dark'] .admin-mobile-card--activada {
+  background: linear-gradient(
+    135deg,
+    rgba(6, 78, 59, 0.35),
+    color-mix(in srgb, var(--color-card) 94%, transparent)
+  );
+  border-color: rgba(52, 211, 153, 0.35);
+}
+
+[data-theme='dark'] .admin-lista-estado__firmante-label {
+  color: #6ee7b7;
 }
 
 /* ——— Modal portal (avisos) ——— */

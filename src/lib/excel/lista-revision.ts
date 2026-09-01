@@ -203,7 +203,14 @@ export async function buildListaRevisionExcel(
         wrapText: col === 2,
       };
       if (col === 4) {
-        if (estado === 'Autorizada') {
+        if (estado === 'Firmada y activada') {
+          c.font = { ...c.font, bold: true, color: { argb: 'FF065F46' } };
+          c.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFD1FAE5' },
+          };
+        } else if (estado === 'Autorizada') {
           c.font = { ...c.font, bold: true, color: { argb: OK_FG } };
           c.fill = {
             type: 'pattern',

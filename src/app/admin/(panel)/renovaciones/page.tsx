@@ -3,16 +3,23 @@
 import { useCallback, useEffect, useMemo, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Alert, Badge, Card, Select } from '@/components/ui';
+import { Alert, Card, Select } from '@/components/ui';
 import {
   AdminAlumnoListaBusqueda,
   type AdminAlumnoListaItem,
 } from '@/components/admin/AdminAlumnoListaBusqueda';
 import { AdminExportListaButtons } from '@/components/admin/AdminExportListaButtons';
 import {
+  AdminListaEstadoCelda,
+  adminListaCardActivadaClass,
+  adminListaRowActivadaClass,
+  isBecaActivadaLista,
+} from '@/components/admin/AdminListaEstadoCelda';
+import {
   etiquetaFiltroEstado,
   type AdminExportRow,
 } from '@/lib/admin-export-lista';
+import type { FirmaListaResumen } from '@/lib/firma-electronica-estado';
 
 type DocIncorrecto = {
   tipo: string;
@@ -28,6 +35,7 @@ type Item = {
   beca_autorizada: boolean;
   docs_incorrectos?: DocIncorrecto[];
   docs_incorrectos_count?: number;
+  firma_electronica?: FirmaListaResumen | null;
   alumno: {
     alumno_ref: string;
     nombre: string;
@@ -124,6 +132,9 @@ function ListInner() {
         enviado_en: it.correo_enviado_en,
         verificado: it.verificado,
         beca_autorizada: it.beca_autorizada,
+        beca_activada: Boolean(it.firma_electronica?.beca_activada),
+        firmado_por: it.firma_electronica?.firmado_por ?? null,
+        beca_activada_en: it.firma_electronica?.beca_activada_en ?? null,
       })),
     [visibles]
   );
@@ -141,6 +152,11 @@ function ListInner() {
 
   const esCorreccionDocs = estado === 'correccion_documentos';
 
+  const activadasCount = useMemo(
+    () => items.filter((it) => isBecaActivadaLista(it.firma_electronica)).length,
+    [items]
+  );
+
   return (
     <div className="space-y-4">
       <div className="admin-hero">
@@ -154,7 +170,9 @@ function ListInner() {
         <p className="text-xs text-text-secondary">
           {esCorreccionDocs
             ? 'Familias a las que se envió correo por documentación incorrecta. Cuando reenvíen, vuelven a «Pendientes de verificar». Marque verificada solo cuando todo el expediente esté correcto.'
-            : 'Abra el No. de control para revisar documentos y marcar como verificada o autorizada.'}
+            : estado === 'autorizadas' && activadasCount > 0
+              ? `${activadasCount} ya firmaron y activaron la beca (resaltadas en verde). Abra el No. de control para el detalle.`
+              : 'Abra el No. de control para revisar documentos y marcar como verificada o autorizada.'}
         </p>
       </div>
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
@@ -186,6 +204,7 @@ function ListInner() {
               </option>
               <option value="verificadas">Verificadas</option>
               <option value="autorizadas">Autorizadas</option>
+              <option value="activadas">Firmadas y activadas</option>
               <option value="todas">Todas (borradores incluidos)</option>
             </Select>
           </div>
@@ -216,29 +235,23 @@ function ListInner() {
           <Link
             key={it.id}
             href={`/admin/renovaciones/${it.id}`}
-            className="admin-mobile-card"
+            className={`admin-mobile-card ${adminListaCardActivadaClass(it.firma_electronica)}`}
           >
             <p className="font-semibold text-primary">{it.alumno.nombre}</p>
             <p className="text-sm text-text-secondary">
               {it.alumno.alumno_ref} · {it.alumno.nivel_label}{' '}
               {it.alumno.grado_label ?? it.alumno.grado ?? '—'} / {it.alumno.grupo}
             </p>
-            <div className="mt-2 flex flex-wrap gap-1">
-              {it.verificado ? (
-                <Badge variant="success">Verificada</Badge>
-              ) : esCorreccionDocs || (it.docs_incorrectos_count ?? 0) > 0 ? (
-                <Badge variant="pending">Docs incorrectos</Badge>
-              ) : (
-                <Badge variant="pending">Pendiente</Badge>
-              )}
-              {it.beca_autorizada ? (
-                <Badge
-                  variant="success"
-                  className="!border-emerald-600 !bg-emerald-600 !font-bold !text-white"
-                >
-                  ✓ Autorizada
-                </Badge>
-              ) : null}
+            <div className="mt-2">
+              <AdminListaEstadoCelda
+                layout="card"
+                verificado={it.verificado}
+                beca_autorizada={it.beca_autorizada}
+                correo_enviado={it.correo_enviado}
+                firma_electronica={it.firma_electronica}
+                esCorreccionDocs={esCorreccionDocs}
+                docs_incorrectos_count={it.docs_incorrectos_count}
+              />
             </div>
             {esCorreccionDocs && it.docs_incorrectos?.length ? (
               <p className="mt-2 text-xs text-text-secondary">
@@ -257,14 +270,17 @@ function ListInner() {
               <th>Alumno</th>
               <th>Grado</th>
               {esCorreccionDocs ? <th>Docs incorrectos</th> : null}
-              <th>Estado</th>
+              <th className="admin-table-col-estado">Estado</th>
               <th>Enviado</th>
               <th>Acción</th>
             </tr>
           </thead>
           <tbody>
             {visibles.map((it) => (
-              <tr key={it.id}>
+              <tr
+                key={it.id}
+                className={adminListaRowActivadaClass(it.firma_electronica)}
+              >
                 <td>
                   <Link
                     href={`/admin/renovaciones/${it.id}`}
@@ -297,26 +313,16 @@ function ListInner() {
                     )}
                   </td>
                 ) : null}
-                <td>
-                  <div className="flex flex-wrap gap-1">
-                    {it.verificado ? (
-                      <Badge variant="success">Verificada</Badge>
-                    ) : esCorreccionDocs ? (
-                      <Badge variant="pending">Esperando corrección</Badge>
-                    ) : it.correo_enviado ? (
-                      <Badge variant="pending">Pendiente</Badge>
-                    ) : (
-                      <Badge variant="neutral">Borrador</Badge>
-                    )}
-                    {it.beca_autorizada ? (
-                      <Badge
-                        variant="success"
-                        className="!border-emerald-600 !bg-emerald-600 !font-bold !text-white"
-                      >
-                        ✓ Autorizada
-                      </Badge>
-                    ) : null}
-                  </div>
+                <td className="admin-table-col-estado">
+                  <AdminListaEstadoCelda
+                    layout="table"
+                    verificado={it.verificado}
+                    beca_autorizada={it.beca_autorizada}
+                    correo_enviado={it.correo_enviado}
+                    firma_electronica={it.firma_electronica}
+                    esCorreccionDocs={esCorreccionDocs}
+                    docs_incorrectos_count={it.docs_incorrectos_count}
+                  />
                 </td>
                 <td className="text-text-secondary">
                   {it.correo_enviado_en
