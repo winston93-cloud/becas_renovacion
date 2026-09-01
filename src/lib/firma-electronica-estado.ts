@@ -38,21 +38,25 @@ function mapFirmaListaRow(data: {
   };
 }
 
-function chunkStrings(ids: string[], size: number): string[][] {
-  const out: string[][] = [];
+function chunkNumbers(ids: number[], size: number): number[][] {
+  const out: number[][] = [];
   for (let i = 0; i < ids.length; i += size) out.push(ids.slice(i, i + size));
   return out;
 }
 
+/** Ciclo en `becas_autorizacion_firma` (calendario actual al autorizar/firmar). */
+export function cicloFirmaElectronica(): number {
+  return getCurrentSchoolCycle();
+}
+
 export async function fetchExpedienteIdsFirmaActivada(opts: {
   flujo: 'solicitud' | 'renovacion';
-  ciclo: number;
 }): Promise<string[]> {
   const db = getInsforgeAdmin().database;
   const { data, error } = await db
     .from('becas_autorizacion_firma')
     .select('expediente_id')
-    .eq('ciclo_escolar', opts.ciclo)
+    .eq('ciclo_escolar', cicloFirmaElectronica())
     .eq('flujo', opts.flujo)
     .eq('beca_activada', true)
     .limit(5000);
@@ -61,30 +65,42 @@ export async function fetchExpedienteIdsFirmaActivada(opts: {
   return [...new Set((data || []).map((r) => String(r.expediente_id)))];
 }
 
-export async function fetchFirmaResumenPorExpedientes(opts: {
+/** Resumen de firma por alumno (misma clave que el registro en autorización). */
+export async function fetchFirmaResumenPorAlumnos(opts: {
   flujo: 'solicitud' | 'renovacion';
-  ciclo: number;
-  expedienteIds: string[];
-}): Promise<Map<string, FirmaListaResumen>> {
-  const map = new Map<string, FirmaListaResumen>();
-  const ids = [...new Set(opts.expedienteIds.filter(Boolean))];
+  alumnoIds: number[];
+}): Promise<Map<number, FirmaListaResumen>> {
+  const map = new Map<number, FirmaListaResumen>();
+  const ids = [
+    ...new Set(
+      opts.alumnoIds.map((id) => Number(id)).filter((id) => Number.isFinite(id) && id > 0)
+    ),
+  ];
   if (!ids.length) return map;
 
   const db = getInsforgeAdmin().database;
-  for (const slice of chunkStrings(ids, 200)) {
-    const { data, error } = await db
-      .from('becas_autorizacion_firma')
-      .select(
-        'expediente_id, activo, beca_activada, beca_activada_en, firmado_por'
-      )
-      .eq('ciclo_escolar', opts.ciclo)
-      .eq('flujo', opts.flujo)
-      .in('expediente_id', slice);
+  const ciclo = cicloFirmaElectronica();
+  const slices = chunkNumbers(ids, 100);
 
+  const results = await Promise.all(
+    slices.map((slice) =>
+      db
+        .from('becas_autorizacion_firma')
+        .select(
+          'alumno_id, activo, beca_activada, beca_activada_en, firmado_por'
+        )
+        .eq('ciclo_escolar', ciclo)
+        .eq('flujo', opts.flujo)
+        .in('alumno_id', slice)
+    )
+  );
+
+  for (const { data, error } of results) {
     if (error) throw new Error(error.message);
     for (const row of data || []) {
-      const id = String(row.expediente_id);
-      map.set(id, mapFirmaListaRow(row));
+      const alumnoId = Number(row.alumno_id);
+      if (!Number.isFinite(alumnoId)) continue;
+      map.set(alumnoId, mapFirmaListaRow(row));
     }
   }
   return map;

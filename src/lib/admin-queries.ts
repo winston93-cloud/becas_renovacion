@@ -16,7 +16,7 @@ import {
 } from '@/lib/admin-renovacion-docs-incorrectos';
 import {
   fetchExpedienteIdsFirmaActivada,
-  fetchFirmaResumenPorExpedientes,
+  fetchFirmaResumenPorAlumnos,
   type FirmaListaResumen,
 } from '@/lib/firma-electronica-estado';
 
@@ -182,7 +182,6 @@ export async function listRenovaciones(opts: {
   if (estado === 'activadas') {
     activadaIds = await fetchExpedienteIdsFirmaActivada({
       flujo: 'renovacion',
-      ciclo: opts.ciclo,
     });
     if (activadaIds.length === 0) return [];
   }
@@ -235,12 +234,18 @@ export async function listRenovaciones(opts: {
   );
   const byId = new Map(alumnos.map((a) => [Number(a.alumno_id), a]));
 
-  const expedienteIds = renRows.map((r) => String(r.id));
-  const firmaMap = await fetchFirmaResumenPorExpedientes({
-    flujo: 'renovacion',
-    ciclo: opts.ciclo,
-    expedienteIds,
-  });
+  const alumnoIdsFirma = [
+    ...new Set(renRows.map((r) => Number(r.alumno_id)).filter((id) => id > 0)),
+  ];
+  let firmaMap = new Map<number, FirmaListaResumen>();
+  try {
+    firmaMap = await fetchFirmaResumenPorAlumnos({
+      flujo: 'renovacion',
+      alumnoIds: alumnoIdsFirma,
+    });
+  } catch (err) {
+    console.error('[listRenovaciones] firma resumen:', err);
+  }
 
   const items = renRows
     .map((r) => {
@@ -262,7 +267,7 @@ export async function listRenovaciones(opts: {
         updated_at: r.updated_at,
         docs_incorrectos: docsIncorrectos,
         docs_incorrectos_count: docsIncorrectos?.length,
-        firma_electronica: firmaMap.get(id) ?? null,
+        firma_electronica: firmaMap.get(Number(r.alumno_id)) ?? null,
         alumno: mapAlumnoRow(a),
       };
     })
@@ -363,7 +368,6 @@ export async function listSolicitudes(opts: {
   if (estado === 'activadas') {
     activadaIds = await fetchExpedienteIdsFirmaActivada({
       flujo: 'solicitud',
-      ciclo: opts.ciclo,
     });
     if (activadaIds.length === 0) return [];
   }
@@ -416,12 +420,18 @@ export async function listSolicitudes(opts: {
   );
   const byId = new Map(alumnos.map((a) => [Number(a.alumno_id), a]));
 
-  const expedienteIds = solRows.map((r) => String(r.id));
-  const firmaMap = await fetchFirmaResumenPorExpedientes({
-    flujo: 'solicitud',
-    ciclo: opts.ciclo,
-    expedienteIds,
-  });
+  const alumnoIdsFirma = [
+    ...new Set(solRows.map((r) => Number(r.alumno_id)).filter((id) => id > 0)),
+  ];
+  let firmaMap = new Map<number, FirmaListaResumen>();
+  try {
+    firmaMap = await fetchFirmaResumenPorAlumnos({
+      flujo: 'solicitud',
+      alumnoIds: alumnoIdsFirma,
+    });
+  } catch (err) {
+    console.error('[listSolicitudes] firma resumen:', err);
+  }
 
   const items = solRows
     .map((r) => {
@@ -443,7 +453,7 @@ export async function listSolicitudes(opts: {
         updated_at: r.updated_at,
         docs_incorrectos: docsIncorrectos,
         docs_incorrectos_count: docsIncorrectos?.length,
-        firma_electronica: firmaMap.get(id) ?? null,
+        firma_electronica: firmaMap.get(Number(r.alumno_id)) ?? null,
         alumno: mapAlumnoRow(a),
       };
     })
