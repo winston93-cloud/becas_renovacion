@@ -135,8 +135,9 @@ export async function buildListaRevisionPdf(
     { key: 'aut', label: 'Autoriz.', w: 38 },
     { key: 'env', label: 'Enviado', w: 68 },
     { key: 'act', label: 'Activ.', w: 32 },
-    { key: 'firm', label: 'Firmado por', w: 96 },
-    { key: 'fact', label: 'Fecha activ.', w: 68 },
+    { key: 'firm', label: 'Firmado por', w: 80 },
+    { key: 'fact', label: 'Fecha activ.', w: 60 },
+    { key: 'aplica', label: 'Aplica', w: 52 },
   ] as const;
   const tableW = cols.reduce((a, c) => a + c.w, 0);
   const tableX = PAGE.margin;
@@ -191,6 +192,7 @@ export async function buildListaRevisionPdf(
       r.beca_activada ? 'Sí' : 'No',
       r.firmado_por?.trim() || '—',
       formatFechaExport(r.beca_activada_en ?? null),
+      r.aplica_desde?.trim() || 'Septiembre',
     ];
     let cx = tableX;
     values.forEach((val, idx) => {

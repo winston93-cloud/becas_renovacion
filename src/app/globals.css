@@ -1691,6 +1691,18 @@ body {
   color: var(--color-text-secondary);
 }
 
+.admin-badge-estado--mes-normal {
+  border-color: rgba(36, 52, 72, 0.18);
+  background: rgba(36, 52, 72, 0.05);
+  color: var(--color-text-secondary);
+}
+
+.admin-badge-estado--mes-tardio {
+  border-color: #d97706;
+  background: #fffbeb;
+  color: #b45309;
+}
+
 .admin-lista-estado--card .admin-lista-estado__badges {
   gap: 4px;
 }
@@ -1831,6 +1843,12 @@ body {
 }
 
 [data-theme='dark'] .admin-badge-estado--espera-firma {
+  background: rgba(217, 119, 6, 0.16);
+  color: #fcd34d;
+  border-color: rgba(245, 158, 11, 0.45);
+}
+
+[data-theme='dark'] .admin-badge-estado--mes-tardio {
   background: rgba(217, 119, 6, 0.16);
   color: #fcd34d;
   border-color: rgba(245, 158, 11, 0.45);

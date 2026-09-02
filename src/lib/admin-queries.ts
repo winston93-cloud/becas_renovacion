@@ -192,7 +192,7 @@ export async function listRenovaciones(opts: {
   let q = db.database
     .from('becas_renovacion')
     .select(
-      'id, alumno_id, ciclo_escolar, correo_enviado, correo_enviado_en, verificado, fecha_verificado, beca_autorizada, beca_rechazada, beca_rechazada_en, pdf_solicitud_key, motivo, created_at, updated_at'
+      'id, alumno_id, ciclo_escolar, correo_enviado, correo_enviado_en, verificado, fecha_verificado, beca_autorizada, beca_rechazada, beca_rechazada_en, beca_aplica_desde_mes, pdf_solicitud_key, motivo, created_at, updated_at'
     )
     .eq('ciclo_escolar', opts.ciclo)
     .order('correo_enviado_en', { ascending: false })
@@ -266,6 +266,10 @@ export async function listRenovaciones(opts: {
         beca_autorizada: Boolean(r.beca_autorizada),
         beca_rechazada: Boolean(r.beca_rechazada),
         beca_rechazada_en: r.beca_rechazada_en || null,
+        beca_aplica_desde_mes:
+          r.beca_aplica_desde_mes != null
+            ? Number(r.beca_aplica_desde_mes)
+            : null,
         tiene_pdf: Boolean(r.pdf_solicitud_key),
         motivo: r.motivo || null,
         created_at: r.created_at,
@@ -303,6 +307,7 @@ export type RenovacionListItem = {
   beca_autorizada: boolean;
   beca_rechazada: boolean;
   beca_rechazada_en: string | null;
+  beca_aplica_desde_mes: number | null;
   tiene_pdf: boolean;
   motivo: string | null;
   created_at: string;
@@ -385,7 +390,7 @@ export async function listSolicitudes(opts: {
   let q = db.database
     .from('becas_solicitud')
     .select(
-      'id, alumno_id, ciclo_escolar, enviado, enviado_en, verificado, fecha_verificado, beca_autorizada, beca_rechazada, beca_rechazada_en, pdf_solicitud_key, motivo, created_at, updated_at'
+      'id, alumno_id, ciclo_escolar, enviado, enviado_en, verificado, fecha_verificado, beca_autorizada, beca_rechazada, beca_rechazada_en, beca_aplica_desde_mes, pdf_solicitud_key, motivo, created_at, updated_at'
     )
     .eq('ciclo_escolar', opts.ciclo)
     .order('enviado_en', { ascending: false })
@@ -459,6 +464,10 @@ export async function listSolicitudes(opts: {
         beca_autorizada: Boolean(r.beca_autorizada),
         beca_rechazada: Boolean(r.beca_rechazada),
         beca_rechazada_en: r.beca_rechazada_en || null,
+        beca_aplica_desde_mes:
+          r.beca_aplica_desde_mes != null
+            ? Number(r.beca_aplica_desde_mes)
+            : null,
         tiene_pdf: Boolean(r.pdf_solicitud_key),
         motivo: r.motivo || null,
         created_at: r.created_at,
@@ -496,6 +505,7 @@ export type SolicitudListItem = {
   beca_autorizada: boolean;
   beca_rechazada: boolean;
   beca_rechazada_en: string | null;
+  beca_aplica_desde_mes: number | null;
   tiene_pdf: boolean;
   motivo: string | null;
   created_at: string;

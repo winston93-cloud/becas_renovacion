@@ -21,6 +21,7 @@ import {
 import { normalizarRevisionEstado } from '@/lib/doc-revision';
 import { AdminAutorizarBecaButton } from '@/app/admin/(panel)/components/AdminAutorizarBecaButton';
 import { AdminRechazoBecaButton } from '@/app/admin/(panel)/components/AdminRechazoBecaButton';
+import { AdminMesAplicaControl } from '@/app/admin/(panel)/components/AdminMesAplicaControl';
 import { AdminVerCartaAceptacionButton } from '@/app/admin/(panel)/components/AdminVerCartaAceptacionButton';
 import { AdminVerCartaFirmadaButton } from '@/app/admin/(panel)/components/AdminVerCartaFirmadaButton';
 import { AdminSeguimientoIndividualizado } from '@/app/admin/(panel)/components/AdminSeguimientoIndividualizado';
@@ -42,6 +43,7 @@ type Detail = {
     fecha_verificado: string | null;
     beca_autorizada: boolean;
     beca_rechazada?: boolean;
+    beca_aplica_desde_mes?: number | null;
     flags_docs: Record<string, boolean>;
   };
   alumno: {
@@ -193,6 +195,13 @@ export default function SolicitudDetallePage({
         autorizada={s.beca_autorizada}
         becaActivada={Boolean(data.firma_electronica?.beca_activada)}
         firmadoPor={data.firma_electronica?.firmado_por}
+      />
+
+      <AdminMesAplicaControl
+        flujo="solicitud"
+        expedienteId={s.id}
+        mes={s.beca_aplica_desde_mes}
+        onSaved={() => load({ soft: true })}
       />
 
       {error ? <Alert variant="error">{error}</Alert> : null}

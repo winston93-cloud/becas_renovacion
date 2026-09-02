@@ -17,6 +17,7 @@ export type AdminExportRow = {
   beca_activada?: boolean;
   firmado_por?: string | null;
   beca_activada_en?: string | null;
+  aplica_desde?: string | null;
 };
 
 export type AdminExportPayload = {

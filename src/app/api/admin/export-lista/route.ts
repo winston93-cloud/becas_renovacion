@@ -33,6 +33,7 @@ function sanitizeRows(raw: unknown): AdminExportRow[] {
       beca_activada: Boolean(r.beca_activada),
       firmado_por: r.firmado_por ? String(r.firmado_por) : null,
       beca_activada_en: r.beca_activada_en ? String(r.beca_activada_en) : null,
+      aplica_desde: r.aplica_desde ? String(r.aplica_desde) : null,
     });
   }
   return out;

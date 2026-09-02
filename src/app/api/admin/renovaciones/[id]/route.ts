@@ -37,6 +37,10 @@ import {
   parsePromedioMinimoCartaAdmin,
 } from '@/lib/promedio-minimo-carta-beca';
 import { parseSeguimientoIndividualizadoAdmin } from '@/lib/clausula-seguimiento-carta';
+import {
+  mesAplicaEfectivo,
+  normalizarMesAplica,
+} from '@/lib/beca-aplica-desde-mes';
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -150,6 +154,7 @@ export async function GET(_request: NextRequest, ctx: Ctx) {
         beca_autorizada: Boolean(ren.beca_autorizada),
         beca_rechazada: Boolean(ren.beca_rechazada),
         beca_rechazada_en: ren.beca_rechazada_en || null,
+        beca_aplica_desde_mes: mesAplicaEfectivo(ren.beca_aplica_desde_mes),
         pdf_solicitud_key: ren.pdf_solicitud_key || null,
         flags_docs: Object.fromEntries(
           tipos.map((t) => [t, Boolean(ren[t])])
@@ -354,6 +359,18 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
           ? 'renovacion.seguimiento_individualizado'
           : 'renovacion.quitar_seguimiento_individualizado'
       );
+    }
+
+    if (body.beca_aplica_desde_mes !== undefined) {
+      const mes = normalizarMesAplica(body.beca_aplica_desde_mes);
+      if (mes == null) {
+        return NextResponse.json(
+          { error: 'Mes de aplicación inválido (use 1–12).' },
+          { status: 400 }
+        );
+      }
+      patch.beca_aplica_desde_mes = mes;
+      accionesLog.push('renovacion.beca_aplica_desde_mes');
     }
 
     if (typeof body.verificado === 'boolean') {

@@ -15,10 +15,12 @@ import {
   adminListaRowClass,
   isBecaActivadaLista,
 } from '@/components/admin/AdminListaEstadoCelda';
+import { AdminMesAplicaBadge } from '@/app/admin/(panel)/components/AdminMesAplicaControl';
 import {
   etiquetaFiltroEstado,
   type AdminExportRow,
 } from '@/lib/admin-export-lista';
+import { etiquetaMesAplica } from '@/lib/beca-aplica-desde-mes';
 import type { FirmaListaResumen } from '@/lib/firma-electronica-estado';
 
 type DocIncorrecto = {
@@ -34,6 +36,7 @@ type Item = {
   verificado: boolean;
   beca_autorizada: boolean;
   beca_rechazada?: boolean;
+  beca_aplica_desde_mes?: number | null;
   docs_incorrectos?: DocIncorrecto[];
   docs_incorrectos_count?: number;
   firma_electronica?: FirmaListaResumen | null;
@@ -137,6 +140,7 @@ function ListInner() {
         beca_activada: Boolean(it.firma_electronica?.beca_activada),
         firmado_por: it.firma_electronica?.firmado_por ?? null,
         beca_activada_en: it.firma_electronica?.beca_activada_en ?? null,
+        aplica_desde: etiquetaMesAplica(it.beca_aplica_desde_mes),
       })),
     [visibles]
   );
@@ -256,6 +260,9 @@ function ListInner() {
                 esCorreccionDocs={esCorreccionDocs}
                 docs_incorrectos_count={it.docs_incorrectos_count}
               />
+              <div className="mt-1.5">
+                <AdminMesAplicaBadge mes={it.beca_aplica_desde_mes} />
+              </div>
             </div>
             {esCorreccionDocs && it.docs_incorrectos?.length ? (
               <p className="mt-2 text-xs text-text-secondary">
@@ -275,6 +282,7 @@ function ListInner() {
               <th>Grado</th>
               {esCorreccionDocs ? <th>Docs incorrectos</th> : null}
               <th className="admin-table-col-estado">Estado</th>
+              <th>Aplica desde</th>
               <th>Enviado</th>
               <th>Acción</th>
             </tr>
@@ -328,6 +336,9 @@ function ListInner() {
                     esCorreccionDocs={esCorreccionDocs}
                     docs_incorrectos_count={it.docs_incorrectos_count}
                   />
+                </td>
+                <td>
+                  <AdminMesAplicaBadge mes={it.beca_aplica_desde_mes} />
                 </td>
                 <td className="text-text-secondary">
                   {it.correo_enviado_en

@@ -21,7 +21,7 @@ const WARN_BG = 'FFFFF3E0';
 const WARN_FG = 'FFA84A2A';
 const INFO_BG = 'FFE8EEF6';
 const INFO_FG = 'FF1C3258';
-const LAST_COL = 'K';
+const LAST_COL = 'L';
 
 function thinBorder(): Partial<ExcelJS.Borders> {
   const side: Partial<ExcelJS.Border> = {
@@ -66,6 +66,7 @@ export async function buildListaRevisionExcel(
     { width: 12 },
     { width: 28 },
     { width: 18 },
+    { width: 14 },
   ];
 
   ws.mergeCells(`A1:${LAST_COL}1`);
@@ -166,6 +167,7 @@ export async function buildListaRevisionExcel(
     'Activada',
     'Firmado por',
     'Fecha activación',
+    'Aplica desde',
   ];
   headers.forEach((h, i) => {
     const c = headerRow.getCell(i + 1);
@@ -201,6 +203,7 @@ export async function buildListaRevisionExcel(
       r.beca_activada ? 'Sí' : 'No',
       r.firmado_por?.trim() || '—',
       formatFechaExport(r.beca_activada_en ?? null),
+      r.aplica_desde?.trim() || 'Septiembre',
     ];
     const row = ws.getRow(rowNum);
     values.forEach((val, col) => {

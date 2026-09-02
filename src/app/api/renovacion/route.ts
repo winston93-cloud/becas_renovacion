@@ -25,6 +25,10 @@ import { labelNivel } from '@/lib/email-renovacion';
 import { buildSolicitudPdf } from '@/lib/pdf/solicitud';
 import { buildSolicitudDataFromRows } from '@/lib/pdf/map-data';
 import type { Familiar, Hermano, RenovacionPayload, RenovacionPrecarga } from '@/lib/types';
+import {
+  MES_APLICA_DEFAULT,
+  MES_APLICA_POST_CIERRE,
+} from '@/lib/beca-aplica-desde-mes';
 
 function emptyFamiliar(tutor_id: 1 | 2): Familiar {
   return {
@@ -469,7 +473,11 @@ export async function POST(request: NextRequest) {
 
     // Upsert renovación (tabla propia)
     // 2026-07-16 - Ingresos siempre null en BD (política de privacidad)
-    const renovacionRow = {
+    const esPostCierreCompleta = await renovacionExentaCompletaPostCierre(
+      admin,
+      alumnoId
+    );
+    const renovacionRow: Record<string, unknown> = {
       alumno_id: alumnoId,
       ciclo_escolar: ciclo,
       ingreso_mensual_padre: null,
@@ -484,13 +492,20 @@ export async function POST(request: NextRequest) {
 
     const { data: existingRen } = await admin.database
       .from('becas_renovacion')
-      .select('id')
+      .select('id, beca_aplica_desde_mes')
       .eq('alumno_id', alumnoId)
       .eq('ciclo_escolar', ciclo)
       .maybeSingle();
 
     let renovacionId: string;
     if (existingRen?.id) {
+      // No pisar un mes ya fijado por CE/admin; si viene null y es post-cierre → octubre.
+      if (
+        existingRen.beca_aplica_desde_mes == null &&
+        esPostCierreCompleta
+      ) {
+        renovacionRow.beca_aplica_desde_mes = MES_APLICA_POST_CIERRE;
+      }
       const { data: updated, error } = await admin.database
         .from('becas_renovacion')
         .update(renovacionRow)
@@ -500,6 +515,9 @@ export async function POST(request: NextRequest) {
       if (error) throw new Error(error.message);
       renovacionId = updated.id;
     } else {
+      renovacionRow.beca_aplica_desde_mes = esPostCierreCompleta
+        ? MES_APLICA_POST_CIERRE
+        : MES_APLICA_DEFAULT;
       const { data: inserted, error } = await admin.database
         .from('becas_renovacion')
         .insert([renovacionRow])
