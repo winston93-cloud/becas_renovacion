@@ -9,6 +9,7 @@ export const RENOVACION_EXCEPCION_COMPLETA_REFS: ReadonlySet<string> = new Set([
   '21769', // Luciana Mabel Román Aguillón — Kinder 2 — 2026-08-19
   '21089', // Georgette Alhelí Hernández Ramírez — Secundaria — 2026-09-02 (post-cierre CE)
   '21785', // Christian Gael Vivanco Rodríguez — Secundaria — 2026-09-02 (post-cierre CE)
+  '21794', // SANTIAGO NORIEGA EDUARDO ALBERTO — Kinder 2 — 2026-09-02 (post-cierre CE)
 ]);
 
 export function normalizarAlumnoRef(ref: string): string {
