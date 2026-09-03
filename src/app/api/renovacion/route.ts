@@ -14,6 +14,7 @@ import {
 } from '@/lib/ciclo-escolar';
 import { requireAcceso, forbidWrongAlumno } from '@/lib/acceso-auth';
 import { esBecaNoTramitable } from '@/lib/becas-excluidas';
+import { etiquetaBecaParaPadres } from '@/lib/becas-etiquetas';
 import { normalizarRevisionEstado } from '@/lib/doc-revision';
 import {
   assertPortalRenovacionOExcepcionCompleta,
@@ -292,7 +293,9 @@ export async function GET(request: NextRequest) {
         : null,
       beca: {
         beca_id: becaId,
-        beca_clase: concepto?.beca_clase || 'Sin beca',
+        beca_clase: etiquetaBecaParaPadres(
+          concepto?.beca_clase ? String(concepto.beca_clase) : 'Sin beca'
+        ),
         beca_porcentaje: Number(becaRow.beca_porcentaje) || 0,
         beca_promedio_requerido: Number(concepto?.beca_promedio_requerido) || 0,
       },
@@ -582,7 +585,9 @@ export async function POST(request: NextRequest) {
         .select('beca_clase, beca_promedio_requerido')
         .eq('beca_id', Number(becaRow.beca_id))
         .maybeSingle();
-      becaClase = concepto?.beca_clase || 'Sin beca';
+      becaClase = etiquetaBecaParaPadres(
+        concepto?.beca_clase ? String(concepto.beca_clase) : 'Sin beca'
+      );
       promedioRequerido =
         concepto?.beca_promedio_requerido != null
           ? String(concepto.beca_promedio_requerido)

@@ -2,6 +2,7 @@
  * Arma payload de carta de aceptación desde expediente admin (InsForge).
  */
 import { cargarBecaRenovacionAdmin } from '@/lib/admin-beca-catalogo';
+import { etiquetaBecaParaPadres } from '@/lib/becas-etiquetas';
 import {
   getCurrentSchoolCycle,
   getSchoolCycleLabel,
@@ -149,7 +150,9 @@ export async function construirCartaAceptacionPayload(opts: {
       .select('beca_clase')
       .eq('beca_id', becaId)
       .maybeSingle();
-    becaClase = concepto?.beca_clase ? String(concepto.beca_clase) : null;
+    becaClase = concepto?.beca_clase
+      ? etiquetaBecaParaPadres(String(concepto.beca_clase))
+      : null;
   }
 
   if (!becaClase || becaPorcentaje == null || !(Number(becaPorcentaje) >= 0)) {

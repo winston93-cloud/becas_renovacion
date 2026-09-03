@@ -12,6 +12,10 @@ import { forbidWrongAlumno, requireAcceso } from '@/lib/acceso-auth';
 import { getCurrentSchoolCycle, getSchoolCycleLabel } from '@/lib/ciclo-escolar';
 import { tieneBecaActivaCicloPasado } from '@/lib/beca-elegibilidad';
 import { esBecaNoTramitable, esConceptoTramitable } from '@/lib/becas-excluidas';
+import {
+  conceptosParaSelectPadres,
+  etiquetaBecaParaPadres,
+} from '@/lib/becas-etiquetas';
 import { buildSolicitudDocsContext } from '@/lib/solicitud-docs-context';
 import { assertPortalAbierto } from '@/lib/portal-ventanas';
 import { labelNivel } from '@/lib/email-renovacion';
@@ -349,12 +353,17 @@ export async function GET(request: NextRequest) {
               detalle.alumno_cp != null ? String(detalle.alumno_cp) : null,
           }
         : null,
-      conceptos: (conceptos || [])
-        .map((c) => ({
-          beca_id: Number(c.beca_id),
-          beca_clase: String(c.beca_clase),
-        }))
-        .filter(esConceptoTramitable),
+      conceptos: conceptosParaSelectPadres(
+        (conceptos || [])
+          .map((c) => ({
+            beca_id: Number(c.beca_id),
+            beca_clase: String(c.beca_clase),
+          }))
+          .filter(esConceptoTramitable),
+        solicitud?.beca_deseada_id != null
+          ? Number(solicitud.beca_deseada_id)
+          : null
+      ),
       mama: mapFamiliar(mamaRow, 1),
       papa: mapFamiliar(papaRow, 2),
       solicitud: solicitud
@@ -651,7 +660,9 @@ export async function POST(request: NextRequest) {
         .select('beca_clase, beca_promedio_requerido')
         .eq('beca_id', Number(body.beca_deseada_id))
         .maybeSingle();
-      becaClase = concepto?.beca_clase || 'Sin beca';
+      becaClase = etiquetaBecaParaPadres(
+        concepto?.beca_clase ? String(concepto.beca_clase) : 'Sin beca'
+      );
       promedioRequerido =
         concepto?.beca_promedio_requerido != null
           ? String(concepto.beca_promedio_requerido)
