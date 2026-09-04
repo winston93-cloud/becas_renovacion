@@ -11,6 +11,7 @@ export const RENOVACION_EXCEPCION_COMPLETA_REFS: ReadonlySet<string> = new Set([
   '21785', // Christian Gael Vivanco Rodríguez — Secundaria — 2026-09-02 (post-cierre CE)
   '21794', // SANTIAGO NORIEGA EDUARDO ALBERTO — Kinder 2 — 2026-09-02 (post-cierre CE)
   '21665', // BARRIOS DELGADO SARAH NICOLE — Kinder — 2026-09-03 (post-cierre, autorizado por DG, trámite extemporáneo)
+  '21788', // MEZA CARDENAS MARCOS — Kinder 3 — 2026-09-04 (post-cierre CE, autorizado por DG desde octubre)
 ]);
 
 export function normalizarAlumnoRef(ref: string): string {
