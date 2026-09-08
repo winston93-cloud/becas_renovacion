@@ -78,10 +78,10 @@ export function buildBecaRechazoMensajeTexto(
     `Grado / Grupo: ${data.gradoGrupo}`,
     `Ciclo: ${data.cicloLabel}`,
     '',
-    'Esta resolución forma parte del proceso de evaluación institucional. Para cualquier aclaración, puede comunicarse con el área de Control Escolar del Instituto Winston Churchill.',
+    'Esta resolución forma parte del proceso de evaluación institucional. Para cualquier aclaración, puede comunicarse con el Comité de Becas del Instituto Winston Churchill.',
     '',
     'Atentamente,',
-    'Control Escolar — Instituto Winston Churchill',
+    'Comité de Becas — Instituto Winston Churchill',
   ].join('\n');
 }
 
