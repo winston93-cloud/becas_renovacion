@@ -1,5 +1,5 @@
 /**
- * Promedio Final Winston (secundaria) desde InsForge Boletas `boleta_calificacion`.
+ * Promedio Final Winston (secundaria) desde `boleta_calificacion` en Winston Servicios.
  * Misma fórmula que secundariaPromedioMysql (trimestres 1–3, sin Mindfulness).
  */
 import { getInsforgeBoletasConfig } from '@/lib/insforge-boletas';

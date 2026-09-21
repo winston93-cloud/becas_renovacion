@@ -1,7 +1,8 @@
 /**
  * Promedio final Winston para el detalle admin de renovación.
  *
- * 2026-08-13 - Fuente principal: InsForge proyecto Boletas (`promedio_ciclo`),
+ * 2026-08-13 - Fuente: `promedio_ciclo` en InsForge.
+ * 2026-09-21 - Tablas en Winston Servicios (g4ta4bfg); ya no en NANO Boletas.
  * ciclo = getCicloBecaARenovar() (ej. 22). La ficha puede ir un grado adelante
  * (6° en renovación ↔ boleta 5° en ciclo 22).
  *
@@ -51,7 +52,7 @@ function numOrNull(v: unknown): number | null {
 }
 
 /**
- * Lee promedio desde InsForge Boletas (`promedio_ciclo`).
+ * Lee promedio desde Winston (`promedio_ciclo`).
  * Si la tabla aún no existe / backend no listo, devuelve nota explicativa.
  */
 async function cargarDesdeInsforgeBoletas(opts: {
@@ -66,7 +67,7 @@ async function cargarDesdeInsforgeBoletas(opts: {
   if (!cfg) {
     return vacio(
       cicloDatos,
-      'Falta configurar INSFORGE_BOLETAS_URL / INSFORGE_BOLETAS_API_KEY.'
+      'Falta configurar INSFORGE_URL / INSFORGE_API_KEY (Winston) o INSFORGE_BOLETAS_*.'
     );
   }
 
@@ -89,7 +90,7 @@ async function cargarDesdeInsforgeBoletas(opts: {
     if (error) {
       return vacio(
         cicloDatos,
-        `InsForge Boletas: ${error.message}. Si el proyecto es nuevo, hay que crear la tabla promedio_ciclo y migrar el ciclo ${cicloDatos}.`,
+        `Winston boletas: ${error.message}. Revisar tabla promedio_ciclo / ciclo ${cicloDatos}.`,
         origen
           ? {
               fuente: origen.fuente,
@@ -161,7 +162,7 @@ async function cargarDesdeInsforgeBoletas(opts: {
         origen
           ? origen.fuente === 'primaria' && Number(nivelFicha) === 4
             ? `Sin promedio de 6° primaria (ciclo ${cicloDatos}) para este 7mo. Hay que backfill desde boletas primaria.`
-            : `Sin promedio en InsForge Boletas para este alumno (ciclo ${cicloDatos}, origen ${origen.fuente} grado ${origen.gradoOrigen}).`
+            : `Sin promedio en Winston (promedio_ciclo) para este alumno (ciclo ${cicloDatos}, origen ${origen.fuente} grado ${origen.gradoOrigen}).`
           : `Sin promedio en boletas del ciclo (sin grado previo).`,
         origen
           ? {
@@ -199,7 +200,7 @@ async function cargarDesdeInsforgeBoletas(opts: {
           : null,
     };
   } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Error InsForge Boletas';
+    const msg = err instanceof Error ? err.message : 'Error leyendo promedios Winston';
     return vacio(cicloDatos, `No se pudo cargar el promedio: ${msg}`, {
       fuente: origen?.fuente ?? null,
       gradoOrigen: origen?.gradoOrigen ?? null,
@@ -237,6 +238,6 @@ export async function cargarPromedioBecadoRenovacion(opts: {
   gradoFicha: number;
   cicloDatos: number;
 }): Promise<PromedioBecadoRenovacion> {
-  // Ya no se consulta MySQL hosting (sale de servicio). Solo InsForge Boletas.
+  // Ya no se consulta MySQL hosting (sale de servicio). Solo Winston (promedio_ciclo).
   return cargarDesdeInsforgeBoletas(opts);
 }
