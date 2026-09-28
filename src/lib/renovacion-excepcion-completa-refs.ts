@@ -13,6 +13,7 @@ export const RENOVACION_EXCEPCION_COMPLETA_REFS: ReadonlySet<string> = new Set([
   '21665', // BARRIOS DELGADO SARAH NICOLE — Kinder — 2026-09-03 (post-cierre, autorizado por DG, trámite extemporáneo)
   '21788', // MEZA CARDENAS MARCOS — Kinder 3 — 2026-09-04 (post-cierre CE, autorizado por DG desde octubre)
   '20508', // CAMILA MEZA TREJO — Secundaria — 2026-09-18 (post-cierre CE Secundaria)
+  '20875', // IAN MALEK ORTIZ MORENO — Primaria 6° — 2026-09-28 (post-cierre, becado ciclo 22)
 ]);
 
 export function normalizarAlumnoRef(ref: string): string {
