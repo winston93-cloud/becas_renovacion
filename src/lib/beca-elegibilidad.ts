@@ -3,13 +3,16 @@
  * - Renovación: solo si hubo beca activa el ciclo pasado (calendario − 1).
  * - Solicitud nueva: si NO tuvo beca el ciclo pasado (aunque haya tenido
  *   antepasado o antes). Historial antiguo no obliga a renovar.
+ * - SEP (federal) no cuenta como beca Winston: Renovación la rechaza, así que
+ *   quien solo tuvo SEP va por Solicitud nueva.
  */
 import { getCicloBecaARenovar } from '@/lib/ciclo-escolar';
+import { esBecaNoTramitable } from '@/lib/becas-excluidas';
 import { movimientoSepAlumno } from '@/lib/sep/movimientos';
 
 /**
  * Misma regla que el gate de `/api/renovacion`:
- * beca_estatus = 1 en getCicloBecaARenovar().
+ * beca_estatus = 1 en getCicloBecaARenovar(), con beca tramitable en este portal.
  */
 export async function tieneBecaActivaCicloPasado(
   // Cliente InsForge database (admin)
@@ -20,21 +23,23 @@ export async function tieneBecaActivaCicloPasado(
   const ciclo = getCicloBecaARenovar();
   const { data, error } = await database
     .from('alumno_beca')
-    .select('alumno_beca_id')
+    .select('beca_id')
     .eq('alumno_id', alumnoId)
     .eq('beca_ciclo_escolar', ciclo)
-    .eq('beca_estatus', 1)
-    .maybeSingle();
+    .eq('beca_estatus', 1);
 
   if (error) {
     return { ok: false, error: error.message };
   }
 
+  const filas = (data ?? []) as { beca_id: number | null }[];
+  const tiene = filas.some((f) => !esBecaNoTramitable(f.beca_id));
+
   // 2026-10-09 - Si esa beca se sustituyó por la Beca SEP, ya no cuenta: no se renueva y la familia
   //              puede (debe) hacer Solicitud nueva.
-  if (data && (await movimientoSepAlumno(alumnoId, ciclo))) {
+  if (tiene && (await movimientoSepAlumno(alumnoId, ciclo))) {
     return { ok: true, tiene: false, ciclo };
   }
 
-  return { ok: true, tiene: Boolean(data), ciclo };
+  return { ok: true, tiene, ciclo };
 }
