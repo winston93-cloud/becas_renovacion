@@ -5,7 +5,7 @@
  */
 import { FormEvent, Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Baby, GraduationCap, KeyRound, School, ShieldCheck } from 'lucide-react';
+import { Baby, GraduationCap, KeyRound, Landmark, School, ShieldCheck } from 'lucide-react';
 import { Alert, Button, Input, Label } from '@/components/ui';
 import { ADMIN_ROLES, type AdminRole } from '@/lib/admin-roles';
 
@@ -27,6 +27,13 @@ const ROLE_META: Record<
     label: ADMIN_ROLES.ce_sec.label,
     hint: 'Nivel 4',
     icon: GraduationCap,
+  },
+  // 2026-10-07 - Acceso de Sistemas (reporte detallado Beca SEP, todos los niveles).
+  // 2026-10-09 - Se muestra como Dirección General.
+  sistemas: {
+    label: ADMIN_ROLES.sistemas.label,
+    hint: 'Todos los niveles',
+    icon: Landmark,
   },
 };
 

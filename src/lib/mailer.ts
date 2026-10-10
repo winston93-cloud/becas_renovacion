@@ -7,6 +7,7 @@
 import nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
 import type SMTPTransport from 'nodemailer/lib/smtp-transport';
+import { esModoLocalSoloLectura } from '@/lib/modo-local';
 
 let cached: Transporter<SMTPTransport.SentMessageInfo> | null = null;
 
@@ -75,12 +76,23 @@ export async function sendMail(options: {
   to: string | string[];
   subject: string;
   html: string;
+  // 2026-10-09 - Versión en texto plano y encabezados extra (opcionales): un correo solo HTML puntúa peor en filtros de spam.
+  text?: string;
+  headers?: Record<string, string>;
   replyTo?: string;
   cc?: string | string[];
   // 2026-07-24 - BCC a desarrollo en finalizar renovación
   bcc?: string | string[];
   attachments?: MailAttachment[];
 }): Promise<{ messageId: string }> {
+  // 2026-10-07 - Modo local: el correo no sale, solo se registra en consola.
+  if (esModoLocalSoloLectura()) {
+    console.info('[mailer:local] correo NO enviado', {
+      to: options.to,
+      subject: options.subject,
+    });
+    return { messageId: 'local-no-enviado' };
+  }
   const transporter = getMailer();
 
   const toList = (Array.isArray(options.to) ? options.to : [options.to]).map(
@@ -124,6 +136,8 @@ export async function sendMail(options: {
     replyTo: options.replyTo,
     subject: options.subject,
     html: options.html,
+    text: options.text,
+    headers: options.headers,
     attachments: options.attachments?.map((a) => ({
       filename: a.filename,
       content: a.content,

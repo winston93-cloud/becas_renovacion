@@ -5,6 +5,7 @@
  *   antepasado o antes). Historial antiguo no obliga a renovar.
  */
 import { getCicloBecaARenovar } from '@/lib/ciclo-escolar';
+import { movimientoSepAlumno } from '@/lib/sep/movimientos';
 
 /**
  * Misma regla que el gate de `/api/renovacion`:
@@ -27,6 +28,12 @@ export async function tieneBecaActivaCicloPasado(
 
   if (error) {
     return { ok: false, error: error.message };
+  }
+
+  // 2026-10-09 - Si esa beca se sustituyó por la Beca SEP, ya no cuenta: no se renueva y la familia
+  //              puede (debe) hacer Solicitud nueva.
+  if (data && (await movimientoSepAlumno(alumnoId, ciclo))) {
+    return { ok: true, tiene: false, ciclo };
   }
 
   return { ok: true, tiene: Boolean(data), ciclo };

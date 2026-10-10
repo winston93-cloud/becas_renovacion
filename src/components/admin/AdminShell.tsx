@@ -8,6 +8,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
 import {
   ClipboardCheck,
+  FileCheck2,
   FilePlus2,
   Home,
   KeyRound,
@@ -18,10 +19,12 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui';
 
+// 2026-10-07 - Sección Beca SEP (con contador de pendientes por validar).
 const NAV = [
   { href: '/admin', label: 'Inicio', exact: true, icon: Home },
   { href: '/admin/renovaciones', label: 'Renovaciones', icon: RefreshCw },
   { href: '/admin/solicitudes', label: 'Solicitudes', icon: FilePlus2 },
+  { href: '/admin/sep', label: 'Beca SEP', icon: FileCheck2 },
   { href: '/admin/permisos', label: 'Permisos', icon: KeyRound },
   { href: '/admin/auditoria', label: 'Bitácora', icon: ScrollText },
 ];
@@ -29,9 +32,10 @@ const NAV = [
 type Props = {
   children: ReactNode;
   label?: string;
+  sepPendientes?: number;
 };
 
-export function AdminShell({ children, label }: Props) {
+export function AdminShell({ children, label, sepPendientes = 0 }: Props) {
   const pathname = usePathname();
   const router = useRouter();
 
@@ -94,6 +98,14 @@ export function AdminShell({ children, label }: Props) {
                 >
                   <Icon size={15} aria-hidden />
                   {item.label}
+                  {item.href === '/admin/sep' && sepPendientes > 0 ? (
+                    <span
+                      className="ml-1 rounded-full bg-accent px-1.5 text-[11px] font-bold text-white"
+                      aria-label={`${sepPendientes} por validar`}
+                    >
+                      {sepPendientes}
+                    </span>
+                  ) : null}
                 </Link>
               );
             })}

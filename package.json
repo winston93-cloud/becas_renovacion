@@ -7,10 +7,12 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
-    "migrate:legacy": "tsx --env-file=.env.local scripts/migrate-mysql-to-insforge.ts"
+    "migrate:legacy": "tsx --env-file=.env.local scripts/migrate-mysql-to-insforge.ts",
+    "test": "vitest run"
   },
   "dependencies": {
     "@insforge/sdk": "^1.4.4",
+    "@tesseract.js-data/spa": "^1.0.0",
     "bcrypt": "^6.0.0",
     "exceljs": "^4.4.0",
     "lucide-react": "^1.24.0",
@@ -20,7 +22,11 @@
     "pdfkit": "^0.19.1",
     "qrcode": "^1.5.4",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "server-only": "^0.0.1",
+    "sharp": "^0.34.5",
+    "tesseract.js": "^7.0.0",
+    "unpdf": "^1.8.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -35,6 +41,7 @@
     "eslint-config-next": "16.2.10",
     "tailwindcss": "^4",
     "tsx": "^4.23.1",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^3.2.7"
   }
 }

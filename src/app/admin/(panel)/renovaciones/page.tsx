@@ -9,6 +9,7 @@ import {
   type AdminAlumnoListaItem,
 } from '@/components/admin/AdminAlumnoListaBusqueda';
 import { AdminExportListaButtons } from '@/components/admin/AdminExportListaButtons';
+import { AvisoMovimientoSep } from '@/components/sep/AvisoMovimientoSep';
 import {
   AdminListaEstadoCelda,
   adminListaCardClass,
@@ -181,6 +182,9 @@ function ListInner() {
               : 'Abra el No. de control para revisar documentos y marcar como verificada o autorizada.'}
         </p>
       </div>
+
+      {/* 2026-10-09 - Alumnos cuya beca del colegio se sustituyó por la Beca SEP (no se renueva). */}
+      <AvisoMovimientoSep />
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <AdminAlumnoListaBusqueda
           items={opcionesBusqueda}

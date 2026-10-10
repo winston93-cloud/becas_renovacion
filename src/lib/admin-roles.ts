@@ -6,7 +6,8 @@
 export const ADMIN_COOKIE = 'becas_ce_session';
 export const COOKIE_MAX_AGE = 60 * 60 * 12; // 12 horas
 
-export type AdminRole = 'ce_mk' | 'ce_pri' | 'ce_sec';
+// 2026-10-07 - Rol `sistemas`: todos los niveles; ve el reporte detallado de Beca SEP.
+export type AdminRole = 'ce_mk' | 'ce_pri' | 'ce_sec' | 'sistemas';
 
 export const ADMIN_ROLES: Record<
   AdminRole,
@@ -27,7 +28,15 @@ export const ADMIN_ROLES: Record<
     short: 'Secundaria',
     niveles: [4],
   },
+  // 2026-10-09 - Se muestra como Dirección General (la clave interna sigue siendo `sistemas`).
+  sistemas: {
+    label: 'Dirección General',
+    short: 'Dirección General',
+    niveles: [1, 2, 3, 4],
+  },
 };
+
+export const esRolSistemas = (role: AdminRole) => role === 'sistemas';
 
 export const VALID_ADMIN_ROLES = Object.keys(ADMIN_ROLES) as AdminRole[];
 
@@ -39,6 +48,7 @@ export function isAdminRole(value: string | null | undefined): value is AdminRol
 export function pinHashEnvKey(role: AdminRole): string {
   if (role === 'ce_mk') return 'ADMIN_PIN_HASH_MK';
   if (role === 'ce_pri') return 'ADMIN_PIN_HASH_PRI';
+  if (role === 'sistemas') return 'ADMIN_PIN_HASH_SIS';
   return 'ADMIN_PIN_HASH_SEC';
 }
 

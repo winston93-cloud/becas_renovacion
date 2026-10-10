@@ -6,6 +6,7 @@ import type { LucideIcon } from 'lucide-react';
 import {
   BadgeCheck,
   Clock3,
+  FileCheck2,
   FilePlus2,
   FileWarning,
   Inbox,
@@ -83,10 +84,21 @@ function Stat({
   );
 }
 
+// 2026-10-07 - Resumen Beca SEP (aviso a Control Escolar de documentos por validar).
+type ResumenSep = { disponible: boolean; enviadas: number; correccion: number; aplicadas: number };
+
 export default function AdminDashboardPage() {
   const [data, setData] = useState<Dash | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sep, setSep] = useState<ResumenSep | null>(null);
+
+  useEffect(() => {
+    fetch('/api/admin/sep/resumen')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => setSep(j as ResumenSep | null))
+      .catch(() => setSep(null));
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -135,6 +147,52 @@ export default function AdminDashboardPage() {
             `Renovación de becas ${data.ciclo_solicitud_label}`}
         </p>
       </div>
+
+      {sep?.disponible ? (
+        <section>
+          <h3 className="admin-section-title">
+            <FileCheck2 size={14} aria-hidden />
+            Beca SEP
+          </h3>
+          {sep.enviadas > 0 ? (
+            <div className="mb-3">
+              {/* 2026-10-08 - Textos y enlaces alineados con las pestañas simplificadas de /admin/sep */}
+              <Alert variant="warning" title={`${sep.enviadas} documento(s) de Beca SEP por revisar`}>
+                Revise que el documento sea del alumno y que el porcentaje esté bien, y dé <strong>Aplicar</strong>.
+              </Alert>
+            </div>
+          ) : null}
+          <div className="admin-stat-grid">
+            <Stat
+              label="Por revisar"
+              value={sep.enviadas}
+              href="/admin/sep?vista=revisar"
+              hint="La familia envió el documento SEP"
+              icon={Clock3}
+              tone="warn"
+              delay={1}
+            />
+            <Stat
+              label="Esperando a la familia"
+              value={sep.correccion}
+              href="/admin/sep?vista=familia"
+              hint="Le pedimos otro documento"
+              icon={FileWarning}
+              tone="warn"
+              delay={2}
+            />
+            <Stat
+              label="Aplicadas"
+              value={sep.aplicadas}
+              href="/admin/sep?vista=aplicadas"
+              hint="Cálculo guardado"
+              icon={BadgeCheck}
+              tone="ok"
+              delay={3}
+            />
+          </div>
+        </section>
+      ) : null}
 
       <section>
         <h3 className="admin-section-title">

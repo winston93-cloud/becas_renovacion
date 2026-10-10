@@ -30,6 +30,7 @@ import {
   MES_APLICA_DEFAULT,
   MES_APLICA_POST_CIERRE,
 } from '@/lib/beca-aplica-desde-mes';
+import { movimientoSepAlumno, textoBecaSustituida } from '@/lib/sep/movimientos';
 
 function emptyFamiliar(tutor_id: 1 | 2): Familiar {
   return {
@@ -145,6 +146,21 @@ export async function GET(request: NextRequest) {
 
     if (becaErr) {
       return NextResponse.json({ error: becaErr.message }, { status: 500 });
+    }
+
+    // 2026-10-09 - Si en el ciclo a renovar se aplicó la Beca SEP, la beca del colegio se perdió y no se
+    //              renueva: la familia debe hacer Solicitud nueva.
+    const movimientoSep = becaRow ? await movimientoSepAlumno(alumnoId, ciclo) : null;
+    if (movimientoSep) {
+      return NextResponse.json(
+        {
+          error: textoBecaSustituida(movimientoSep),
+          codigo: 'BECA_SUSTITUIDA_SEP',
+          ciclo_escolar: ciclo,
+          ciclo_label: getSchoolCycleLabel(cicloCalendario),
+        },
+        { status: 403 }
+      );
     }
     if (!becaRow) {
       return NextResponse.json(

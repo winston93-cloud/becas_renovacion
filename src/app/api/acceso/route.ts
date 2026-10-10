@@ -7,6 +7,7 @@ import {
   clavesCoinciden,
   createAccesoToken,
 } from '@/lib/acceso-token';
+import { clavePruebaLocal } from '@/lib/modo-local';
 
 export async function POST(req: NextRequest) {
   try {
@@ -59,7 +60,10 @@ export async function POST(req: NextRequest) {
 
     if (detErr) throw detErr;
 
-    if (!clavesCoinciden(clave, detalle?.alumno_clave as string | null)) {
+    // 2026-10-07 - En modo local se acepta además la clave de prueba (nunca en Vercel).
+    const prueba = clavePruebaLocal();
+    const okPrueba = prueba != null && clavesCoinciden(clave, prueba);
+    if (!okPrueba && !clavesCoinciden(clave, detalle?.alumno_clave as string | null)) {
       return NextResponse.json(
         {
           error: 'Número de control o contraseña incorrectos.',

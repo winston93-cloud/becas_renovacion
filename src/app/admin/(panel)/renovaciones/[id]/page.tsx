@@ -19,6 +19,7 @@ import {
 } from '@/components/admin/AdminExpedienteHeader';
 import { normalizarRevisionEstado } from '@/lib/doc-revision';
 import type { PromedioBecadoRenovacion } from '@/lib/promedioBecadoRenovacion';
+import { AvisoMovimientoSep } from '@/components/sep/AvisoMovimientoSep';
 import { AdminAutorizarBecaButton } from '@/app/admin/(panel)/components/AdminAutorizarBecaButton';
 import { AdminRechazoBecaButton } from '@/app/admin/(panel)/components/AdminRechazoBecaButton';
 import { AdminMesAplicaControl } from '@/app/admin/(panel)/components/AdminMesAplicaControl';
@@ -160,6 +161,9 @@ export default function RenovacionDetallePage({
       >
         ← Volver al listado
       </Link>
+
+      {/* 2026-10-09 - Si la beca se sustituyó por la Beca SEP, no se renueva. */}
+      <AvisoMovimientoSep alumnoRef={a.alumno_ref} />
 
       <AdminExpedienteHeader
         nombre={a.nombre}

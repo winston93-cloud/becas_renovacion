@@ -2,20 +2,26 @@
 
 /**
  * Home — acceso familiar con dos trámites diferenciados (renovación vs solicitud).
+ * 2026-10-07 - Primera pantalla: elegir Beca Winston (renovación/solicitud) o Beca SEP (/sep).
  */
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
+  ArrowLeft,
   ArrowRight,
   CalendarClock,
   ChevronDown,
+  FileCheck2,
   FileText,
+  GraduationCap,
   RefreshCw,
   ShieldCheck,
   UserPlus,
 } from 'lucide-react';
 import { Alert, Button, Input, Label, Modal } from '@/components/ui';
+import { sepAbiertoAFamilias } from '@/lib/sep/activo';
 import {
   fetchConAcceso,
   saveAccesoSession,
@@ -77,12 +83,21 @@ export default function HomePage() {
     codigo?: string;
   } | null>(null);
   const [enlaceFlujo, setEnlaceFlujo] = useState<Flujo | null>(null);
+  // 2026-10-07 - 'elegir' muestra la pantalla SEP / Winston; los enlaces de correo entran directo a Winston.
+  // 2026-10-10 - Con el interruptor de Beca SEP apagado el inicio queda como antes (directo a Beca Winston).
+  const sepAbierto = sepAbiertoAFamilias();
+  const [tipoBeca, setTipoBeca] = useState<'elegir' | 'winston'>(sepAbierto ? 'elegir' : 'winston');
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const fl = params.get('flujo');
     const ref = params.get('alumno_ref');
     const refLimpio = ref ? ref.replace(/\D/g, '') : '';
+    if (sepAbierto && params.get('beca') === 'sep') {
+      router.replace(refLimpio ? `/sep?alumno_ref=${refLimpio}` : '/sep');
+      return;
+    }
+    if (fl || refLimpio || params.get('beca') === 'winston') setTipoBeca('winston');
     if (fl === 'solicitud' || fl === 'renovacion') {
       setEnlaceFlujo(fl);
       if (refLimpio) {
@@ -93,7 +108,7 @@ export default function HomePage() {
       setRenovacionRef(refLimpio);
       setSolicitudRef(refLimpio);
     }
-  }, []);
+  }, [router, sepAbierto]);
 
   function assertVentanaAbierta(flujoCheck: Flujo): boolean {
     const status = getPortalStatus(flujoCheck);
@@ -329,7 +344,75 @@ export default function HomePage() {
         </span>
       </header>
 
+      {tipoBeca === 'elegir' ? (
+        <main className="home-main home-elegir">
+          <header className="home-elegir-head ui-enter">
+            <p className="home-brand-kicker">Instituto Winston Churchill</p>
+            <h1 className="home-hero-title home-hero-title--center">
+              Portal de becas
+            </h1>
+            <p className="home-hero-lead home-hero-lead--center">
+              ¿Qué beca va a tramitar? Elija una opción.
+            </p>
+          </header>
+          <div className="home-elegir-grid">
+            <button
+              type="button"
+              className="home-panel home-panel--renovacion home-elegir-card ui-enter ui-enter-delay-1"
+              onClick={() => setTipoBeca('winston')}
+            >
+              <span className="home-panel-badge home-panel-badge--renovacion">
+                <GraduationCap className="h-3.5 w-3.5" aria-hidden />
+                Beca Winston
+              </span>
+              <span className="home-panel-title">Beca del Instituto</span>
+              <span className="home-panel-sub">
+                Renovación de la beca del ciclo pasado o solicitud nueva.
+              </span>
+              <ul className="home-checklist">
+                <li>Formulario y documentos</li>
+                <li>Revisión del Comité de Becas</li>
+              </ul>
+              <span className="home-elegir-cta">
+                Continuar con Beca Winston
+                <ArrowRight className="h-4 w-4" aria-hidden />
+              </span>
+            </button>
+            <Link
+              href="/sep"
+              className="home-panel home-panel--solicitud home-elegir-card ui-enter ui-enter-delay-2"
+            >
+              <span className="home-panel-badge home-panel-badge--solicitud">
+                <FileCheck2 className="h-3.5 w-3.5" aria-hidden />
+                Beca SEP
+              </span>
+              <span className="home-panel-title">Beca otorgada por la SEP</span>
+              <span className="home-panel-sub">
+                Ya tiene la autorización de la SEP con el porcentaje de beca.
+              </span>
+              <ul className="home-checklist">
+                <li>Solo suba el documento de autorización</li>
+                <li>Control Escolar lo valida y aplica la beca</li>
+              </ul>
+              <span className="home-elegir-cta">
+                Continuar con Beca SEP
+                <ArrowRight className="h-4 w-4" aria-hidden />
+              </span>
+            </Link>
+          </div>
+        </main>
+      ) : (
       <main className="home-main home-main--trio">
+        {sepAbierto ? (
+          <button
+            type="button"
+            className="home-elegir-volver"
+            onClick={() => setTipoBeca('elegir')}
+          >
+            <ArrowLeft className="h-4 w-4" aria-hidden />
+            Cambiar tipo de beca
+          </button>
+        ) : null}
         <div className="home-trio-board">
         {/* Izquierda — Renovación */}
         <section
@@ -635,6 +718,7 @@ export default function HomePage() {
         </section>
         </div>
       </main>
+      )}
 
       <footer className="home-footer ui-enter ui-enter-delay-3">
         <span>Instituto Winston Churchill · Sistema de Becas</span>

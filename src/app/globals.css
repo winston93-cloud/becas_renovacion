@@ -2069,3 +2069,123 @@ body {
   font-size: 0.88rem;
   line-height: 1.5;
 }
+
+/* 2026-10-07 - Beca SEP: pantalla para elegir tipo de beca (SEP / Winston). */
+.home-elegir {
+  width: min(100% - 20px, 920px);
+  gap: 22px;
+}
+
+.home-elegir-head {
+  text-align: center;
+  padding-top: 8px;
+}
+
+.home-elegir-grid {
+  display: grid;
+  gap: 16px;
+}
+
+@media (min-width: 760px) {
+  .home-elegir-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.home-elegir-card {
+  gap: 10px;
+  text-align: left;
+  cursor: pointer;
+  padding: 22px 20px 18px;
+  transition:
+    transform var(--transition),
+    box-shadow var(--transition);
+}
+
+.home-elegir-card:hover,
+.home-elegir-card:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card-hover);
+  outline: none;
+}
+
+.home-elegir-card:focus-visible {
+  box-shadow: var(--shadow-focus), var(--shadow-card-hover);
+}
+
+.home-elegir-card .home-panel-badge {
+  align-self: flex-start;
+}
+
+.home-elegir-cta {
+  margin-top: auto;
+  padding-top: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  color: var(--color-primary);
+  border-top: 1px solid rgba(36, 52, 72, 0.08);
+}
+
+.home-elegir-volver {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 12px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  background: rgba(255, 253, 249, 0.8);
+  border: 1px solid var(--color-border);
+  cursor: pointer;
+}
+
+.home-elegir-volver:hover {
+  color: var(--color-primary);
+}
+
+/* 2026-10-07 - Beca SEP: hoja de cálculo (pantalla e impresión). */
+.sep-hoja-paso {
+  break-inside: avoid;
+}
+
+.sep-hoja table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.sep-hoja th,
+.sep-hoja td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--color-border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.sep-hoja td.num,
+.sep-hoja th.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+@media print {
+  .admin-header,
+  .admin-shell-atmosphere,
+  .sep-no-imprimir {
+    display: none !important;
+  }
+
+  .admin-main {
+    padding: 0 !important;
+    max-width: none !important;
+  }
+
+  .sep-hoja .shadow-card {
+    box-shadow: none !important;
+  }
+}

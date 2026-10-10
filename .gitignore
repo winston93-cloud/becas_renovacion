@@ -61,3 +61,5 @@ next-env.d.ts
 # admin PIN plaintext (never commit)
 .admin-pins.local.json
 tmp/
+# 2026-10-07 - Datos locales del trámite Beca SEP (documentos de familias)
+.local-sep/

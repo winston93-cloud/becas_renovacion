@@ -19,6 +19,7 @@ import {
   BadgeVerificada,
 } from '@/components/admin/AdminExpedienteHeader';
 import { normalizarRevisionEstado } from '@/lib/doc-revision';
+import { AvisoMovimientoSep } from '@/components/sep/AvisoMovimientoSep';
 import { AdminAutorizarBecaButton } from '@/app/admin/(panel)/components/AdminAutorizarBecaButton';
 import { AdminRechazoBecaButton } from '@/app/admin/(panel)/components/AdminRechazoBecaButton';
 import { AdminMesAplicaControl } from '@/app/admin/(panel)/components/AdminMesAplicaControl';
@@ -162,6 +163,9 @@ export default function SolicitudDetallePage({
       >
         ← Volver al listado
       </Link>
+
+      {/* 2026-10-09 - Solicitud nueva de un alumno cuya beca se sustituyó por la Beca SEP. */}
+      <AvisoMovimientoSep alumnoRef={a.alumno_ref} />
 
       <AdminExpedienteHeader
         nombre={a.nombre}

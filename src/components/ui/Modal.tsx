@@ -26,6 +26,8 @@ type Props = {
   eyebrow?: string;
   /** Ancho del diálogo: default ~28rem; wide ~48rem. */
   size?: 'default' | 'wide';
+  /** 2026-10-08 - Deshabilita el botón principal (p. ej. hasta marcar una casilla de confirmación). */
+  primaryDisabled?: boolean;
 };
 
 export function Modal({
@@ -40,6 +42,7 @@ export function Modal({
   icon,
   eyebrow,
   size = 'default',
+  primaryDisabled = false,
 }: Props) {
   const titleId = useId();
 
@@ -124,7 +127,7 @@ export function Modal({
             {secondaryLabel}
           </Button>
           {primaryLabel && onPrimary ? (
-            <Button onClick={onPrimary} className="sm:min-w-[8rem]">
+            <Button onClick={onPrimary} disabled={primaryDisabled} className="sm:min-w-[8rem]">
               {primaryLabel}
             </Button>
           ) : null}
