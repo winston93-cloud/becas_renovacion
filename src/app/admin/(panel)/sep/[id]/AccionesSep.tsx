@@ -76,7 +76,7 @@ export function AccionesControlEscolar({
   /** Avisos que impiden aplicar (faltan precios, plan, etc.). */
   bloqueos: string[];
   siguienteId: string | null;
-  /** 2026-10-12 - Alumno de prueba: el cálculo es de ejemplo y Aplicar no toca cobro ni becas. */
+  /** 2026-10-12 - Alumno de prueba: el cálculo es de ejemplo; Aplicar registra el cobro solo para él (no toca pagos ni becas del colegio). */
   simulacion?: boolean;
 }) {
   const router = useRouter();
