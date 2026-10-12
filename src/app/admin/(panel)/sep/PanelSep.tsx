@@ -3,9 +3,13 @@
 /**
  * 2026-10-12 - Cola de trabajo Beca SEP: cifras que filtran, búsqueda, orden FIFO y tabla paginada.
  * Pensado para decenas de familias sin recargar la página ni hacer scroll infinito.
+ * 2026-10-12 - Mismo formato que «Solicitudes nuevas»: buscador + selectores, admin-table,
+ * insignias admin-badge-estado, filas verdes al aplicar y tarjetas en celular.
  */
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { X } from 'lucide-react';
+import { Card, Input, Select } from '@/components/ui';
 import { NOMBRE_NIVEL } from '@/lib/sep/core/ciclo';
 import { pesos } from '@/lib/sep/core/dinero';
 import {
@@ -28,8 +32,10 @@ import { AvisoListo } from './AvisoListo';
 import './sep-panel.css';
 
 const nivelTxt = (n: number | null) => (n != null ? NOMBRE_NIVEL[n] ?? `Nivel ${n}` : 'Sin nivel');
-const fechaCorta = (iso: string | null) =>
-  iso ? new Date(iso).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' }) : '—';
+const gradoTxt = (g: number | null, n: number | null) => (g ? `${g}° de ${nivelTxt(n)}` : nivelTxt(n));
+const fechaLarga = (iso: string | null) => (iso ? new Date(iso).toLocaleString('es-MX') : '—');
+const enlace = 'font-semibold text-primary underline-offset-2 hover:underline';
+const enlaceAccion = `inline-flex min-h-[44px] items-center ${enlace}`;
 
 const FILTROS_BX: { valor: FiltroCuestionario; texto: string }[] = [
   { valor: 'todas', texto: 'Reales' },
@@ -62,10 +68,11 @@ export function PanelSep({ tramites, cuestionario, resumen, esSistemas, hecho, d
   const [soloManual, setSoloManual] = useState(false);
   const [filtroBx, setFiltroBx] = useState<FiltroCuestionario>('todas');
   const [pagina, setPagina] = useState(1);
+  const buscarRef = useRef<HTMLInputElement>(null);
 
-  const grados = gradosDisponibles;
   const conteoVista = (v: VistaTramite) => tramites.filter((f) => VISTAS_TRAMITE.find((x) => x.valor === v)?.estados.includes(f.estado)).length;
   const pendientes = conteoVista('revisar');
+  const aMano = tramites.filter((f) => f.revisionManual && f.estado === 'enviada').length;
   const sinDoc = cuestionario.filter((f) => !f.esPrueba && f.beneficio === 'sep' && f.recibio === true && !f.tieneTramite).length;
 
   const tramitesVisibles = useMemo(
@@ -87,11 +94,16 @@ export function PanelSep({ tramites, cuestionario, resumen, esSistemas, hecho, d
       const t = e.target as HTMLElement | null;
       if (t && (t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
       e.preventDefault();
-      document.getElementById('sep-buscar')?.focus();
+      buscarRef.current?.focus();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, []);
+
+  const irA = (fn: () => void) => {
+    fn();
+    setPagina(1);
+  };
 
   const vacioTramite = VISTAS_TRAMITE.find((v) => v.valor === vista)?.vacio ?? 'Sin trámites.';
   const vacio =
@@ -101,188 +113,227 @@ export function PanelSep({ tramites, cuestionario, resumen, esSistemas, hecho, d
           ? 'Ningún trámite coincide con esos filtros.'
           : vacioTramite
         : null
-      : bxVisibles.length === 0
-        ? q
-          ? 'Ninguna respuesta coincide con la búsqueda.'
-          : 'Todavía no contesta ninguna familia.'
-        : null;
+      : !resumen
+        ? 'No se pudieron leer las respuestas. Intente más tarde.'
+        : bxVisibles.length === 0
+          ? q
+            ? 'Ninguna respuesta coincide con la búsqueda.'
+            : 'Todavía no contesta ninguna familia.'
+          : null;
 
   return (
-    <div className="sep-panel">
+    <div className="space-y-4">
       <AvisoListo hecho={hecho} de={de} pendientes={pendientes} />
 
-      <div className="sep-chips" role="tablist" aria-label="Qué quiere revisar">
-        <button type="button" role="tab" aria-selected={seccion === 'tramites'} className={`sep-chip${seccion === 'tramites' ? ' is-activa' : ''}`} onClick={() => { setSeccion('tramites'); setPagina(1); }}>
-          Documentos
-        </button>
-        <button type="button" role="tab" aria-selected={seccion === 'cuestionario'} className={`sep-chip${seccion === 'cuestionario' ? ' is-activa' : ''}`} onClick={() => { setSeccion('cuestionario'); setPagina(1); }}>
-          Cuestionario{resumen ? ` (${resumen.contestaron})` : ''}
-        </button>
+      <div className="sep-tabs-fila">
+        <div className="sep-tabs" role="tablist" aria-label="Qué quiere revisar">
+          <button type="button" role="tab" aria-selected={seccion === 'tramites'} className={`sep-tab${seccion === 'tramites' ? ' is-activa' : ''}`} onClick={() => irA(() => setSeccion('tramites'))}>
+            Documentos <span className="sep-tab-num">{tramites.length}</span>
+          </button>
+          <button type="button" role="tab" aria-selected={seccion === 'cuestionario'} className={`sep-tab${seccion === 'cuestionario' ? ' is-activa' : ''}`} onClick={() => irA(() => setSeccion('cuestionario'))}>
+            Cuestionario <span className="sep-tab-num">{resumen?.contestaron ?? 0}</span>
+          </button>
+        </div>
         {esSistemas ? (
-          <Link href="/admin/sep/direccion" className="sep-link-dg">
-            Dirección General
+          <Link href="/admin/sep/direccion" className={enlace}>
+            Dirección General →
           </Link>
         ) : null}
       </div>
 
       {seccion === 'tramites' ? (
-        <div className="sep-kpis">
+        <div className="sep-resumen">
           {VISTAS_TRAMITE.map((v) => (
-            <button
-              key={v.valor}
-              type="button"
-              className={`sep-kpi${vista === v.valor ? ' is-activa' : ''}`}
-              onClick={() => {
-                setVista(v.valor);
-                setPagina(1);
-              }}
-            >
-              <span className="sep-kpi-num">{conteoVista(v.valor)}</span>
-              <span className="sep-kpi-txt">{v.texto}</span>
-            </button>
+            <Cifra key={v.valor} activa={vista === v.valor && !soloManual} num={conteoVista(v.valor)} texto={v.texto} onClick={() => irA(() => { setVista(v.valor); setSoloManual(false); })} />
           ))}
-          <button type="button" className={`sep-kpi${soloManual ? ' is-activa' : ''}`} onClick={() => { setSoloManual((x) => !x); setPagina(1); }}>
-            <span className="sep-kpi-num">{tramites.filter((f) => f.revisionManual && f.estado === 'enviada').length}</span>
-            <span className="sep-kpi-txt">Revisar a mano</span>
-          </button>
+          <Cifra activa={soloManual} aviso={aMano > 0} num={aMano} texto="Revisar a mano" onClick={() => irA(() => { setVista('revisar'); setSoloManual((x) => !x); })} />
         </div>
       ) : (
-        <div className="sep-kpis">
-          <button type="button" className={`sep-kpi${filtroBx === 'todas' ? ' is-activa' : ''}`} onClick={() => { setFiltroBx('todas'); setPagina(1); }}>
-            <span className="sep-kpi-num">{resumen?.contestaron ?? 0}</span>
-            <span className="sep-kpi-txt">Contestaron</span>
-          </button>
-          <button type="button" className={`sep-kpi${filtroBx === 'sep' ? ' is-activa' : ''}${sinDoc ? ' is-urgente' : ''}`} onClick={() => { setFiltroBx('sep'); setPagina(1); }}>
-            <span className="sep-kpi-num">{resumen?.sep.total ?? 0}</span>
-            <span className="sep-kpi-txt">Beca SEP</span>
-          </button>
-          <button type="button" className={`sep-kpi${filtroBx === 'sin_doc' ? ' is-activa' : ''}${sinDoc ? ' is-urgente' : ''}`} onClick={() => { setFiltroBx('sin_doc'); setPagina(1); }}>
-            <span className="sep-kpi-num">{sinDoc}</span>
-            <span className="sep-kpi-txt">SEP sin documento</span>
-          </button>
-          <button type="button" className={`sep-kpi${filtroBx === 'otra' ? ' is-activa' : ''}`} onClick={() => { setFiltroBx('otra'); setPagina(1); }}>
-            <span className="sep-kpi-num">{resumen?.otra.total ?? 0}</span>
-            <span className="sep-kpi-txt">Otra beca</span>
-          </button>
+        <div className="sep-resumen">
+          <Cifra activa={filtroBx === 'todas'} num={resumen?.contestaron ?? 0} texto="Contestaron" onClick={() => irA(() => setFiltroBx('todas'))} />
+          <Cifra activa={filtroBx === 'sep'} num={resumen?.sep.total ?? 0} texto="Beca SEP" onClick={() => irA(() => setFiltroBx('sep'))} />
+          <Cifra activa={filtroBx === 'sin_doc'} aviso={sinDoc > 0} num={sinDoc} texto="SEP sin documento" onClick={() => irA(() => setFiltroBx('sin_doc'))} />
+          <Cifra activa={filtroBx === 'otra'} num={resumen?.otra.total ?? 0} texto="Otra beca" onClick={() => irA(() => setFiltroBx('otra'))} />
         </div>
       )}
 
-      <div className="sep-toolbar">
-        <div className="sep-campo sep-campo--buscar">
-          <label htmlFor="sep-buscar">Buscar</label>
-          <input
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <div className="relative w-full max-w-md">
+          <label className="sr-only" htmlFor="sep-buscar">
+            Buscar alumno
+          </label>
+          <Input
+            ref={buscarRef}
             id="sep-buscar"
-            className="ui-control"
-            value={q}
-            onChange={(e) => {
-              setQ(e.target.value);
-              setPagina(1);
-            }}
-            placeholder="Nombre o no. de control…"
+            type="search"
             autoComplete="off"
+            value={q}
+            placeholder="Buscar por nombre o no. de control…"
+            className="pr-9"
+            onChange={(e) => irA(() => setQ(e.target.value))}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') irA(() => setQ(''));
+            }}
           />
+          {q ? (
+            <button
+              type="button"
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-text-secondary hover:text-primary"
+              aria-label="Limpiar búsqueda"
+              onClick={() => {
+                irA(() => setQ(''));
+                buscarRef.current?.focus();
+              }}
+            >
+              <X className="h-4 w-4" aria-hidden />
+            </button>
+          ) : null}
         </div>
-        {seccion === 'tramites' ? (
-          <>
-            <div className="sep-campo">
-              <label htmlFor="sep-grado">Grado</label>
-              <select id="sep-grado" className="ui-control ui-select" value={grado ?? ''} onChange={(e) => { setGrado(e.target.value ? Number(e.target.value) : null); setPagina(1); }}>
-                <option value="">Todos</option>
-                {grados.map((g) => (
-                  <option key={g} value={g}>{g}°</option>
-                ))}
-              </select>
-            </div>
-            <div className="sep-campo">
-              <label htmlFor="sep-orden">Orden</label>
-              <select id="sep-orden" className="ui-control ui-select" value={orden} onChange={(e) => { setOrden(e.target.value as OrdenTramite); setPagina(1); }}>
-                <option value="espera">Más tiempo esperando</option>
-                <option value="reciente">Más reciente</option>
-                <option value="nombre">Nombre A–Z</option>
-                <option value="control">No. de control</option>
-                <option value="porcentaje">Mayor porcentaje</option>
-              </select>
-            </div>
-          </>
-        ) : (
-          <div className="sep-campo">
-            <label htmlFor="sep-bx">Respuesta</label>
-            <select id="sep-bx" className="ui-control ui-select" value={filtroBx} onChange={(e) => { setFiltroBx(e.target.value as FiltroCuestionario); setPagina(1); }}>
-              {FILTROS_BX.map((f) => (
-                <option key={f.valor} value={f.valor}>{f.texto}</option>
-              ))}
-            </select>
-          </div>
-        )}
-      </div>
 
-      <div className="sep-meta">
-        <p>
-          {paginaActual.total === 0
-            ? '0 resultados'
-            : `Mostrando ${(paginaActual.pagina - 1) * POR_PAGINA_SEP + 1}–${Math.min(paginaActual.pagina * POR_PAGINA_SEP, paginaActual.total)} de ${paginaActual.total}`}
-          {seccion === 'tramites' && orden === 'espera' ? ' · primero quien lleva más tiempo' : null}
-        </p>
-        {seccion === 'cuestionario' && resumen?.otra.nombres.length ? (
-          <p>Otras becas: {resumen.otra.nombres.map((n) => `${n.nombre} (${n.total})`).join(', ')}</p>
-        ) : null}
+        <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-end sm:justify-end lg:w-auto">
+          {seccion === 'tramites' ? (
+            <>
+              <div className="w-full sm:w-40">
+                <Select aria-label="Filtrar grado" value={grado ?? ''} onChange={(e) => irA(() => setGrado(e.target.value ? Number(e.target.value) : null))}>
+                  <option value="">Todos los grados</option>
+                  {gradosDisponibles.map((g) => (
+                    <option key={g} value={g}>
+                      {g}° grado
+                    </option>
+                  ))}
+                </Select>
+              </div>
+              <div className="w-full sm:w-56">
+                <Select aria-label="Ordenar" value={orden} onChange={(e) => irA(() => setOrden(e.target.value as OrdenTramite))}>
+                  <option value="espera">Más tiempo esperando</option>
+                  <option value="reciente">Más reciente</option>
+                  <option value="nombre">Nombre A–Z</option>
+                  <option value="control">No. de control</option>
+                  <option value="porcentaje">Mayor porcentaje</option>
+                </Select>
+              </div>
+              <div className="w-full sm:w-56">
+                <Select aria-label="Filtrar estado" value={vista} onChange={(e) => irA(() => { setVista(e.target.value as VistaTramite); setSoloManual(false); })}>
+                  {VISTAS_TRAMITE.map((v) => (
+                    <option key={v.valor} value={v.valor}>
+                      {v.texto}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+            </>
+          ) : (
+            <div className="w-full sm:w-56">
+              <Select aria-label="Filtrar respuesta" value={filtroBx} onChange={(e) => irA(() => setFiltroBx(e.target.value as FiltroCuestionario))}>
+                {FILTROS_BX.map((f) => (
+                  <option key={f.valor} value={f.valor}>
+                    {f.texto}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          )}
+        </div>
       </div>
 
       {vacio ? (
-        <p className="sep-vacio">{!resumen && seccion === 'cuestionario' ? 'No se pudieron leer las respuestas. Intente más tarde.' : vacio}</p>
-      ) : seccion === 'tramites' ? (
-        <ListaTramites filas={paginaTramites.items} />
+        <Card className="text-sm text-text-secondary">{vacio}</Card>
       ) : (
-        <ListaCuestionario filas={paginaBx.items} />
+        <>
+          <p className="text-xs text-text-secondary">
+            Mostrando {(paginaActual.pagina - 1) * POR_PAGINA_SEP + 1}–{Math.min(paginaActual.pagina * POR_PAGINA_SEP, paginaActual.total)} de {paginaActual.total}
+            {seccion === 'tramites' && orden === 'espera' ? ' · primero quien lleva más tiempo esperando' : ''}
+            {seccion === 'cuestionario' && resumen?.otra.nombres.length
+              ? ` · Otras becas: ${resumen.otra.nombres.map((n) => `${n.nombre} (${n.total})`).join(', ')}`
+              : ''}
+          </p>
+          {seccion === 'tramites' ? <ListaTramites filas={paginaTramites.items} /> : <ListaCuestionario filas={paginaBx.items} />}
+        </>
       )}
 
       {paginaActual.paginas > 1 ? (
-        <div className="sep-pagina">
+        <nav className="sep-pagina" aria-label="Páginas">
           <button type="button" disabled={paginaActual.pagina <= 1} onClick={() => setPagina((p) => p - 1)}>
-            Anterior
+            ← Anterior
           </button>
           <span>
             Página {paginaActual.pagina} de {paginaActual.paginas}
           </span>
           <button type="button" disabled={paginaActual.pagina >= paginaActual.paginas} onClick={() => setPagina((p) => p + 1)}>
-            Siguiente
+            Siguiente →
           </button>
-        </div>
+        </nav>
       ) : null}
     </div>
   );
 }
 
+function Cifra({ num, texto, activa, aviso, onClick }: { num: number; texto: string; activa: boolean; aviso?: boolean; onClick: () => void }) {
+  return (
+    <button type="button" aria-pressed={activa} className={`sep-cifra${activa ? ' is-activa' : ''}${aviso ? ' is-aviso' : ''}`} onClick={onClick}>
+      <span className="sep-cifra-txt">{texto}</span>
+      <span className="sep-cifra-num">{num}</span>
+    </button>
+  );
+}
+
+const claseFila = (s: FilaTramiteSep) =>
+  s.estado === 'aplicada' ? 'admin-table-row--activada' : s.revisionManual ? 'sep-row--aviso' : '';
+const claseTarjeta = (s: FilaTramiteSep) =>
+  s.estado === 'aplicada' ? 'admin-mobile-card--activada' : s.revisionManual ? 'sep-card--aviso' : '';
+
 function ListaTramites({ filas }: { filas: FilaTramiteSep[] }) {
   return (
     <>
-      <div className="sep-tabla-caja">
+      <div className="space-y-2 md:hidden">
+        {filas.map((s) => (
+          <Link key={s.id} href={`/admin/sep/${s.id}`} className={`admin-mobile-card ${claseTarjeta(s)}`}>
+            <p className="font-semibold text-primary">{s.nombreAlumno}</p>
+            <p className="text-sm text-text-secondary">
+              {s.alumnoRef} · {gradoTxt(s.grado, s.nivel)}
+            </p>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <EstadoTramite s={s} layout="card" />
+              {s.porcentaje != null ? <PorcentajeBadge pct={s.porcentaje} /> : null}
+              <span className="text-sm font-semibold text-primary">{s.estado === 'enviada' ? 'Revisar →' : 'Ver →'}</span>
+            </div>
+          </Link>
+        ))}
+      </div>
+
+      <div className="admin-panel-card hidden overflow-x-auto md:block">
         <table className="admin-table">
           <thead>
             <tr>
               <th>No. control</th>
               <th>Alumno</th>
               <th>Grado</th>
-              <th>Beca</th>
-              <th>Estado</th>
-              <th>Fecha</th>
+              <th className="admin-table-col-estado">Estado</th>
+              <th>Beca SEP</th>
+              <th>Enviado</th>
               <th>Acción</th>
             </tr>
           </thead>
           <tbody>
             {filas.map((s) => (
-              <tr key={s.id} className={s.revisionManual ? 'is-urgente' : undefined}>
-                <td className="tabular-nums">{s.alumnoRef}</td>
-                <td>{s.nombreAlumno}</td>
-                <td>{s.grado ? `${s.grado}°` : nivelTxt(s.nivel)}</td>
-                <td>{s.porcentaje != null ? `${s.porcentaje} %` : '—'}</td>
+              <tr key={s.id} className={claseFila(s)}>
                 <td>
-                  <EstadoTramite s={s} />
+                  <Link href={`/admin/sep/${s.id}`} className={`tabular-nums ${enlace}`}>
+                    {s.alumnoRef}
+                  </Link>
                 </td>
-                <td>{fechaCorta(s.fecha)}</td>
+                <td>{s.nombreAlumno}</td>
+                <td>{gradoTxt(s.grado, s.nivel)}</td>
+                <td className="admin-table-col-estado">
+                  <EstadoTramite s={s} layout="table" />
+                </td>
                 <td>
-                  <Link href={`/admin/sep/${s.id}`} className="font-semibold text-primary underline-offset-2 hover:underline">
-                    {s.estado === 'enviada' ? 'Revisar' : 'Ver'}
+                  <PorcentajeBadge pct={s.porcentaje} />
+                </td>
+                <td className="text-text-secondary">{fechaLarga(s.fecha)}</td>
+                <td>
+                  <Link href={`/admin/sep/${s.id}`} className={enlaceAccion}>
+                    {s.estado === 'enviada' ? 'Revisar →' : 'Ver →'}
                   </Link>
                 </td>
               </tr>
@@ -290,69 +341,112 @@ function ListaTramites({ filas }: { filas: FilaTramiteSep[] }) {
           </tbody>
         </table>
       </div>
-      <div className="sep-cards">
-        {filas.map((s) => (
-          <Link key={s.id} href={`/admin/sep/${s.id}`} className={`sep-card${s.revisionManual ? ' is-urgente' : ''}`}>
-            <strong>{s.nombreAlumno}</strong>
-            <small>
-              {s.alumnoRef} · {s.grado ? `${s.grado}°` : nivelTxt(s.nivel)} · {s.porcentaje != null ? `${s.porcentaje} %` : 'sin %'}
-            </small>
-            <EstadoTramite s={s} />
-          </Link>
-        ))}
-      </div>
     </>
   );
 }
 
-function EstadoTramite({ s }: { s: FilaTramiteSep }) {
+function PorcentajeBadge({ pct }: { pct: number | null }) {
+  if (pct == null) return <span className="text-text-secondary">—</span>;
+  return <span className="admin-badge-estado admin-badge-estado--mes-normal tabular-nums">{pct} %</span>;
+}
+
+function EstadoTramite({ s, layout }: { s: FilaTramiteSep; layout: 'table' | 'card' }) {
+  let badge;
   if (s.estado === 'enviada') {
-    return (
-      <span className={`sep-badge${s.revisionManual ? ' sep-badge--aviso' : ''}`}>
-        {s.revisionManual ? 'Revisar a mano' : 'Por revisar'}
+    badge = s.revisionManual ? (
+      <span className="admin-badge-estado admin-badge-estado--espera-firma" title="El documento no se pudo leer solo; revíselo usted">
+        Revisar a mano
+      </span>
+    ) : (
+      <span className="admin-badge-estado admin-badge-estado--pendiente">Por revisar</span>
+    );
+  } else if (s.estado === 'aplicada') {
+    badge = <span className="admin-badge-estado admin-badge-estado--activada">✓ Aplicada</span>;
+  } else if (s.estado === 'correccion') {
+    badge = (
+      <span className="admin-badge-estado admin-badge-estado--correccion" title={s.motivoCorreccion ?? undefined}>
+        Otro documento pedido
       </span>
     );
+  } else {
+    badge = <span className="admin-badge-estado admin-badge-estado--borrador">Sin enviar</span>;
   }
-  if (s.estado === 'aplicada') {
-    return <span className="sep-badge sep-badge--ok">{s.monto != null ? pesos(s.monto) : 'Aplicada'}</span>;
-  }
-  return <span className="sep-badge sep-badge--aviso">{s.estado === 'correccion' ? 'Otro documento' : 'Sin enviar'}</span>;
+
+  return (
+    <div className={`admin-lista-estado admin-lista-estado--${layout}`}>
+      <div className="admin-lista-estado__badges">{badge}</div>
+      {s.estado === 'aplicada' && s.monto != null ? (
+        <p className="admin-lista-estado__firmante">
+          <span className="admin-lista-estado__firmante-label">Mensualidad:</span>{' '}
+          <span className="admin-lista-estado__firmante-nombre tabular-nums">{pesos(s.monto)}</span>
+        </p>
+      ) : null}
+    </div>
+  );
 }
 
 function ListaCuestionario({ filas }: { filas: FilaCuestionarioSep[] }) {
   return (
     <>
-      <div className="sep-tabla-caja">
+      <div className="space-y-2 md:hidden">
+        {filas.map((f, i) => {
+          const urgente = esUrgente(f);
+          const contenido = (
+            <>
+              <p className="font-semibold text-primary">No. control {f.alumnoRef ?? '—'}</p>
+              <p className="text-sm text-text-secondary">
+                {nivelTxt(f.alumnoNivel)} · {becaTxt(f)}
+              </p>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <SituacionBx f={f} urgente={urgente} />
+                {f.tramiteId ? <span className="text-sm font-semibold text-primary">Ver trámite →</span> : null}
+              </div>
+            </>
+          );
+          const clase = `admin-mobile-card${urgente ? ' sep-card--aviso' : ''}`;
+          return f.tramiteId ? (
+            <Link key={`${f.alumnoRef}-${i}`} href={`/admin/sep/${f.tramiteId}`} className={clase}>
+              {contenido}
+            </Link>
+          ) : (
+            <div key={`${f.alumnoRef}-${i}`} className={clase}>
+              {contenido}
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="admin-panel-card hidden overflow-x-auto md:block">
         <table className="admin-table">
           <thead>
             <tr>
               <th>No. control</th>
               <th>Nivel</th>
               <th>Beca</th>
-              <th>Situación</th>
+              <th className="admin-table-col-estado">Situación</th>
               <th>Respondió</th>
               <th>Acción</th>
             </tr>
           </thead>
           <tbody>
             {filas.map((f, i) => {
-              const urgente = f.beneficio === 'sep' && f.recibio === true && !f.tieneTramite && !f.esPrueba;
+              const urgente = esUrgente(f);
               return (
-                <tr key={`${f.alumnoRef}-${i}`} className={urgente ? 'is-urgente' : undefined}>
-                  <td className="tabular-nums">{f.alumnoRef ?? '—'}</td>
+                <tr key={`${f.alumnoRef}-${i}`} className={urgente ? 'sep-row--aviso' : f.tieneTramite ? 'admin-table-row--activada' : undefined}>
+                  <td className="tabular-nums font-semibold text-primary">{f.alumnoRef ?? '—'}</td>
                   <td>{nivelTxt(f.alumnoNivel)}</td>
                   <td>{becaTxt(f)}</td>
-                  <td>
+                  <td className="admin-table-col-estado">
                     <SituacionBx f={f} urgente={urgente} />
                   </td>
-                  <td>{fechaCorta(f.actualizadoEn)}</td>
+                  <td className="text-text-secondary">{fechaLarga(f.actualizadoEn)}</td>
                   <td>
                     {f.tramiteId ? (
-                      <Link href={`/admin/sep/${f.tramiteId}`} className="font-semibold text-primary underline-offset-2 hover:underline">
-                        Ver trámite
+                      <Link href={`/admin/sep/${f.tramiteId}`} className={enlaceAccion}>
+                        Ver trámite →
                       </Link>
                     ) : (
-                      '—'
+                      <span className="text-text-secondary">—</span>
                     )}
                   </td>
                 </tr>
@@ -361,27 +455,11 @@ function ListaCuestionario({ filas }: { filas: FilaCuestionarioSep[] }) {
           </tbody>
         </table>
       </div>
-      <div className="sep-cards">
-        {filas.map((f, i) => {
-          const urgente = f.beneficio === 'sep' && f.recibio === true && !f.tieneTramite && !f.esPrueba;
-          return f.tramiteId ? (
-            <Link key={`${f.alumnoRef}-${i}`} href={`/admin/sep/${f.tramiteId}`} className={`sep-card${urgente ? ' is-urgente' : ''}`}>
-              <strong>No. control {f.alumnoRef ?? '—'}</strong>
-              <small>{nivelTxt(f.alumnoNivel)} · {becaTxt(f)}</small>
-              <SituacionBx f={f} urgente={urgente} />
-            </Link>
-          ) : (
-            <div key={`${f.alumnoRef}-${i}`} className={`sep-card${urgente ? ' is-urgente' : ''}`}>
-              <strong>No. control {f.alumnoRef ?? '—'}</strong>
-              <small>{nivelTxt(f.alumnoNivel)} · {becaTxt(f)}</small>
-              <SituacionBx f={f} urgente={urgente} />
-            </div>
-          );
-        })}
-      </div>
     </>
   );
 }
+
+const esUrgente = (f: FilaCuestionarioSep) => f.beneficio === 'sep' && f.recibio === true && !f.tieneTramite && !f.esPrueba;
 
 function becaTxt(f: FilaCuestionarioSep) {
   if (!f.aplico) return 'Ninguna';
@@ -390,10 +468,11 @@ function becaTxt(f: FilaCuestionarioSep) {
 }
 
 function SituacionBx({ f, urgente }: { f: FilaCuestionarioSep; urgente: boolean }) {
-  if (f.esPrueba) return <span className="sep-badge sep-badge--prueba">Prueba</span>;
-  if (urgente) return <span className="sep-badge sep-badge--aviso">Ya la recibió · falta documento</span>;
-  if (!f.aplico) return <span className="sep-badge">No aplicó</span>;
-  if (f.tieneTramite) return <span className="sep-badge sep-badge--ok">Ya hay trámite</span>;
-  if (f.recibio) return <span className="sep-badge sep-badge--aviso">Ya la recibió</span>;
-  return <span className="sep-badge">En espera</span>;
+  const b = (variante: string, texto: string) => <span className={`admin-badge-estado admin-badge-estado--${variante}`}>{texto}</span>;
+  if (f.esPrueba) return <span className="admin-badge-estado sep-badge--prueba">Prueba</span>;
+  if (urgente) return b('correccion', 'Ya la recibió · falta documento');
+  if (!f.aplico) return b('borrador', 'No aplicó');
+  if (f.tieneTramite) return b('verificada', 'Ya hay trámite');
+  if (f.recibio) return b('espera-firma', 'Ya la recibió');
+  return b('mes-normal', 'En espera');
 }

@@ -64,14 +64,15 @@ export default async function AdminSepPage({
 
   return (
     <div className="space-y-4">
+      {/* 2026-10-12 - Encabezado con el mismo formato que «Solicitudes nuevas». */}
       <div className="admin-hero">
         <h2>Beca SEP</h2>
         <p>
-          {admin.label} · Ciclo {getSchoolCycleLabel(cicloSep())}
+          {admin.label} · Ciclo {getSchoolCycleLabel(cicloSep())} · {todas.length} registro(s)
         </p>
-        <p className="text-sm">
-          Revise primero quien lleva más tiempo esperando. Busque por nombre o no. de control; el
-          cuestionario dice quién aplicó aunque todavía no suba su documento.
+        <p className="text-xs text-text-secondary">
+          Abra el No. de control o pulse Revisar para ver el documento y aplicar la beca. En
+          «Cuestionario» aparece quién dijo que aplicó, aunque todavía no suba su documento.
         </p>
       </div>
 
