@@ -7,6 +7,7 @@ import { getInsforgeAdmin } from '@/lib/insforge-server';
 import { cicloSep, type AdminSep } from '@/lib/sep/servicio';
 
 export type FilaBeneficioExterno = {
+  alumno_ref?: number | null;
   alumno_nivel: number | null;
   aplico: boolean;
   beneficio: 'sep' | 'otra' | null;
@@ -25,6 +26,8 @@ export type ResumenBeneficiosExternos = {
   otra: Conteo & { nombres: { nombre: string; total: number }[] };
   porNivel: { nivel: number | null; contestaron: number; aplicaron: number; sep: number }[];
   dePrueba: number;
+  /** 2026-10-12 - Respuestas de los alumnos de prueba, para ver que el cuestionario sí guarda. */
+  pruebas: FilaBeneficioExterno[];
 };
 
 const conteoVacio = (): Conteo => ({ total: 0, recibida: 0, enEspera: 0 });
@@ -69,6 +72,7 @@ export function resumirBeneficiosExternos(filas: FilaBeneficioExterno[]): Resume
       .sort(([a], [b]) => (a ?? 99) - (b ?? 99))
       .map(([nivel, v]) => ({ nivel, ...v })),
     dePrueba: filas.length - reales.length,
+    pruebas: filas.filter((f) => f.es_prueba),
   };
 }
 
@@ -77,7 +81,7 @@ export async function resumenBeneficiosExternos(admin: AdminSep): Promise<Resume
   try {
     const { data, error } = await getInsforgeAdmin()
       .database.from('beneficios_externos_respuesta')
-      .select('alumno_nivel, aplico, beneficio, beneficio_nombre, recibio, es_prueba')
+      .select('alumno_ref, alumno_nivel, aplico, beneficio, beneficio_nombre, recibio, es_prueba')
       .eq('ciclo_escolar', cicloSep())
       .in('alumno_nivel', admin.niveles.length ? admin.niveles : [-1]);
     if (error) throw error;

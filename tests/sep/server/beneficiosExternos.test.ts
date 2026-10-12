@@ -26,5 +26,6 @@ describe('resumirBeneficiosExternos', () => {
       { nivel: 4, contestaron: 2, aplicaron: 2, sep: 1 },
     ])
     expect(r.dePrueba).toBe(1)
+    expect(r.pruebas).toHaveLength(1)
   })
 })

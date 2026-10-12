@@ -4,9 +4,15 @@
  */
 import { Card } from '@/components/ui';
 import { NOMBRE_NIVEL } from '@/lib/sep/core/ciclo';
-import type { ResumenBeneficiosExternos } from '@/lib/sep/beneficiosExternos';
+import type { FilaBeneficioExterno, ResumenBeneficiosExternos } from '@/lib/sep/beneficiosExternos';
 
 const nivelTxt = (n: number | null) => (n != null ? NOMBRE_NIVEL[n] ?? `Nivel ${n}` : 'Sin nivel');
+
+const respuestaTxt = (f: FilaBeneficioExterno) => {
+  if (!f.aplico) return 'No aplicó a ninguna beca externa';
+  const beca = f.beneficio === 'sep' ? 'Beca SEP' : f.beneficio_nombre?.trim() || 'Otra beca';
+  return `${beca} · ${f.recibio ? 'ya la recibió' : 'en espera'}`;
+};
 
 function Cifra({ titulo, valor, nota }: { titulo: string; valor: number; nota: string }) {
   return (
@@ -25,9 +31,22 @@ export function ResumenBeneficiosExternos({ r }: { r: ResumenBeneficiosExternos 
         <h3 className="text-sm font-semibold">Beneficios externos · lo que contestan las familias</h3>
         <p className="text-xs text-text-secondary">
           Respuestas del cuestionario en servicios escolares, antes de subir cualquier documento.
-          {r?.dePrueba ? ` No se cuentan ${r.dePrueba} de prueba.` : ''}
         </p>
       </div>
+
+      {/* 2026-10-12 - Las respuestas de prueba se muestran aparte y no se suman a las cifras. */}
+      {r?.pruebas.length ? (
+        <div className="rounded-xl border border-dashed border-accent px-4 py-2 text-sm">
+          <p className="text-xs font-semibold text-accent">Respuestas de prueba (no se suman a las cifras)</p>
+          <ul className="mt-1 space-y-0.5">
+            {r.pruebas.map((f, i) => (
+              <li key={`${f.alumno_ref}-${i}`}>
+                No. control {f.alumno_ref ?? '—'} · {nivelTxt(f.alumno_nivel)} · {respuestaTxt(f)}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       {!r ? (
         <p className="text-sm text-warning">No se pudieron leer las respuestas. Intente más tarde.</p>
