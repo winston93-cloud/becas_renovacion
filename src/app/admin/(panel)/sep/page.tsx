@@ -7,7 +7,7 @@ import { getSchoolCycleLabel } from '@/lib/ciclo-escolar';
 import { leerAdminSep } from '@/lib/sep/admin';
 import { cicloSep, listarSep, montoVigente, porcentajeEfectivo, requiereRevisionManual } from '@/lib/sep/servicio';
 import { resumenBeneficiosExternos } from '@/lib/sep/beneficiosExternos';
-import type { FilaCuestionarioSep, FilaTramiteSep, ResumenBxPanel, VistaTramite } from '@/lib/sep/panelLista';
+import { gradosDeNiveles, type FilaCuestionarioSep, type FilaTramiteSep, type ResumenBxPanel, type VistaTramite } from '@/lib/sep/panelLista';
 import { PanelSep } from './PanelSep';
 
 export default async function AdminSepPage({
@@ -83,6 +83,7 @@ export default async function AdminSepPage({
         hecho={hecho}
         de={de}
         vistaInicial={vistaInicial}
+        gradosDisponibles={gradosDeNiveles(admin.niveles)}
       />
     </div>
   );

@@ -13,7 +13,6 @@ import {
   VISTAS_TRAMITE,
   filtrarCuestionario,
   filtrarTramites,
-  gradosDeTramites,
   ordenarCuestionario,
   ordenarTramites,
   paginar,
@@ -51,9 +50,10 @@ type Props = {
   hecho?: string;
   de?: string;
   vistaInicial?: VistaTramite;
+  gradosDisponibles?: number[];
 };
 
-export function PanelSep({ tramites, cuestionario, resumen, esSistemas, hecho, de, vistaInicial = 'revisar' }: Props) {
+export function PanelSep({ tramites, cuestionario, resumen, esSistemas, hecho, de, vistaInicial = 'revisar', gradosDisponibles = [] }: Props) {
   const [seccion, setSeccion] = useState<SeccionSep>('tramites');
   const [vista, setVista] = useState<VistaTramite>(vistaInicial);
   const [q, setQ] = useState('');
@@ -63,7 +63,7 @@ export function PanelSep({ tramites, cuestionario, resumen, esSistemas, hecho, d
   const [filtroBx, setFiltroBx] = useState<FiltroCuestionario>('todas');
   const [pagina, setPagina] = useState(1);
 
-  const grados = useMemo(() => gradosDeTramites(tramites), [tramites]);
+  const grados = gradosDisponibles;
   const conteoVista = (v: VistaTramite) => tramites.filter((f) => VISTAS_TRAMITE.find((x) => x.valor === v)?.estados.includes(f.estado)).length;
   const pendientes = conteoVista('revisar');
   const sinDoc = cuestionario.filter((f) => !f.esPrueba && f.beneficio === 'sep' && f.recibio === true && !f.tieneTramite).length;

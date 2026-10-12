@@ -77,6 +77,22 @@ export function gradosDeTramites(filas: FilaTramiteSep[]): number[] {
   return [...new Set(filas.map((f) => f.grado).filter((g): g is number => g != null))].sort((a, b) => a - b);
 }
 
+/** 2026-10-12 - Grados del nivel, aunque todavía no haya trámites (si no, el filtro solo decía «Todos»). */
+export const GRADOS_POR_NIVEL: Record<number, number[]> = {
+  1: [1, 2, 3],
+  2: [1, 2, 3],
+  3: [1, 2, 3, 4, 5, 6],
+  4: [1, 2, 3],
+};
+
+export function gradosDeNiveles(niveles: number[]): number[] {
+  const set = new Set<number>();
+  for (const n of niveles) {
+    for (const g of GRADOS_POR_NIVEL[n] ?? []) set.add(g);
+  }
+  return [...set].sort((a, b) => a - b);
+}
+
 export function filtrarTramites(
   filas: FilaTramiteSep[],
   opts: { vista: VistaTramite; q: string; grado: number | null; soloManual: boolean }

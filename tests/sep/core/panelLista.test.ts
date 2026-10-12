@@ -3,6 +3,7 @@ import { describe, expect, test } from 'vitest'
 import {
   filtrarCuestionario,
   filtrarTramites,
+  gradosDeNiveles,
   ordenarCuestionario,
   ordenarTramites,
   paginar,
@@ -77,6 +78,12 @@ describe('cuestionario', () => {
     expect(visibles.map((f) => f.alumnoRef)).toEqual([1, 2, 3, 4])
     expect(filtrarCuestionario(filas, { q: '', filtro: 'sin_doc' }).map((f) => f.alumnoRef)).toEqual([1])
     expect(filtrarCuestionario(filas, { q: '', filtro: 'prueba' }).map((f) => f.alumnoRef)).toEqual([5])
+  })
+})
+
+describe('gradosDeNiveles', () => {
+  test('Primaria ofrece 1° a 6° aunque no haya trámites', () => {
+    expect(gradosDeNiveles([3])).toEqual([1, 2, 3, 4, 5, 6])
   })
 })
 
