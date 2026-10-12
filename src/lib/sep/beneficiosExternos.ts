@@ -14,6 +14,7 @@ export type FilaBeneficioExterno = {
   beneficio_nombre: string | null;
   recibio: boolean | null;
   es_prueba: boolean;
+  actualizado_en?: string | null;
 };
 
 type Conteo = { total: number; recibida: number; enEspera: number };
@@ -28,6 +29,8 @@ export type ResumenBeneficiosExternos = {
   dePrueba: number;
   /** 2026-10-12 - Respuestas de los alumnos de prueba, para ver que el cuestionario sí guarda. */
   pruebas: FilaBeneficioExterno[];
+  /** 2026-10-12 - Todas las filas (reales y de prueba) para la tabla filtrable del panel. */
+  respuestas: FilaBeneficioExterno[];
 };
 
 const conteoVacio = (): Conteo => ({ total: 0, recibida: 0, enEspera: 0 });
@@ -73,6 +76,7 @@ export function resumirBeneficiosExternos(filas: FilaBeneficioExterno[]): Resume
       .map(([nivel, v]) => ({ nivel, ...v })),
     dePrueba: filas.length - reales.length,
     pruebas: filas.filter((f) => f.es_prueba),
+    respuestas: filas,
   };
 }
 
@@ -81,7 +85,7 @@ export async function resumenBeneficiosExternos(admin: AdminSep): Promise<Resume
   try {
     const { data, error } = await getInsforgeAdmin()
       .database.from('beneficios_externos_respuesta')
-      .select('alumno_ref, alumno_nivel, aplico, beneficio, beneficio_nombre, recibio, es_prueba')
+      .select('alumno_ref, alumno_nivel, aplico, beneficio, beneficio_nombre, recibio, es_prueba, actualizado_en')
       .eq('ciclo_escolar', cicloSep())
       .in('alumno_nivel', admin.niveles.length ? admin.niveles : [-1]);
     if (error) throw error;
