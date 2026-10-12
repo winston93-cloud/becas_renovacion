@@ -17,7 +17,8 @@ import { actualizarEsperados, esperadosDeCalculo, revisarPagos, type ResumenPago
 import { getLectorDocumento, MAX_BYTES_DOCUMENTO_SEP, TIPOS_DOCUMENTO_SEP } from '@/lib/sep/lectorDocumento';
 import { aplicarEnCobro } from '@/lib/sep/cobro';
 import { getSepRepo, nuevoIdSep } from '@/lib/sep/repo';
-import { buzonPruebaSep, correosSepSoloPrueba, familiaPuedeUsarSep, MENSAJE_SEP_NO_DISPONIBLE } from '@/lib/sep/activo';
+import { buzonPruebaSep, correosSepSoloPrueba, esRefPruebaSep, familiaPuedeUsarSep, MENSAJE_SEP_NO_DISPONIBLE } from '@/lib/sep/activo';
+import { completarDatosSimulacionPrueba } from '@/lib/sep/simulacionPrueba';
 import {
   AVISO_OTRAS_BECAS,
   MAX_INTENTOS_DOCUMENTO,
@@ -265,8 +266,10 @@ export type CalculoVivo =
 /** Cálculo completo con datos actuales de InsForge (pagos, precios, beca actual). */
 export async function calcularEnVivo(s: SolicitudSep, porcentaje: number | null): Promise<CalculoVivo> {
   try {
-    const datos = await datosAlumnoCiclo(s.alumnoRef, s.ciclo);
-    if (!datos) return { ok: false, error: `El número de control ${s.alumnoRef} no existe en la base de alumnos.` };
+    const crudos = await datosAlumnoCiclo(s.alumnoRef, s.ciclo);
+    if (!crudos) return { ok: false, error: `El número de control ${s.alumnoRef} no existe en la base de alumnos.` };
+    // 2026-10-12 - Alumno de prueba: plan y precios de ejemplo; sin pagos ni beca real (no toca tesorería).
+    const datos = esRefPruebaSep(s.alumnoRef) ? completarDatosSimulacionPrueba(crudos) : crudos;
     const evaluacion = evaluarBeca(datos, { porcentajeSep: porcentaje, porcentajeBecaActual: null, planMeses: null });
     const entrada = entradaDesdeEvaluacion(evaluacion, porcentaje);
     return { ok: true, datos, evaluacion, entrada, hoja: entrada ? armarHojaCalculo(entrada) : null };
@@ -344,13 +347,15 @@ export async function aplicarSep(admin: AdminSep, id: string, porcentaje: unknow
     historial.push(evento(admin.role, 'porcentaje_corregido', `${s.porcentajeDetectado ?? '—'} % → ${pct} %`));
   }
   const cobro = await aplicarEnCobro({ ...s, calculo, porcentajeConfirmado: pct });
+  const prueba = esRefPruebaSep(s.alumnoRef);
   // 2026-10-09 - Movimiento para Renovaciones: la beca del colegio que se pierde (no se renueva el ciclo siguiente).
-  const becaSustituida = await becaQueSePierde(s, c.evaluacion.becaActualPct);
+  // 2026-10-12 - En prueba no se marca sustitución: no debe alterar renovaciones de un alumno real.
+  const becaSustituida = prueba ? null : await becaQueSePierde(s, c.evaluacion.becaActualPct);
   historial.push(
     evento(
       admin.role,
       'aplicada',
-      `Beca SEP ${pct} %. Mensualidad ${pesos(calculo.montoMensual)}.${
+      `${prueba ? 'SIMULACIÓN DE PRUEBA. ' : ''}Beca SEP ${pct} %. Mensualidad ${pesos(calculo.montoMensual)}.${
         becaSustituida ? ` Sustituye la beca ${becaSustituida.clase ?? ''} ${becaSustituida.porcentaje} % (no se renueva).` : ''
       } ${cobro.detalle}`
     )
@@ -368,6 +373,8 @@ export async function aplicarSep(admin: AdminSep, id: string, porcentaje: unknow
     esperados: esperadosDeCalculo({ calculo, ajusteManual: null }),
     historial,
   });
+  // 2026-10-12 - Alumno de prueba: no se manda correo ni constancia (no es una familia real).
+  if (prueba) return guardada;
   // 2026-10-09 - Correo a la familia con el desglose, la constancia PDF y quién aplicó.
   return conEvento(guardada, await correoFamiliaSep('aplicada', guardada, { actor: admin.role }));
 }

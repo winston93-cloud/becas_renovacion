@@ -62,6 +62,7 @@ export function AccionesControlEscolar({
   errorCalculo,
   bloqueos,
   siguienteId,
+  simulacion = false,
 }: {
   id: string;
   nombre: string;
@@ -74,6 +75,8 @@ export function AccionesControlEscolar({
   /** Avisos que impiden aplicar (faltan precios, plan, etc.). */
   bloqueos: string[];
   siguienteId: string | null;
+  /** 2026-10-12 - Alumno de prueba: el cálculo es de ejemplo y Aplicar no toca cobro ni becas. */
+  simulacion?: boolean;
 }) {
   const router = useRouter();
   const [pct, setPct] = useState(porcentajeVista != null ? String(porcentajeVista) : '');
@@ -147,6 +150,12 @@ export function AccionesControlEscolar({
 
   return (
     <div className="space-y-5">
+      {simulacion ? (
+        <Alert variant="warning" title="Simulación de prueba">
+          Este alumno no es una familia real. El cálculo usa plan y precios de ejemplo. Al aplicar no se
+          cobra, no se crea dinero y no se tocan becas ni pagos.
+        </Alert>
+      ) : null}
       <ul className="space-y-3">
         {renglones.map((r) => (
           <li key={r.texto} className="flex gap-3">

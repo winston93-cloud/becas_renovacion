@@ -29,6 +29,7 @@ import {
 } from '@/lib/sep/servicio';
 import type { EstadoPagoSep } from '@/lib/sep/pagos';
 import { siguienteCorreoPermitido } from '@/lib/sep/limitesCorreo';
+import { esRefPruebaSep } from '@/lib/sep/activo';
 import type { DocumentoSep, SolicitudSep } from '@/lib/sep/tipos';
 import {
   AccionesControlEscolar,
@@ -296,6 +297,7 @@ export default async function AdminSepDetallePage({
                 errorCalculo={vivo && !vivo.ok ? vivo.error : null}
                 bloqueos={bloqueos}
                 siguienteId={siguienteId}
+                simulacion={esRefPruebaSep(s.alumnoRef)}
               />
             </Card>
           ) : null}

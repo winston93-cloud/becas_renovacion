@@ -23,9 +23,13 @@ export function refsPruebaSep(): number[] {
     .filter((n) => Number.isInteger(n) && n > 0);
 }
 
+export function esRefPruebaSep(alumnoRef: number): boolean {
+  return refsPruebaSep().includes(alumnoRef);
+}
+
 /** La familia de este alumno puede usar el trámite (siempre en modo local). */
 export function familiaPuedeUsarSep(alumnoRef: number): boolean {
-  return esModoLocalSoloLectura() || sepAbiertoAFamilias() || refsPruebaSep().includes(alumnoRef);
+  return esModoLocalSoloLectura() || sepAbiertoAFamilias() || esRefPruebaSep(alumnoRef);
 }
 
 /** Con el interruptor apagado ningún correo del trámite sale a familias ni a coordinaciones reales. */
