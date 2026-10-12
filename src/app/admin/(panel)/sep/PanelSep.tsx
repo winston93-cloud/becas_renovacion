@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import { Card, Input, Select } from '@/components/ui';
+import { AdminExportListaButtons } from '@/components/admin/AdminExportListaButtons';
 import { NOMBRE_NIVEL } from '@/lib/sep/core/ciclo';
 import { pesos } from '@/lib/sep/core/dinero';
 import {
@@ -105,6 +106,14 @@ export function PanelSep({ tramites, cuestionario, resumen, esSistemas, hecho, d
     setPagina(1);
   };
 
+  const filtroTexto = [
+    soloManual ? 'Revisar a mano' : VISTAS_TRAMITE.find((v) => v.valor === vista)?.texto,
+    grado != null ? `${grado}° grado` : null,
+    q.trim() ? `«${q.trim()}»` : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
   const vacioTramite = VISTAS_TRAMITE.find((v) => v.valor === vista)?.vacio ?? 'Sin trámites.';
   const vacio =
     seccion === 'tramites'
@@ -157,8 +166,9 @@ export function PanelSep({ tramites, cuestionario, resumen, esSistemas, hecho, d
         </div>
       )}
 
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-        <div className="relative w-full max-w-md">
+      {/* 2026-10-12 - Barra con flex-wrap: buscador + Excel/PDF + 3 filtros no caben en una línea y los botones se encimaban. */}
+      <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-end lg:justify-between">
+        <div className="relative w-full max-w-md lg:min-w-[14rem] lg:flex-1">
           <label className="sr-only" htmlFor="sep-buscar">
             Buscar alumno
           </label>
@@ -190,9 +200,25 @@ export function PanelSep({ tramites, cuestionario, resumen, esSistemas, hecho, d
           ) : null}
         </div>
 
-        <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-end sm:justify-end lg:w-auto">
+        <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end sm:justify-end lg:ml-auto lg:w-auto lg:flex-nowrap">
           {seccion === 'tramites' ? (
             <>
+              {/* 2026-10-12 - Excel/PDF de todas las filas filtradas (no solo la página), como en Solicitudes. */}
+              {/* 2026-10-12 - shrink-0 para que Excel y PDF queden lado a lado y no se apilen al encogerse. */}
+              <div className="shrink-0">
+                <AdminExportListaButtons
+                  flujo="solicitud"
+                  titulo="Beca SEP"
+                  filtroLabel={filtroTexto}
+                  rows={[]}
+                  destino={{
+                    url: '/api/admin/sep/lista',
+                    cuerpo: { ids: tramitesVisibles.map((t) => t.id), filtro: filtroTexto },
+                    total: tramitesVisibles.length,
+                    nombre: 'beca-sep',
+                  }}
+                />
+              </div>
               <div className="w-full sm:w-40">
                 <Select aria-label="Filtrar grado" value={grado ?? ''} onChange={(e) => irA(() => setGrado(e.target.value ? Number(e.target.value) : null))}>
                   <option value="">Todos los grados</option>
@@ -401,6 +427,11 @@ function ListaCuestionario({ filas }: { filas: FilaCuestionarioSep[] }) {
                 <SituacionBx f={f} urgente={urgente} />
                 {f.tramiteId ? <span className="text-sm font-semibold text-primary">Ver trámite →</span> : null}
               </div>
+              {urgente && f.alumnoRef != null ? (
+                <div className="mt-2">
+                  <BotonRecordatorio alumnoRef={f.alumnoRef} ultimo={f.ultimoRecordatorio ?? null} />
+                </div>
+              ) : null}
             </>
           );
           const clase = `admin-mobile-card${urgente ? ' sep-card--aviso' : ''}`;
@@ -445,6 +476,8 @@ function ListaCuestionario({ filas }: { filas: FilaCuestionarioSep[] }) {
                       <Link href={`/admin/sep/${f.tramiteId}`} className={enlaceAccion}>
                         Ver trámite →
                       </Link>
+                    ) : urgente && f.alumnoRef != null ? (
+                      <BotonRecordatorio alumnoRef={f.alumnoRef} ultimo={f.ultimoRecordatorio ?? null} />
                     ) : (
                       <span className="text-text-secondary">—</span>
                     )}
@@ -456,6 +489,51 @@ function ListaCuestionario({ filas }: { filas: FilaCuestionarioSep[] }) {
         </table>
       </div>
     </>
+  );
+}
+
+/**
+ * 2026-10-12 - "Enviar recordatorio" a la familia que dijo tener Beca SEP pero no ha subido su documento.
+ * Uno cada 7 días por alumno: `ultimo` solo llega si fue en esos 7 días (el servidor lo valida con la bitácora).
+ */
+function BotonRecordatorio({ alumnoRef, ultimo }: { alumnoRef: number; ultimo: string | null }) {
+  const [enviadoEn, setEnviadoEn] = useState<string | null>(ultimo);
+  const [cargando, setCargando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  async function enviar() {
+    if (!window.confirm(`¿Enviar a la familia del No. de control ${alumnoRef} el recordatorio para subir su documento de Beca SEP?`)) return;
+    setCargando(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/admin/sep/recordatorio', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ alumnoRef }),
+      });
+      const data = (await res.json().catch(() => ({}))) as { error?: string; enviadoEn?: string };
+      if (!res.ok) throw new Error(data.error || 'No se pudo enviar el recordatorio.');
+      setEnviadoEn(data.enviadoEn ?? new Date().toISOString());
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo enviar el recordatorio.');
+    } finally {
+      setCargando(false);
+    }
+  }
+
+  if (enviadoEn) {
+    return (
+      <span className="sep-recordado" title="Se puede volver a enviar 7 días después">
+        ✓ Recordatorio enviado {new Date(enviadoEn).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })}
+      </span>
+    );
+  }
+  return (
+    <div className="flex flex-col items-start gap-1">
+      <button type="button" className="sep-btn-recordar" onClick={enviar} disabled={cargando}>
+        {cargando ? 'Enviando…' : 'Enviar recordatorio'}
+      </button>
+      {error ? <span className="text-xs text-red-700 dark:text-red-300">{error}</span> : null}
+    </div>
   );
 }
 

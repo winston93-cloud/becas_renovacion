@@ -40,6 +40,7 @@ import {
 } from './AccionesSep';
 import { AvisoListo } from '../AvisoListo';
 import { BotonImprimirSep } from '../BotonImprimirSep';
+import '../sep-panel.css';
 
 const fecha = (iso: string | null | undefined) =>
   iso ? new Date(iso).toLocaleString('es-MX', { dateStyle: 'long', timeStyle: 'short' }) : '—';
@@ -55,12 +56,13 @@ const ACTOR: Record<string, string> = {
 };
 
 /** 2026-10-09 - Pagos de colegiatura después de aplicar: de menos / de más contra la mensualidad SEP. */
+// 2026-10-12 - Clases de insignia (admin-badge-estado) en lugar de solo color de texto.
 const ESTADO_PAGO: Record<EstadoPagoSep, { texto: string; clase: string }> = {
-  ok: { texto: 'Correcto', clase: 'text-success' },
-  menos: { texto: 'Pagó de menos', clase: 'font-semibold text-error' },
-  mas: { texto: 'Pagó de más', clase: 'font-semibold text-warning' },
-  pendiente: { texto: 'Sin pago aún', clase: 'text-text-secondary' },
-  cubierto: { texto: 'Cubierto a mano', clase: 'text-text-secondary' },
+  ok: { texto: 'Correcto', clase: 'admin-badge-estado--verificada' },
+  menos: { texto: 'Pagó de menos', clase: 'admin-badge-estado--correccion' },
+  mas: { texto: 'Pagó de más', clase: 'admin-badge-estado--espera-firma' },
+  pendiente: { texto: 'Sin pago aún', clase: 'admin-badge-estado--borrador' },
+  cubierto: { texto: 'Cubierto a mano', clase: 'admin-badge-estado--mes-normal' },
 };
 
 function PagosDespuesDeAplicar({
@@ -76,6 +78,10 @@ function PagosDespuesDeAplicar({
 }) {
   if (!r.ok) return <p className="text-sm text-warning">{r.error}</p>;
   const { filas, conDiferencia, deMenos, deMas } = r.resumen;
+  // 2026-10-12 - Sin meses que revisar no se muestra una tabla vacía que diga «coinciden».
+  if (!filas.length) {
+    return <p className="text-sm text-text-secondary">Todavía no hay meses de colegiatura que revisar después de aplicar la beca.</p>;
+  }
   return (
     <div className="space-y-3">
       {conDiferencia.length ? (
@@ -87,27 +93,30 @@ function PagosDespuesDeAplicar({
       ) : (
         <p className="text-sm text-success">Los pagos registrados coinciden con la mensualidad con Beca SEP.</p>
       )}
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+      {/* 2026-10-12 - Misma tabla (admin-table) e insignias que la lista de Beca SEP. */}
+      <div className="admin-panel-card overflow-x-auto">
+        <table className="admin-table sep-tabla-pagos">
           <thead>
-            <tr className="border-b border-border text-left text-xs text-text-secondary">
-              <th className="py-1.5 pr-3">Mes</th>
-              <th className="py-1.5 pr-3 text-right">Le corresponde</th>
-              <th className="py-1.5 pr-3 text-right">Pagó (sin recargos)</th>
-              <th className="py-1.5 pr-3 text-right">Diferencia</th>
-              <th className="py-1.5">Estado</th>
+            <tr>
+              <th>Mes</th>
+              <th className="text-right">Le corresponde</th>
+              <th className="text-right">Pagó (sin recargos)</th>
+              <th className="text-right">Diferencia</th>
+              <th>Estado</th>
             </tr>
           </thead>
           <tbody>
             {filas.map((f) => (
-              <tr key={f.concepto} className="border-b border-border last:border-0">
-                <td className="py-1.5 pr-3">{f.mes}</td>
-                <td className="py-1.5 pr-3 text-right">{pesos(f.esperado)}</td>
-                <td className="py-1.5 pr-3 text-right">{f.pagadoNeto != null ? pesos(f.pagadoNeto) : '—'}</td>
-                <td className="py-1.5 pr-3 text-right">
+              <tr key={f.concepto}>
+                <td>{f.mes}</td>
+                <td className="text-right tabular-nums">{pesos(f.esperado)}</td>
+                <td className="text-right tabular-nums">{f.pagadoNeto != null ? pesos(f.pagadoNeto) : '—'}</td>
+                <td className="text-right tabular-nums">
                   {f.diferencia != null && f.estado !== 'ok' ? `${f.diferencia > 0 ? '+' : '−'} ${pesos(Math.abs(f.diferencia))}` : '—'}
                 </td>
-                <td className={`py-1.5 ${ESTADO_PAGO[f.estado].clase}`}>{ESTADO_PAGO[f.estado].texto}</td>
+                <td>
+                  <span className={`admin-badge-estado ${ESTADO_PAGO[f.estado].clase}`}>{ESTADO_PAGO[f.estado].texto}</span>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -134,12 +143,13 @@ const ESTADO_CE: Record<SolicitudSep['estado'], string> = {
   rechazada: 'Rechazada',
 };
 
+/** 2026-10-12 - Mismas insignias que la lista (admin-badge-estado). */
 const TONO: Record<SolicitudSep['estado'], string> = {
-  borrador: 'bg-bg text-text-secondary',
-  enviada: 'bg-warning-bg text-warning',
-  correccion: 'bg-warning-bg text-warning',
-  aplicada: 'bg-success-bg text-success',
-  rechazada: 'bg-error-bg text-error',
+  borrador: 'admin-badge-estado--borrador',
+  enviada: 'admin-badge-estado--pendiente',
+  correccion: 'admin-badge-estado--correccion',
+  aplicada: 'admin-badge-estado--activada',
+  rechazada: 'admin-badge-estado--rechazada',
 };
 
 /** Las tres preguntas que se haría la coordinación con el papel en la mano. */
@@ -236,7 +246,11 @@ export default async function AdminSepDetallePage({
       <div className="admin-hero">
         <div className="flex flex-wrap items-center gap-3">
           <h2>{s.nombreAlumno}</h2>
-          <span className={`rounded-full px-3 py-1 text-xs font-semibold ${TONO[s.estado]}`}>{ESTADO_CE[s.estado]}</span>
+          <span className={`admin-badge-estado ${TONO[s.estado]}`}>
+            {s.estado === 'aplicada' ? '✓ ' : ''}
+            {ESTADO_CE[s.estado]}
+          </span>
+          {esRefPruebaSep(s.alumnoRef) ? <span className="admin-badge-estado sep-badge--prueba">Prueba</span> : null}
         </div>
         <p>
           No. control {s.alumnoRef} · {s.nivel != null ? NOMBRE_NIVEL[s.nivel] ?? `Nivel ${s.nivel}` : 'Sin nivel'}
@@ -390,7 +404,9 @@ export default async function AdminSepDetallePage({
                   <p className="text-xs text-text-secondary">
                     {aplicada
                       ? `Cálculo guardado al aplicar (${fecha(s.calculo!.calculadoEn)}).`
-                      : `Vista previa con ${pctVista} %. Pagos sin recargos, leídos de InsForge (solo lectura).`}
+                      : esRefPruebaSep(s.alumnoRef)
+                        ? `Vista previa con ${pctVista} %. Simulación: pagos y beca de ejemplo, no existen en InsForge.`
+                        : `Vista previa con ${pctVista} %. Pagos sin recargos, leídos de InsForge (solo lectura).`}
                   </p>
                 }
               />

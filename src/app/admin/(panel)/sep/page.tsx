@@ -7,6 +7,7 @@ import { getSchoolCycleLabel } from '@/lib/ciclo-escolar';
 import { leerAdminSep } from '@/lib/sep/admin';
 import { cicloSep, listarSep, montoVigente, porcentajeEfectivo, requiereRevisionManual } from '@/lib/sep/servicio';
 import { resumenBeneficiosExternos } from '@/lib/sep/beneficiosExternos';
+import { siguienteRecordatorio, ultimosRecordatorios } from '@/lib/sep/recordatorioDocumento';
 import { gradosDeNiveles, type FilaCuestionarioSep, type FilaTramiteSep, type ResumenBxPanel, type VistaTramite } from '@/lib/sep/panelLista';
 import { PanelSep } from './PanelSep';
 
@@ -20,6 +21,11 @@ export default async function AdminSepPage({
   const { vista, hecho, de } = await searchParams;
   const [todas, externos] = await Promise.all([listarSep(admin), resumenBeneficiosExternos(admin)]);
   const tramitePorRef = new Map(todas.map((s) => [s.alumnoRef, s.id]));
+  // 2026-10-12 - Fecha del último recordatorio a las familias "SEP sin documento" (bitácora).
+  const refsSinDoc = (externos?.respuestas ?? [])
+    .filter((f) => f.beneficio === 'sep' && f.recibio === true && f.alumno_ref != null && !tramitePorRef.has(f.alumno_ref))
+    .map((f) => f.alumno_ref as number);
+  const recordatorios = await ultimosRecordatorios(refsSinDoc);
 
   const tramites: FilaTramiteSep[] = todas.map((s) => ({
     id: s.id,
@@ -46,6 +52,10 @@ export default async function AdminSepPage({
     actualizadoEn: f.actualizado_en ?? null,
     tramiteId: f.alumno_ref != null ? (tramitePorRef.get(f.alumno_ref) ?? null) : null,
     tieneTramite: f.alumno_ref != null && tramitePorRef.has(f.alumno_ref),
+    ultimoRecordatorio: (() => {
+      const ultimo = f.alumno_ref != null ? recordatorios.get(f.alumno_ref) : undefined;
+      return ultimo && siguienteRecordatorio(ultimo) ? ultimo : null;
+    })(),
   }));
 
   const resumen: ResumenBxPanel | null = externos

@@ -45,6 +45,8 @@ export type FilaCuestionarioSep = {
   actualizadoEn: string | null;
   tieneTramite: boolean;
   tramiteId: string | null;
+  /** 2026-10-12 - Último recordatorio "falta subir su documento" (de la bitácora). */
+  ultimoRecordatorio?: string | null;
 };
 
 export const VISTAS_TRAMITE: { valor: VistaTramite; texto: string; estados: EstadoSep[]; vacio: string }[] = [

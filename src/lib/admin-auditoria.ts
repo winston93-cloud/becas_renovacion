@@ -25,14 +25,17 @@ export type AuditoriaAccion =
   | 'documento.quitar_rechazo'
   | 'documento.avisar_faltante'
   | 'renovacion.rechazo_beca'
-  | 'solicitud.rechazo_beca';
+  | 'solicitud.rechazo_beca'
+  // 2026-10-12 - Recordatorio a la familia que dijo tener Beca SEP pero no ha subido su documento.
+  | 'sep.recordatorio_documento';
 
 export type AuditoriaEntidad =
   | 'sesion'
   | 'renovacion'
   | 'solicitud'
   | 'acceso'
-  | 'documento';
+  | 'documento'
+  | 'beca_sep';
 
 export type AuditoriaEntry = {
   actor_role: string;
@@ -123,6 +126,7 @@ export function etiquetaAccionAuditoria(accion: string): string {
     'documento.marcar_incorrecto': 'Documento marcado incorrecto',
     'documento.quitar_rechazo': 'Quitó rechazo de documento',
     'documento.avisar_faltante': 'Avisó documento faltante a padres',
+    'sep.recordatorio_documento': 'Recordatorio Beca SEP: subir documento',
   };
   return map[accion] || accion;
 }

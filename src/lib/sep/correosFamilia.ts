@@ -243,3 +243,45 @@ export async function correoFamiliaSep(
     return evento(`No se pudo enviar el correo (${tipo}) a la familia: ${e instanceof Error ? e.message : 'error'}.`);
   }
 }
+
+/**
+ * 2026-10-12 - Recordatorio para la familia que contestó en el cuestionario que ya recibió la Beca SEP
+ * pero todavía no sube su documento. No hay trámite (ni historial), así que el límite de frecuencia lo
+ * lleva quien llama (bitácora). Mismo interruptor que los demás: apagado → solo al buzón de prueba.
+ */
+export async function correoRecordatorioDocumentoSep(a: {
+  alumnoId: number;
+  alumnoRef: number;
+  nombre: string;
+  ciclo: number;
+}): Promise<{ enviado: boolean; detalle: string }> {
+  try {
+    const nombre = nombrePropio(a.nombre);
+    const asunto = `Beca SEP: falta subir el documento de ${nombre}`;
+    const html = marco(
+      'Falta su documento de Beca SEP',
+      `<p>En el cuestionario de becas nos indicó que <strong>${esc(nombre)}</strong> (No. de control ${a.alumnoRef}) recibió la Beca SEP para el ciclo ${esc(getSchoolCycleLabel(a.ciclo))}, pero todavía no hemos recibido el documento de autorización.</p>
+<p>Entre al Portal de Becas → Beca SEP con el número de control y la contraseña del alumno y suba el documento (PDF o foto legible). Con él, Control Escolar podrá aplicar el descuento a sus mensualidades.</p>
+<p style="color:#5e6c84;font-size:13px">Si ya lo entregó o la información del cuestionario no es correcta, comuníquese con Control Escolar.</p>`
+    );
+    const destino = correosSepSoloPrueba() ? [buzonPruebaSep()] : await correosFamilia(a.alumnoId);
+    if (esModoLocalSoloLectura()) {
+      const base = `${new Date().toISOString().replace(/[:.]/g, '-')}-${a.alumnoRef}-recordatorio`;
+      await guardarVistaLocal(base, html, [], destino);
+    }
+    if (!destino.length) return { enviado: false, detalle: 'La familia no tiene correo registrado para avisos.' };
+    await sendMail({
+      to: destino,
+      subject: asunto,
+      html,
+      text: textoPlano(html),
+      headers: { 'Auto-Submitted': 'auto-generated', 'X-Auto-Response-Suppress': 'All' },
+      replyTo: process.env.BECAS_SEP_REPLY_TO?.trim() || undefined,
+    });
+    const local = esModoLocalSoloLectura() ? ' (modo local: no salió, vista previa en .local-sep/correos)' : '';
+    return { enviado: true, detalle: `Enviado a ${destino.map(ocultar).join(', ')}${local}.` };
+  } catch (e) {
+    console.error('[sep] recordatorio documento', a.alumnoRef, e);
+    return { enviado: false, detalle: `No se pudo enviar: ${e instanceof Error ? e.message : 'error'}.` };
+  }
+}

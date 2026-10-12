@@ -204,6 +204,16 @@
     inset 3px 0 0 #d97706;
 }
 
+/* 2026-10-12 - Tabla de pagos de la ficha: más compacta que la lista. */
+.admin-table.sep-tabla-pagos {
+  min-width: 520px;
+  font-size: 0.85rem;
+}
+
+.admin-table.sep-tabla-pagos td {
+  padding: 10px 12px;
+}
+
 .sep-badge--prueba {
   border-color: color-mix(in srgb, var(--color-accent) 55%, transparent);
   background: var(--color-accent-soft);
@@ -257,7 +267,43 @@
   background: linear-gradient(135deg, rgba(217, 119, 6, 0.16), color-mix(in srgb, var(--color-card) 94%, transparent));
 }
 
+/* 2026-10-12 - Recordatorio "falta subir su documento" en el Cuestionario. */
+.sep-btn-recordar {
+  min-height: 36px;
+  padding: 0.35rem 0.85rem;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 30%, transparent);
+  border-radius: 999px;
+  background: var(--color-card);
+  color: var(--color-primary);
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background-color var(--transition), border-color var(--transition);
+}
+
+.sep-btn-recordar:hover:not(:disabled) {
+  border-color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent-soft) 45%, var(--color-card));
+}
+
+.sep-btn-recordar:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+.sep-btn-recordar:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.sep-recordado {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .sep-btn-recordar,
   .sep-tab,
   .sep-tab::after,
   .sep-cifra,

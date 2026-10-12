@@ -13,6 +13,11 @@ type Props = {
   filtroLabel: string;
   rows: AdminExportRow[];
   disabled?: boolean;
+  /**
+   * 2026-10-12 - Otro endpoint (p. ej. Beca SEP): se le manda `cuerpo` + `formato` en lugar de `rows`;
+   * `total` es cuántas filas están visibles.
+   */
+  destino?: { url: string; cuerpo: Record<string, unknown>; total: number; nombre: string };
 };
 
 function IconExcel({ className }: { className?: string }) {
@@ -78,28 +83,34 @@ export function AdminExportListaButtons({
   filtroLabel,
   rows,
   disabled,
+  destino,
 }: Props) {
   const [busy, setBusy] = useState<'excel' | 'pdf' | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const total = destino ? destino.total : rows.length;
 
   async function exportar(formato: 'excel' | 'pdf') {
-    if (rows.length === 0) {
+    if (total === 0) {
       setError('No hay filas visibles para exportar.');
       return;
     }
     setBusy(formato);
     setError(null);
     try {
-      const res = await fetch('/api/admin/export-lista', {
+      const res = await fetch(destino?.url ?? '/api/admin/export-lista', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          flujo,
-          formato,
-          titulo,
-          filtro_label: filtroLabel,
-          rows,
-        }),
+        body: JSON.stringify(
+          destino
+            ? { ...destino.cuerpo, formato }
+            : {
+                flujo,
+                formato,
+                titulo,
+                filtro_label: filtroLabel,
+                rows,
+              }
+        ),
       });
       if (!res.ok) {
         const json = await res.json().catch(() => ({}));
@@ -108,10 +119,8 @@ export function AdminExportListaButtons({
       const blob = await res.blob();
       const cd = res.headers.get('Content-Disposition') || '';
       const match = /filename="([^"]+)"/.exec(cd);
-      const fallback =
-        formato === 'excel'
-          ? `${flujo}-revision.xlsx`
-          : `${flujo}-revision.pdf`;
+      const base = destino?.nombre ?? `${flujo}-revision`;
+      const fallback = formato === 'excel' ? `${base}.xlsx` : `${base}.pdf`;
       await descargarBlob(blob, match?.[1] || fallback);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al exportar');
@@ -127,7 +136,7 @@ export function AdminExportListaButtons({
           type="button"
           variant="primary"
           className="admin-export-btn admin-export-btn--excel min-h-[44px] min-w-[6.5rem] px-3 shadow-sm"
-          disabled={disabled || busy !== null || rows.length === 0}
+          disabled={disabled || busy !== null || total === 0}
           onClick={() => void exportar('excel')}
           title="Descargar Excel con las filas visibles"
         >
@@ -144,7 +153,7 @@ export function AdminExportListaButtons({
           type="button"
           variant="primary"
           className="admin-export-btn admin-export-btn--pdf min-h-[44px] min-w-[6.5rem] border border-[#c62828] bg-[#e53935] px-3 text-white shadow-sm hover:bg-[#d32f2f] hover:shadow-card disabled:hover:bg-[#e53935]"
-          disabled={disabled || busy !== null || rows.length === 0}
+          disabled={disabled || busy !== null || total === 0}
           onClick={() => void exportar('pdf')}
           title="Descargar PDF con las filas visibles"
         >
@@ -164,7 +173,7 @@ export function AdminExportListaButtons({
         </p>
       ) : (
         <p className="text-[11px] text-text-secondary sm:hidden">
-          Exporta lo visible en la tabla ({rows.length})
+          Exporta lo visible en la tabla ({total})
         </p>
       )}
     </div>
