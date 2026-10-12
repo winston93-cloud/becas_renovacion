@@ -9,6 +9,7 @@
 import 'server-only';
 import { getSchoolCycleLabel } from '@/lib/ciclo-escolar';
 import { getSepRepo } from '@/lib/sep/repo';
+import { esRefPruebaSep } from '@/lib/sep/activo';
 import type { BecaSustituida, SolicitudSep } from '@/lib/sep/tipos';
 
 export type MovimientoSep = {
@@ -49,9 +50,10 @@ export async function movimientosSep(f: { ciclos: number[]; niveles?: number[] }
     const listas = await Promise.all(
       f.ciclos.map((ciclo) => getSepRepo().listar({ ciclo, estados: ['aplicada'], niveles: f.niveles }))
     );
+    // 2026-10-12 - Los alumnos de prueba (beca PEMEX simulada) nunca generan movimiento en Renovaciones.
     return listas
       .flat()
-      .filter((s) => s.becaSustituida)
+      .filter((s) => s.becaSustituida && !esRefPruebaSep(s.alumnoRef))
       .map(aMovimiento);
   } catch (e) {
     console.error('[sep] movimientos', e);
@@ -67,7 +69,7 @@ export async function movimientosSep(f: { ciclos: number[]; niveles?: number[] }
 export async function movimientoSepAlumno(alumnoId: number, ciclo: number): Promise<MovimientoSep | null> {
   try {
     const s = await getSepRepo().porAlumno(alumnoId, ciclo);
-    return s?.estado === 'aplicada' ? aMovimiento(s) : null;
+    return s?.estado === 'aplicada' && !esRefPruebaSep(s.alumnoRef) ? aMovimiento(s) : null;
   } catch (e) {
     console.error('[sep] movimiento alumno', e);
     return null;

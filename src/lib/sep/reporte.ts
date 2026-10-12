@@ -8,6 +8,7 @@ import type { Alerta } from '@/lib/sep/core/alertas';
 import type { FilaPagoConcepto } from '@/lib/sep/core/evaluar';
 import type { EntradaHoja } from '@/lib/sep/core/hojaCalculo';
 import { getSchoolCycleLabel } from '@/lib/ciclo-escolar';
+import { esRefPruebaSep } from '@/lib/sep/activo';
 import { libroCalculos, type FilaExcel } from '@/lib/sep/excel/libroCalculos';
 import { calcularEnVivo, cicloSep, listarTodasSep, montoVigente, porcentajeEfectivo } from '@/lib/sep/servicio';
 import { ETIQUETA_ESTADO_SEP, type SolicitudSep } from '@/lib/sep/tipos';
@@ -75,7 +76,8 @@ async function fila(s: SolicitudSep): Promise<FilaReporte> {
 }
 
 export async function reporteSistemas(): Promise<FilaReporte[]> {
-  const todas = (await listarTodasSep()).filter((s) => s.estado !== 'rechazada');
+  // 2026-10-12 - Sin alumnos de prueba: sus pagos y beca son de ejemplo y no deben sumar dinero en el informe.
+  const todas = (await listarTodasSep()).filter((s) => s.estado !== 'rechazada' && !esRefPruebaSep(s.alumnoRef));
   return enLotes(todas, 4, fila);
 }
 

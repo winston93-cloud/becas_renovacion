@@ -337,6 +337,8 @@ export default async function AdminSepDetallePage({
                 <p className="rounded-lg bg-warning-bg px-3 py-2 text-xs text-warning">
                   Sustituye la beca {s.becaSustituida.clase ?? 'del colegio'} del {s.becaSustituida.porcentaje} %: no se renueva el
                   próximo ciclo; en Renovaciones aparece como «sustituida por SEP» y la familia debe hacer una Solicitud nueva.
+                  {/* 2026-10-12 - La beca del alumno de prueba es de ejemplo y no llega a Renovaciones. */}
+                  {esRefPruebaSep(s.alumnoRef) ? ' (Simulación: este alumno de prueba no aparece en Renovaciones.)' : null}
                 </p>
               ) : null}
               {s.cobro ? <p className="rounded-lg bg-warning-bg px-3 py-2 text-xs text-warning">{s.cobro.detalle}</p> : null}

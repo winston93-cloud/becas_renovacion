@@ -18,7 +18,7 @@ import { getLectorDocumento, MAX_BYTES_DOCUMENTO_SEP, TIPOS_DOCUMENTO_SEP } from
 import { aplicarEnCobro } from '@/lib/sep/cobro';
 import { getSepRepo, nuevoIdSep } from '@/lib/sep/repo';
 import { buzonPruebaSep, correosSepSoloPrueba, esRefPruebaSep, familiaPuedeUsarSep, MENSAJE_SEP_NO_DISPONIBLE } from '@/lib/sep/activo';
-import { completarDatosSimulacionPrueba } from '@/lib/sep/simulacionPrueba';
+import { becaSustituidaSimulacion, completarDatosSimulacionPrueba, PAGOS_SIMULACION_PRUEBA } from '@/lib/sep/simulacionPrueba';
 import {
   AVISO_OTRAS_BECAS,
   MAX_INTENTOS_DOCUMENTO,
@@ -268,7 +268,7 @@ export async function calcularEnVivo(s: SolicitudSep, porcentaje: number | null)
   try {
     const crudos = await datosAlumnoCiclo(s.alumnoRef, s.ciclo);
     if (!crudos) return { ok: false, error: `El número de control ${s.alumnoRef} no existe en la base de alumnos.` };
-    // 2026-10-12 - Alumno de prueba: plan y precios de ejemplo; sin pagos ni beca real (no toca tesorería).
+    // 2026-10-12 - Alumno de prueba: plan, precios, pagos y beca PEMEX de ejemplo (no toca tesorería).
     const datos = esRefPruebaSep(s.alumnoRef) ? completarDatosSimulacionPrueba(crudos) : crudos;
     const evaluacion = evaluarBeca(datos, { porcentajeSep: porcentaje, porcentajeBecaActual: null, planMeses: null });
     const entrada = entradaDesdeEvaluacion(evaluacion, porcentaje);
@@ -349,8 +349,9 @@ export async function aplicarSep(admin: AdminSep, id: string, porcentaje: unknow
   const cobro = await aplicarEnCobro({ ...s, calculo, porcentajeConfirmado: pct });
   const prueba = esRefPruebaSep(s.alumnoRef);
   // 2026-10-09 - Movimiento para Renovaciones: la beca del colegio que se pierde (no se renueva el ciclo siguiente).
-  // 2026-10-12 - En prueba no se marca sustitución: no debe alterar renovaciones de un alumno real.
-  const becaSustituida = prueba ? null : await becaQueSePierde(s, c.evaluacion.becaActualPct);
+  // 2026-10-12 - En prueba se muestra la beca PEMEX de ejemplo; movimientos.ts y el informe de Dirección
+  //              excluyen a los alumnos de prueba, así que no altera Renovaciones ni las cifras.
+  const becaSustituida = prueba ? becaSustituidaSimulacion(s.ciclo) : await becaQueSePierde(s, c.evaluacion.becaActualPct);
   historial.push(
     evento(
       admin.role,
@@ -465,6 +466,8 @@ export async function ajusteManualSep(admin: AdminSep, id: string, monto: unknow
 
 /** 2026-10-09 - Pagos de colegiatura del ciclo en InsForge (null si no se pudo leer). */
 async function pagosActuales(s: SolicitudSep) {
+  // 2026-10-12 - Alumno de prueba: los mismos pagos de ejemplo del cálculo (no existen en pago_detalle).
+  if (esRefPruebaSep(s.alumnoRef)) return PAGOS_SIMULACION_PRUEBA.map((p) => ({ ...p }));
   try {
     return (await datosAlumnoCiclo(s.alumnoRef, s.ciclo))?.pagos ?? null;
   } catch (e) {

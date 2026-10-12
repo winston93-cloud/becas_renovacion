@@ -9,6 +9,7 @@ import { useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { AlertTriangle, CheckCircle2, Loader2, RefreshCw, Undo2, Wrench } from 'lucide-react';
 import { Alert, Button, Input, Label, Textarea } from '@/components/ui';
+import { RESUMEN_SIMULACION_PRUEBA } from '@/lib/sep/simulacionPrueba';
 
 async function postAccion(id: string, body: Record<string, unknown>) {
   const res = await fetch(`/api/admin/sep/${id}`, {
@@ -152,8 +153,8 @@ export function AccionesControlEscolar({
     <div className="space-y-5">
       {simulacion ? (
         <Alert variant="warning" title="Simulación de prueba">
-          Este alumno no es una familia real. El cálculo usa plan y precios de ejemplo. Al aplicar no se
-          cobra, no se crea dinero y no se tocan becas ni pagos.
+          Este alumno no es una familia real. {RESUMEN_SIMULACION_PRUEBA} Al aplicar no se cobra, no se
+          crea dinero y no se tocan becas ni pagos.
         </Alert>
       ) : null}
       <ul className="space-y-3">
