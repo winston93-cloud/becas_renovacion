@@ -20,6 +20,7 @@ import { buzonPruebaSep, correosSepSoloPrueba } from '@/lib/sep/activo';
 import { NOMBRE_CONCEPTO } from '@/lib/sep/core/ciclo';
 import { pesos } from '@/lib/sep/core/dinero';
 import { armarHojaCalculo } from '@/lib/sep/core/hojaCalculo';
+import { periodoMeses, resumenFamiliaSep } from '@/lib/sep/core/resumenFamilia';
 import { constanciaSepPdf, fechaLarga, folioSep, quienAplico } from '@/lib/sep/constancia';
 import { correosFamilia } from '@/lib/sep/insforge/consultas';
 import type { ResumenPagos } from '@/lib/sep/pagos';
@@ -64,50 +65,119 @@ const esc = (v: unknown) =>
 /** "is***@gmail.com": se guarda en el historial sin exponer el correo completo. */
 const ocultar = (c: string) => c.replace(/^(.{2})[^@]*@/, '$1***@');
 
+// 2026-10-12 - Identidad de winston93.edu.mx: logo, azul #013BDF / #012A9E y acento #E3FB07.
+const LOGO_WINSTON_URL = 'https://winston93.edu.mx/images/logos/logo_winston.png';
+const AZUL = '#013BDF';
+const AZUL_OSCURO = '#012A9E';
+const ACENTO = '#E3FB07';
+const GRIS = '#5e6c84';
+const BORDE = '#dce4f2';
+
 function marco(titulo: string, cuerpo: string): string {
-  return `<!doctype html><html lang="es"><body style="margin:0;background:#f7f9fc;font-family:Arial,Helvetica,sans-serif;color:#16213e">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f9fc;padding:24px 0"><tr><td align="center">
-<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border:1px solid #dce4f2;border-radius:12px;overflow:hidden">
-<tr><td style="background:#0b173a;color:#ffffff;padding:18px 24px">
-<div style="font-size:11px;letter-spacing:1.2px">INSTITUTO WINSTON CHURCHILL</div>
+  return `<!doctype html><html lang="es"><body style="margin:0;background:#F7F8FC;font-family:Arial,Helvetica,sans-serif;color:#16213e">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F7F8FC;padding:24px 0"><tr><td align="center">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border:1px solid ${BORDE};border-radius:12px;overflow:hidden">
+<tr><td style="background:#ffffff;padding:18px 24px 14px"><a href="https://winston93.edu.mx"><img src="${LOGO_WINSTON_URL}" width="160" alt="Winston" style="display:block;border:0;height:auto;width:160px"></a></td></tr>
+<tr><td style="background:${AZUL};color:#ffffff;padding:16px 24px">
+<div style="font-size:11px;letter-spacing:1.2px">INSTITUTO WINSTON CHURCHILL · PORTAL DE BECAS</div>
 <div style="font-size:20px;font-weight:bold;margin-top:4px">${esc(titulo)}</div></td></tr>
+<tr><td style="background:${ACENTO};height:4px;line-height:4px;font-size:0">&nbsp;</td></tr>
 <tr><td style="padding:24px;font-size:14px;line-height:1.55">${cuerpo}</td></tr>
-<tr><td style="background:#eaf0fa;color:#5e6c84;padding:12px 24px;font-size:12px">Correo automático del Portal de Becas. Si tiene dudas, comuníquese con Control Escolar.</td></tr>
+<tr><td style="background:${AZUL_OSCURO};color:#dbe4ff;padding:14px 24px;font-size:12px">Correo automático del Portal de Becas. Si tiene dudas, comuníquese con Control Escolar.<br><a href="https://winston93.edu.mx" style="color:${ACENTO};text-decoration:none">winston93.edu.mx</a></td></tr>
 </table></td></tr></table></body></html>`;
 }
 
 const renglon = (etiqueta: string, valor: string, fuerte = false) =>
-  `<tr><td style="padding:6px 0;color:#5e6c84">${esc(etiqueta)}</td><td style="padding:6px 0;text-align:right;${fuerte ? 'font-weight:bold;color:#0b173a;font-size:16px' : ''}">${valor}</td></tr>`;
+  `<tr><td style="padding:6px 0;color:${GRIS}">${esc(etiqueta)}</td><td style="padding:6px 0;text-align:right;${fuerte ? `font-weight:bold;color:${AZUL_OSCURO};font-size:16px` : ''}">${valor}</td></tr>`;
 
+/** Paso numerado del resumen (círculo azul + título + contenido). */
+const paso = (n: number, titulo: string, cuerpo: string) =>
+  `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:18px 0 0"><tr>
+<td width="30" valign="top"><div style="width:26px;height:26px;border-radius:13px;background:${AZUL};color:#ffffff;text-align:center;line-height:26px;font-weight:bold;font-size:13px">${n}</div></td>
+<td style="padding-left:10px"><div style="font-weight:bold;color:${AZUL_OSCURO};font-size:15px;margin:3px 0 6px">${esc(titulo)}</div>${cuerpo}</td></tr></table>`;
+
+const tabla = (encabezados: string[], filas: string[][], pie?: string[]) => {
+  const celda = (v: string, i: number, estilo = '') =>
+    `<td style="padding:7px 6px;${i > 0 ? 'text-align:right;' : ''}border-bottom:1px solid ${BORDE};${estilo}">${v}</td>`;
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:13px;border-top:1px solid ${BORDE}">
+<tr>${encabezados.map((h, i) => celda(esc(h), i, `color:${GRIS};font-size:12px`)).join('')}</tr>
+${filas.map((f) => `<tr>${f.map((v, i) => celda(v, i)).join('')}</tr>`).join('')}
+${pie ? `<tr>${pie.map((v, i) => celda(v, i, `font-weight:bold;background:#F7F8FC`)).join('')}</tr>` : ''}</table>`;
+};
+
+const diferenciaTexto = (d: number) =>
+  d > 0
+    ? `<span style="color:#2e7d32;font-weight:bold">${pesos(d)} a su favor</span>`
+    : d < 0
+      ? `<span style="color:#b42318;font-weight:bold">${pesos(-d)} en contra</span>`
+      : '—';
+
+/**
+ * 2026-10-12 - Cálculo resumido en tres pasos para la familia: precios con Beca SEP, lo que ya pagó
+ * (inscripción incluida) y cómo se reparte el saldo. Mismos números que la constancia PDF.
+ */
 function desglose(s: SolicitudSep): string {
   if (!s.calculo) return '';
   const hoja = armarHojaCalculo(s.calculo.entrada);
-  const r = s.calculo.entrada.resultado;
-  const mensual = s.ajusteManual?.monto ?? s.calculo.montoMensual;
-  const meses = hoja.mesesPorPagar;
-  const periodo = meses.length ? (meses.length === 1 ? meses[0] : `${meses[0]} a ${meses[meses.length - 1]}`) : '—';
-  const beca = s.becaSustituida;
-  const filas = [
-    renglon('Colegiatura oficial', pesos(s.calculo.entrada.colegiaturaOficial)),
-    beca ? renglon('Beca del colegio que tenía (se pierde)', `${esc(beca.clase ?? 'Beca')} ${beca.porcentaje} %`) : '',
-    renglon(`Colegiatura con Beca SEP del ${s.porcentajeConfirmado ?? s.calculo.porcentajeSep} %`, pesos(r.colSep)),
-    renglon(
-      r.excedenteTotal >= 0 ? 'Saldo a su favor de lo ya pagado' : 'Saldo en contra de lo ya pagado',
-      pesos(Math.abs(r.excedenteTotal))
-    ),
-    renglon('Meses por pagar', `${meses.length} (${esc(periodo)})`),
-    renglon('Nueva mensualidad', pesos(mensual), true),
-    hoja.saldoSobrante > 0 ? renglon('Saldo a favor al terminar el ciclo', pesos(hoja.saldoSobrante)) : '',
-  ].join('');
-  const explicacion =
-    r.excedenteTotal < 0
-      ? 'Los meses que ya pagó quedaron por debajo del precio con Beca SEP; esa diferencia se reparte en partes iguales en los meses que faltan.'
-      : r.excedenteTotal > 0
-        ? 'Lo que pagó de más en los meses anteriores se descuenta en partes iguales de los meses que faltan.'
-        : '';
-  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #dce4f2;border-bottom:1px solid #dce4f2;margin:12px 0">${filas}</table>
-${explicacion ? `<p style="color:#5e6c84;font-size:13px">${explicacion}</p>` : ''}
-${s.ajusteManual ? `<p style="color:#5e6c84;font-size:13px">Ajuste de Dirección General: ${esc(s.ajusteManual.motivo)}</p>` : ''}`;
+  const f = resumenFamiliaSep(s.calculo.entrada, hoja.mesesPorPagar, s.ajusteManual?.monto ?? null);
+  const pct = s.porcentajeConfirmado ?? f.porcentajeSep;
+  const n = f.mesesPorPagar.length;
+  const periodo = periodoMeses(f.mesesPorPagar);
+  const nota = (t: string) => `<p style="color:${GRIS};font-size:12px;margin:8px 0 0">${t}</p>`;
+
+  const paso1 = paso(
+    1,
+    `Sus precios con Beca SEP del ${pct} %`,
+    tabla(
+      ['Concepto', 'Precio normal', `Con Beca SEP ${pct} %`],
+      [
+        ['Inscripción', pesos(f.inscripcionOficial), `<strong>${pesos(f.inscripcionConSep)}</strong>`],
+        [`Colegiatura mensual (plan de ${s.calculo.entrada.planMeses} meses)`, pesos(f.colegiaturaOficial), `<strong>${pesos(f.colegiaturaConSep)}</strong>`],
+      ]
+    )
+  );
+
+  const paso2 = paso(
+    2,
+    'Lo que ya pagó, comparado con el precio con Beca SEP',
+    f.pagados.length
+      ? tabla(
+          ['Concepto', 'Pagó', 'Con Beca SEP', 'Diferencia'],
+          f.pagados.map((p) => [esc(p.concepto), pesos(p.pago), pesos(p.conSep), diferenciaTexto(p.diferencia)]),
+          [f.saldo >= 0 ? 'Saldo a su favor' : 'Saldo en contra', '', '', pesos(Math.abs(f.saldo))]
+        ) +
+          (s.becaSustituida
+            ? nota(`Lo que pagó con su beca del colegio (${esc(s.becaSustituida.clase ?? 'beca')} ${s.becaSustituida.porcentaje} %) se compara contra el precio con Beca SEP. Los recargos no cuentan.`)
+            : nota('Los recargos no cuentan en esta comparación.'))
+      : `<p style="margin:0">Todavía no había pagado inscripción ni colegiaturas del ciclo, así que no hay saldo que repartir.</p>`
+  );
+
+  const paso3 = f.anioCompleto
+    ? paso(
+        3,
+        'Su saldo cubre el resto del ciclo',
+        `<p style="margin:0">Su saldo a favor (${pesos(f.saldo)}) alcanza para los ${n} meses que faltan (${esc(periodo)}): ${pesos(f.colegiaturaConSep)} × ${n} = ${pesos(f.colegiaturaConSep * n)}. No paga colegiatura el resto del ciclo${f.saldoAlFinal > 0 ? ` y le quedan <strong>${pesos(f.saldoAlFinal)}</strong> a favor` : ''}.</p>`
+      )
+    : f.porMes != null && f.porMes !== 0
+      ? paso(
+          3,
+          `Ese saldo se reparte en los ${n} meses que faltan`,
+          `<p style="margin:0">${pesos(Math.abs(f.saldo))} ÷ ${n} meses (${esc(periodo)}) = <strong>${pesos(Math.abs(f.porMes))} ${f.porMes > 0 ? 'menos' : 'más'}</strong> cada mes.</p>
+<p style="margin:6px 0 0">${pesos(f.colegiaturaConSep)} ${f.porMes > 0 ? '−' : '+'} ${pesos(Math.abs(f.porMes))} = <strong>${pesos(f.mensualCalculada)}</strong></p>${
+            f.topada ? nota('La mensualidad no puede ser mayor que la colegiatura normal; se cobra la colegiatura normal.') : ''
+          }`
+        )
+      : paso(3, 'Sin saldo que repartir', `<p style="margin:0">Paga el precio con Beca SEP en los ${n} meses que faltan (${esc(periodo)}).</p>`);
+
+  const resultado = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0 6px;background:${AZUL};border-radius:10px"><tr><td style="padding:16px 18px;color:#ffffff">
+<div style="font-size:12px;letter-spacing:1px">SU NUEVA MENSUALIDAD</div>
+<div style="font-size:26px;font-weight:bold;margin-top:2px">${f.anioCompleto ? pesos(0) : pesos(f.mensual)}</div>
+<div style="font-size:13px;margin-top:2px">${n} ${n === 1 ? 'mes' : 'meses'}: ${esc(periodo)}</div></td>
+<td width="6" style="background:${ACENTO};border-radius:0 10px 10px 0">&nbsp;</td></tr></table>`;
+
+  return `${paso1}${paso2}${paso3}${resultado}${
+    s.ajusteManual ? nota(`Dirección General ajustó la mensualidad a ${pesos(s.ajusteManual.monto)}: ${esc(s.ajusteManual.motivo)}`) : ''
+  }`;
 }
 
 function avisoBecaPerdida(s: SolicitudSep): string {
@@ -201,6 +271,12 @@ ${filas ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="
       };
     }
   }
+}
+
+/** 2026-10-12 - HTML completo de un correo (vista previa y pruebas), sin enviarlo. */
+export function htmlCorreoSep(tipo: TipoCorreoSep, s: SolicitudSep, extra: { motivo?: string; pagos?: ResumenPagos; por?: ActorSep } = {}) {
+  const { asunto, titulo, cuerpo } = contenido(tipo, s, extra);
+  return { asunto, html: marco(titulo, cuerpo) };
 }
 
 async function guardarVistaLocal(nombreBase: string, html: string, adjuntos: MailAttachment[], destino: string[]) {
