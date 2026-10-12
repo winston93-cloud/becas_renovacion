@@ -1,76 +1,92 @@
 /* 2026-10-12 - Panel Beca SEP: cola de trabajo densa (filtros + tabla), no una lista interminable. */
 /* 2026-10-12 - Homologado con «Solicitudes nuevas»: tabla, insignias y tarjetas vienen de globals.css
    (admin-table, admin-badge-estado, admin-mobile-card); aquí solo lo propio de Beca SEP. */
+/* 2026-10-12 - Pestañas y cifras más sobrias: pestañas subrayadas en oro y una sola franja con
+   divisiones finas en lugar de cuadros grandes rellenos de azul. */
 
 .sep-tabs-fila {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
   gap: 0.75rem;
+  border-bottom: 1px solid rgba(36, 52, 72, 0.12);
 }
 
 .sep-tabs {
   display: inline-flex;
-  gap: 4px;
-  padding: 4px;
-  border-radius: 14px;
-  border: 1px solid rgba(36, 52, 72, 0.1);
-  background: color-mix(in srgb, var(--color-card) 94%, transparent);
-  box-shadow: 0 8px 20px rgba(20, 35, 63, 0.05);
+  gap: 1.75rem;
 }
 
 .sep-tab {
+  position: relative;
   display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  min-height: 40px;
-  padding: 0.4rem 1rem;
+  align-items: baseline;
+  gap: 0.45rem;
+  min-height: 44px;
+  padding: 0.6rem 0.1rem 0.7rem;
   border: 0;
-  border-radius: 10px;
   background: transparent;
   color: var(--color-text-secondary);
-  font-size: 0.88rem;
+  font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
-  transition:
-    background-color var(--transition),
-    color var(--transition);
+  transition: color var(--transition);
+}
+
+.sep-tab::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--color-accent);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 240ms var(--ease-out-quart);
 }
 
 .sep-tab:hover {
   color: var(--color-primary);
-  background: var(--color-primary-light);
 }
 
 .sep-tab:focus-visible {
   outline: none;
+  border-radius: 6px;
   box-shadow: var(--shadow-focus);
 }
 
 .sep-tab.is-activa {
-  background: var(--color-primary);
-  color: #fff;
+  color: var(--color-primary);
+}
+
+.sep-tab.is-activa::after {
+  transform: scaleX(1);
 }
 
 .sep-tab-num {
-  min-width: 1.6rem;
-  padding: 0.05rem 0.45rem;
-  border-radius: 999px;
-  background: rgba(36, 52, 72, 0.08);
-  font-size: 0.75rem;
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
   font-variant-numeric: tabular-nums;
-  text-align: center;
 }
 
 .sep-tab.is-activa .sep-tab-num {
-  background: rgba(255, 255, 255, 0.2);
+  color: var(--color-accent);
 }
 
 .sep-resumen {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 1px;
+  overflow: hidden;
+  border-radius: 16px;
+  border: 1px solid rgba(36, 52, 72, 0.1);
+  background: rgba(36, 52, 72, 0.09);
+  box-shadow: 0 10px 26px rgba(20, 35, 63, 0.04);
 }
 
 @media (min-width: 1024px) {
@@ -80,78 +96,94 @@
 }
 
 .sep-cifra {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  justify-content: space-between;
-  gap: 10px;
-  min-height: 92px;
-  padding: 14px 16px;
-  border-radius: 18px;
-  border: 1px solid rgba(36, 52, 72, 0.1);
-  background: color-mix(in srgb, var(--color-card) 94%, transparent);
-  box-shadow: 0 12px 28px rgba(20, 35, 63, 0.05);
+  gap: 6px;
+  min-height: 44px;
+  padding: 14px 18px 15px;
+  border: 0;
+  background: var(--color-card);
   color: var(--color-primary);
   text-align: left;
   cursor: pointer;
-  transition:
-    transform var(--transition),
-    box-shadow var(--transition),
-    border-color var(--transition),
-    background-color var(--transition);
+  transition: background-color var(--transition);
+}
+
+.sep-cifra::after {
+  content: '';
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: 0;
+  height: 2px;
+  border-radius: 2px 2px 0 0;
+  background: var(--color-accent);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 240ms var(--ease-out-quart);
 }
 
 .sep-cifra:hover {
-  transform: translateY(-2px);
-  border-color: color-mix(in srgb, var(--color-accent) 35%, var(--color-border));
-  box-shadow: 0 16px 32px rgba(20, 35, 63, 0.1);
-}
-
-.sep-cifra:active {
-  transform: translateY(0) scale(0.99);
+  background: color-mix(in srgb, var(--color-primary-light) 45%, var(--color-card));
 }
 
 .sep-cifra:focus-visible {
+  z-index: 1;
   outline: none;
-  box-shadow: var(--shadow-focus);
+  box-shadow: inset 0 0 0 2px rgba(20, 35, 63, 0.22);
 }
 
 .sep-cifra-txt {
-  font-size: 0.72rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.68rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.09em;
   text-transform: uppercase;
   color: var(--color-text-secondary);
 }
 
 .sep-cifra-num {
   font-family: var(--font-display);
-  font-size: 2rem;
-  font-weight: 600;
+  font-size: 1.7rem;
+  font-weight: 500;
   line-height: 1;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
-}
-
-.sep-cifra.is-aviso:not(.is-activa) {
-  border-color: rgba(217, 119, 6, 0.4);
-  background: linear-gradient(135deg, #fffbeb, color-mix(in srgb, var(--color-card) 94%, transparent));
-  box-shadow: inset 3px 0 0 #d97706, 0 12px 28px rgba(20, 35, 63, 0.05);
-}
-
-.sep-cifra.is-aviso:not(.is-activa) .sep-cifra-num {
-  color: #b45309;
+  color: color-mix(in srgb, var(--color-primary) 82%, transparent);
 }
 
 .sep-cifra.is-activa {
-  border-color: var(--color-primary);
-  background: var(--color-primary);
-  color: #fff;
-  box-shadow: 0 14px 30px rgba(20, 35, 63, 0.18);
+  background: color-mix(in srgb, var(--color-accent-soft) 45%, var(--color-card));
+}
+
+.sep-cifra.is-activa::after {
+  transform: scaleX(1);
 }
 
 .sep-cifra.is-activa .sep-cifra-txt {
-  color: rgba(255, 255, 255, 0.78);
+  color: var(--color-primary);
+}
+
+.sep-cifra.is-activa .sep-cifra-num {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.sep-cifra.is-aviso .sep-cifra-txt::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #d97706;
+  box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.16);
+}
+
+.sep-cifra.is-aviso .sep-cifra-num {
+  color: #b45309;
 }
 
 /* Fila que pide atención (documento ilegible o «ya la recibió» sin documento): mismo patrón que activada/rechazada. */
@@ -221,20 +253,16 @@
   background: linear-gradient(90deg, rgba(217, 119, 6, 0.22), rgba(217, 119, 6, 0.06));
 }
 
-[data-theme='dark'] .sep-cifra.is-aviso:not(.is-activa),
 [data-theme='dark'] .admin-mobile-card.sep-card--aviso {
   background: linear-gradient(135deg, rgba(217, 119, 6, 0.16), color-mix(in srgb, var(--color-card) 94%, transparent));
 }
 
 @media (prefers-reduced-motion: reduce) {
   .sep-tab,
+  .sep-tab::after,
   .sep-cifra,
+  .sep-cifra::after,
   .sep-pagina button {
     transition: none;
-  }
-
-  .sep-cifra:hover,
-  .sep-cifra:active {
-    transform: none;
   }
 }
