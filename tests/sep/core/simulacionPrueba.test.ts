@@ -4,9 +4,11 @@
 import { describe, expect, test } from 'vitest'
 import {
   BECA_SIMULACION_PRUEBA,
+  becaSustituidaSimulacion,
   completarDatosSimulacionPrueba,
   PAGOS_SIMULACION_PRUEBA,
   PRECIOS_SIMULACION_PRUEBA,
+  REF_PRUEBA_SIN_BECA,
 } from '@/lib/sep/simulacionPrueba'
 import { evaluarBeca, type DatosAlumnoCiclo } from '@/lib/sep/core/evaluar'
 
@@ -40,5 +42,25 @@ describe('completarDatosSimulacionPrueba', () => {
     expect(ev.resultado?.estado).toBe('prorrateo')
     expect(ev.resultado?.montoMensual).toBeGreaterThan(0)
     expect(ev.resultado?.montoMensual).toBeLessThan(4930 * 0.5)
+  })
+})
+
+// 2026-10-12: ALAN PRUEBA (29904), segundo alumno de prueba sin beca previa.
+describe('escenario sin beca (ALAN PRUEBA 29904)', () => {
+  const alan = (): DatosAlumnoCiclo => ({ ...hueco(), alumnoId: 2683, alumnoRef: REF_PRUEBA_SIN_BECA })
+
+  test('pagó septiembre a precio completo y no tenía beca', () => {
+    const d = completarDatosSimulacionPrueba(alan())
+    expect(d.becaActualBase).toBe(0)
+    expect(d.pagos.find((p) => p.concepto === '01')?.importe).toBe(4930)
+    expect(becaSustituidaSimulacion(23, REF_PRUEBA_SIN_BECA)).toBeNull()
+    expect(becaSustituidaSimulacion(23, 29905)).toEqual({ ...BECA_SIMULACION_PRUEBA, ciclo: 23 })
+  })
+
+  test('con 50 % SEP: (2745 + 2465) ÷ 10 = 521 menos al mes → 1944', () => {
+    const ev = evaluarBeca(completarDatosSimulacionPrueba(alan()), { porcentajeSep: 50, porcentajeBecaActual: null, planMeses: null })
+    expect(ev.becaActualPct).toBe(0)
+    expect(ev.resultado?.excedenteTotal).toBe(5210)
+    expect(ev.resultado?.montoMensual).toBe(1944)
   })
 })

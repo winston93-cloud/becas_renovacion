@@ -19,7 +19,7 @@ import { registrarEnCobro } from '@/lib/sep/cobro';
 import { calcularReversion } from '@/lib/sep/core/reversion';
 import { getSepRepo, nuevoIdSep } from '@/lib/sep/repo';
 import { buzonPruebaSep, correosSepSoloPrueba, esRefPruebaSep, familiaPuedeUsarSep, MENSAJE_SEP_NO_DISPONIBLE } from '@/lib/sep/activo';
-import { becaSustituidaSimulacion, completarDatosSimulacionPrueba, PAGOS_SIMULACION_PRUEBA } from '@/lib/sep/simulacionPrueba';
+import { becaSustituidaSimulacion, completarDatosSimulacionPrueba, pagosSimulacionPrueba } from '@/lib/sep/simulacionPrueba';
 import {
   AVISO_OTRAS_BECAS,
   MAX_INTENTOS_DOCUMENTO,
@@ -356,7 +356,8 @@ export async function aplicarSep(admin: AdminSep, id: string, porcentaje: unknow
   // 2026-10-09 - Movimiento para Renovaciones: la beca del colegio que se pierde (no se renueva el ciclo siguiente).
   // 2026-10-12 - En prueba se muestra la beca PEMEX de ejemplo; movimientos.ts y el informe de Dirección
   //              excluyen a los alumnos de prueba, así que no altera Renovaciones ni las cifras.
-  const becaSustituida = prueba ? becaSustituidaSimulacion(s.ciclo) : await becaQueSePierde(s, c.evaluacion.becaActualPct);
+  // 2026-10-12 - Cada alumno de prueba tiene su escenario (Alan, 29904, no tenía beca que perder).
+  const becaSustituida = prueba ? becaSustituidaSimulacion(s.ciclo, s.alumnoRef) : await becaQueSePierde(s, c.evaluacion.becaActualPct);
   const aplicada: SolicitudSep = {
     ...s,
     estado: 'aplicada',
@@ -618,7 +619,7 @@ export async function rechazarReversionSep(admin: AdminSep, id: string, nota: un
 /** 2026-10-09 - Pagos de colegiatura del ciclo en InsForge (null si no se pudo leer). */
 async function pagosActuales(s: SolicitudSep) {
   // 2026-10-12 - Alumno de prueba: los mismos pagos de ejemplo del cálculo (no existen en pago_detalle).
-  if (esRefPruebaSep(s.alumnoRef)) return PAGOS_SIMULACION_PRUEBA.map((p) => ({ ...p }));
+  if (esRefPruebaSep(s.alumnoRef)) return pagosSimulacionPrueba(s.alumnoRef);
   try {
     return (await datosAlumnoCiclo(s.alumnoRef, s.ciclo))?.pagos ?? null;
   } catch (e) {

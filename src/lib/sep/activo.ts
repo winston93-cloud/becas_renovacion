@@ -7,8 +7,9 @@
  */
 import { esModoLocalSoloLectura } from '@/lib/modo-local';
 
-/** Alumno de prueba "PRUEBA LAURA PRUEBA" (no es un alumno real). */
-const REFS_PRUEBA_POR_DEFECTO = [29905];
+/** Alumnos de prueba "PRUEBA LAURA PRUEBA" y "ALAN PRUEBA PRUEBA" (no son alumnos reales). */
+// 2026-10-12 - Se agrega ALAN PRUEBA (29904) como segundo alumno de prueba, sin beca previa.
+const REFS_PRUEBA_POR_DEFECTO = [29905, 29904];
 
 export function sepAbiertoAFamilias(): boolean {
   return process.env.NEXT_PUBLIC_BECAS_SEP_ACTIVO === '1';

@@ -9,8 +9,6 @@ import { useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { AlertTriangle, CheckCircle2, Loader2, RefreshCw, Undo2, Wrench } from 'lucide-react';
 import { Alert, Button, Input, Label, Textarea } from '@/components/ui';
-import { RESUMEN_SIMULACION_PRUEBA } from '@/lib/sep/simulacionPrueba';
-
 async function postAccion(id: string, body: Record<string, unknown>) {
   const res = await fetch(`/api/admin/sep/${id}`, {
     method: 'POST',
@@ -63,7 +61,7 @@ export function AccionesControlEscolar({
   errorCalculo,
   bloqueos,
   siguienteId,
-  simulacion = false,
+  simulacion = null,
 }: {
   id: string;
   nombre: string;
@@ -77,7 +75,8 @@ export function AccionesControlEscolar({
   bloqueos: string[];
   siguienteId: string | null;
   /** 2026-10-12 - Alumno de prueba: el cálculo es de ejemplo; Aplicar registra el cobro solo para él (no toca pagos ni becas del colegio). */
-  simulacion?: boolean;
+  /** 2026-10-12 - Ahora es el texto del escenario de ese alumno de prueba (null si es una familia real). */
+  simulacion?: string | null;
 }) {
   const router = useRouter();
   const [pct, setPct] = useState(porcentajeVista != null ? String(porcentajeVista) : '');
@@ -154,7 +153,7 @@ export function AccionesControlEscolar({
       {simulacion ? (
         <Alert variant="warning" title="Simulación de prueba">
           {/* 2026-10-12 - El cobro automático está encendido solo para el alumno de prueba. */}
-          Este alumno no es una familia real. {RESUMEN_SIMULACION_PRUEBA} Al aplicar se registra en el cobro
+          Este alumno no es una familia real. {simulacion} Al aplicar se registra en el cobro
           solo para este alumno de prueba; no se tocan pagos ni becas del colegio y no hay dinero real.
         </Alert>
       ) : null}
