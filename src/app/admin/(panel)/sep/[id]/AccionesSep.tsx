@@ -153,8 +153,9 @@ export function AccionesControlEscolar({
     <div className="space-y-5">
       {simulacion ? (
         <Alert variant="warning" title="Simulación de prueba">
-          Este alumno no es una familia real. {RESUMEN_SIMULACION_PRUEBA} Al aplicar no se cobra, no se
-          crea dinero y no se tocan becas ni pagos.
+          {/* 2026-10-12 - El cobro automático está encendido solo para el alumno de prueba. */}
+          Este alumno no es una familia real. {RESUMEN_SIMULACION_PRUEBA} Al aplicar se registra en el cobro
+          solo para este alumno de prueba; no se tocan pagos ni becas del colegio y no hay dinero real.
         </Alert>
       ) : null}
       <ul className="space-y-3">
@@ -456,6 +457,181 @@ export function AccionesSistemas({ id, tieneAjuste }: { id: string; tieneAjuste:
           {monto ? 'Guardar ajuste' : 'Quitar ajuste'}
         </Button>
       </div>
+      {error ? <Alert variant="error">{error}</Alert> : null}
+    </div>
+  );
+}
+
+/** 2026-10-12 - Vista previa de regresar a la beca del colegio con los pagos actuales. */
+export type PreviaReversion = {
+  porcentajeBeca: number;
+  claseBeca: string | null;
+  precioConBeca: number;
+  excedente: number;
+  mensual: number | null;
+  saldoFavor: number;
+  meses: string[];
+};
+
+function TextoPrevia({ p }: { p: PreviaReversion }) {
+  const beca = p.porcentajeBeca > 0 ? `su beca ${p.claseBeca ?? 'del colegio'} del ${p.porcentajeBeca} %` : 'la colegiatura sin beca';
+  const periodo = p.meses.length === 1 ? `en ${p.meses[0]}` : p.meses.length ? `de ${p.meses[0]} a ${p.meses[p.meses.length - 1]} (${p.meses.length} meses)` : '';
+  return (
+    <div className="rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm">
+      <p className="text-text-secondary">Si se revierte, regresa a {beca} y pagará</p>
+      {p.mensual == null ? (
+        <p className="font-semibold">Ya no quedan meses por cobrar en el ciclo.</p>
+      ) : (
+        <p className="text-xl font-bold text-primary">
+          {dinero(p.mensual)} al mes <span className="text-sm font-normal text-text-secondary">{periodo}</span>
+        </p>
+      )}
+      <p className="mt-1 text-xs text-text-secondary">
+        Precio con {p.porcentajeBeca > 0 ? `beca del ${p.porcentajeBeca} %` : 'colegiatura completa'}: {dinero(p.precioConBeca)}.{' '}
+        {p.excedente > 0
+          ? `Con la SEP pagó ${dinero(p.excedente)} de más; se descuenta de los meses que faltan.`
+          : p.excedente < 0
+            ? `Con la SEP pagó ${dinero(-p.excedente)} de menos; se reparte en los meses que faltan.`
+            : 'No hay diferencia en lo ya pagado.'}
+        {p.saldoFavor > 0 ? ` Le quedan ${dinero(p.saldoFavor)} a favor.` : ''}
+      </p>
+    </div>
+  );
+}
+
+/**
+ * 2026-10-12 - Revertir la Beca SEP: la coordinación la solicita con motivo y Dirección General la autoriza o
+ * la rechaza. Dirección General también puede revertir directo. A la familia solo le llega el resultado.
+ */
+export function AccionesReversion({
+  id,
+  esDireccion,
+  pendiente,
+  previa,
+  errorPrevia,
+}: {
+  id: string;
+  esDireccion: boolean;
+  pendiente: { motivo: string; quien: string; fecha: string } | null;
+  previa: PreviaReversion | null;
+  errorPrevia: string | null;
+}) {
+  const router = useRouter();
+  const [abierto, setAbierto] = useState(false);
+  const [motivo, setMotivo] = useState('');
+  const [nota, setNota] = useState('');
+  const [ocupado, setOcupado] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function ejecutar(body: Record<string, unknown>, confirmar: string) {
+    if (!window.confirm(confirmar)) return;
+    setError(null);
+    setOcupado(true);
+    try {
+      await postAccion(id, body);
+      setAbierto(false);
+      setMotivo('');
+      setNota('');
+      router.refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error inesperado.');
+    } finally {
+      setOcupado(false);
+    }
+  }
+
+  const previaVista = previa ? <TextoPrevia p={previa} /> : errorPrevia ? <p className="text-sm text-warning">{errorPrevia}</p> : null;
+
+  if (pendiente) {
+    return (
+      <div className="space-y-3">
+        <Alert variant="warning" title="Reversión solicitada">
+          {pendiente.quien} la pidió el {pendiente.fecha}: «{pendiente.motivo}»
+          {esDireccion ? null : ' Esperando a Dirección General.'}
+        </Alert>
+        {esDireccion ? (
+          <>
+            {previaVista}
+            <Textarea
+              rows={2}
+              value={nota}
+              onChange={(e) => setNota(e.target.value)}
+              placeholder="Nota para la coordinación (opcional, solo si la rechaza)"
+              aria-label="Nota de rechazo"
+            />
+            <div className="flex flex-wrap gap-3">
+              <Button
+                disabled={ocupado || !previa}
+                onClick={() =>
+                  ejecutar(
+                    { accion: 'autorizar_reversion' },
+                    '¿Autorizar la reversión? La familia regresa a su beca del colegio, cambia lo que cobra el baucher y se le avisa por correo.'
+                  )
+                }
+              >
+                <CheckCircle2 className="h-4 w-4" aria-hidden />
+                {ocupado ? 'Procesando…' : 'Autorizar reversión'}
+              </Button>
+              <Button
+                variant="secondary"
+                disabled={ocupado}
+                onClick={() => ejecutar({ accion: 'rechazar_reversion', nota }, '¿Rechazar la reversión? La Beca SEP se queda como está.')}
+              >
+                <Undo2 className="h-4 w-4" aria-hidden />
+                Rechazar
+              </Button>
+            </div>
+          </>
+        ) : null}
+        {error ? <Alert variant="error">{error}</Alert> : null}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {!abierto ? (
+        <Button variant="secondary" onClick={() => setAbierto(true)}>
+          <Undo2 className="h-4 w-4" aria-hidden />
+          {esDireccion ? 'Revertir Beca SEP' : 'Solicitar reversión'}
+        </Button>
+      ) : (
+        <>
+          <p className="text-sm text-text-secondary">
+            {esDireccion
+              ? 'La familia regresa a su beca del colegio desde el siguiente mes por pagar.'
+              : 'Dirección General revisará la solicitud y decidirá. La familia no recibe nada hasta que se autorice.'}
+          </p>
+          {previaVista}
+          <Textarea
+            rows={2}
+            value={motivo}
+            onChange={(e) => setMotivo(e.target.value)}
+            placeholder="Motivo (obligatorio, mínimo 10 caracteres). Ej.: la familia prefiere conservar su beca del colegio."
+            aria-label="Motivo de la reversión"
+            autoFocus
+          />
+          <div className="flex flex-wrap gap-3">
+            <Button
+              disabled={motivo.trim().length < 10 || ocupado || (esDireccion && !previa)}
+              onClick={() =>
+                esDireccion
+                  ? ejecutar(
+                      { accion: 'autorizar_reversion', motivo },
+                      '¿Revertir la Beca SEP? La familia regresa a su beca del colegio, cambia lo que cobra el baucher y se le avisa por correo.'
+                    )
+                  : ejecutar({ accion: 'solicitar_reversion', motivo }, '¿Enviar la solicitud de reversión a Dirección General?')
+              }
+            >
+              <Undo2 className="h-4 w-4" aria-hidden />
+              {ocupado ? 'Enviando…' : esDireccion ? 'Revertir' : 'Enviar solicitud'}
+            </Button>
+            <Button variant="ghost" disabled={ocupado} onClick={() => setAbierto(false)}>
+              Cancelar
+            </Button>
+          </div>
+        </>
+      )}
       {error ? <Alert variant="error">{error}</Alert> : null}
     </div>
   );

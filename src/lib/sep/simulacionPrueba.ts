@@ -47,9 +47,6 @@ export const RESUMEN_SIMULACION_PRUEBA = `Pagos de ejemplo: inscripción ${pesos
   BECA_SIMULACION_PRUEBA.clase
 } del ${BECA_SIMULACION_PRUEBA.porcentaje} %), plan de ${PLAN_SIMULACION} meses.`;
 
-export const DETALLE_COBRO_SIMULACION =
-  'SIMULACIÓN DE PRUEBA: no se escribió en cobro, pagos ni becas. Las cifras son de ejemplo y no existen en la tesorería.';
-
 export function completarDatosSimulacionPrueba(datos: DatosAlumnoCiclo): DatosAlumnoCiclo {
   return {
     ...datos,

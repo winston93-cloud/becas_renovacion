@@ -15,7 +15,8 @@ import { correoFamiliaSep } from '@/lib/sep/correosFamilia';
 import { motivoNoEnviarCorreo } from '@/lib/sep/limitesCorreo';
 import { actualizarEsperados, esperadosDeCalculo, revisarPagos, type ResumenPagos } from '@/lib/sep/pagos';
 import { getLectorDocumento, MAX_BYTES_DOCUMENTO_SEP, TIPOS_DOCUMENTO_SEP } from '@/lib/sep/lectorDocumento';
-import { aplicarEnCobro } from '@/lib/sep/cobro';
+import { registrarEnCobro } from '@/lib/sep/cobro';
+import { calcularReversion } from '@/lib/sep/core/reversion';
 import { getSepRepo, nuevoIdSep } from '@/lib/sep/repo';
 import { buzonPruebaSep, correosSepSoloPrueba, esRefPruebaSep, familiaPuedeUsarSep, MENSAJE_SEP_NO_DISPONIBLE } from '@/lib/sep/activo';
 import { becaSustituidaSimulacion, completarDatosSimulacionPrueba, PAGOS_SIMULACION_PRUEBA } from '@/lib/sep/simulacionPrueba';
@@ -28,6 +29,7 @@ import {
   type DocumentoSep,
   type EstadoSep,
   type EventoSep,
+  type ReversionSep,
   type SolicitudSep,
 } from '@/lib/sep/tipos';
 
@@ -52,8 +54,12 @@ export const documentoVigente = (s: SolicitudSep): DocumentoSep | null =>
 /** Porcentaje con el que se calcula: el confirmado por CE o, si no, el detectado. */
 export const porcentajeEfectivo = (s: SolicitudSep) => s.porcentajeConfirmado ?? s.porcentajeDetectado;
 
-/** Monto mensual vigente: el ajuste manual de Sistemas o el del cálculo aplicado. */
-export const montoVigente = (s: SolicitudSep) => s.ajusteManual?.monto ?? s.calculo?.montoMensual ?? null;
+/**
+ * Monto mensual vigente: el ajuste manual de Sistemas o el del cálculo aplicado.
+ * 2026-10-12 - Revertida: la mensualidad de regreso a la beca del colegio.
+ */
+export const montoVigente = (s: SolicitudSep) =>
+  s.estado === 'revertida' ? s.reversion?.calculo?.mensual ?? null : s.ajusteManual?.monto ?? s.calculo?.montoMensual ?? null;
 
 /** La familia puede enviar con documento válido, ilegible (revisión manual) o tras agotar intentos. */
 export function puedeEnviar(s: SolicitudSep): boolean {
@@ -346,12 +352,25 @@ export async function aplicarSep(admin: AdminSep, id: string, porcentaje: unknow
   if (s.porcentajeDetectado !== pct) {
     historial.push(evento(admin.role, 'porcentaje_corregido', `${s.porcentajeDetectado ?? '—'} % → ${pct} %`));
   }
-  const cobro = await aplicarEnCobro({ ...s, calculo, porcentajeConfirmado: pct });
   const prueba = esRefPruebaSep(s.alumnoRef);
   // 2026-10-09 - Movimiento para Renovaciones: la beca del colegio que se pierde (no se renueva el ciclo siguiente).
   // 2026-10-12 - En prueba se muestra la beca PEMEX de ejemplo; movimientos.ts y el informe de Dirección
   //              excluyen a los alumnos de prueba, así que no altera Renovaciones ni las cifras.
   const becaSustituida = prueba ? becaSustituidaSimulacion(s.ciclo) : await becaQueSePierde(s, c.evaluacion.becaActualPct);
+  const aplicada: SolicitudSep = {
+    ...s,
+    estado: 'aplicada',
+    porcentajeConfirmado: pct,
+    revisadaEn: ahora(),
+    revisadoPor: admin.role,
+    aplicadaEn: ahora(),
+    calculo,
+    becaSustituida,
+    esperados: esperadosDeCalculo({ calculo, ajusteManual: null }),
+    reversion: null,
+  };
+  // 2026-10-12 - Queda registrada en alumno_beca_sep: el baucher cobra estos montos los meses que faltan.
+  const cobro = await registrarEnCobro(aplicada, admin.role, 'aplicar');
   historial.push(
     evento(
       admin.role,
@@ -361,19 +380,7 @@ export async function aplicarSep(admin: AdminSep, id: string, porcentaje: unknow
       } ${cobro.detalle}`
     )
   );
-  const guardada = await getSepRepo().guardar({
-    ...s,
-    estado: 'aplicada',
-    porcentajeConfirmado: pct,
-    revisadaEn: ahora(),
-    revisadoPor: admin.role,
-    aplicadaEn: ahora(),
-    calculo,
-    cobro,
-    becaSustituida,
-    esperados: esperadosDeCalculo({ calculo, ajusteManual: null }),
-    historial,
-  });
+  const guardada = await getSepRepo().guardar({ ...aplicada, cobro, historial });
   // 2026-10-12 - Alumno de prueba: no se manda correo ni constancia (no es una familia real).
   if (prueba) return guardada;
   // 2026-10-09 - Correo a la familia con el desglose, la constancia PDF y quién aplicó.
@@ -423,12 +430,21 @@ export async function recalcularSep(admin: AdminSep, id: string) {
   if (!c.ok) throw new ErrorSep(c.error, 502);
   const calculo = guardarCalculo(c, pct);
   const antes = s.calculo?.montoMensual ?? null;
-  const guardada = await getSepRepo().guardar({
+  const recalculada: SolicitudSep = {
     ...s,
     calculo,
     // 2026-10-09 - Los meses ya pagados conservan lo esperado; los que faltan toman el monto nuevo.
     esperados: actualizarEsperados(s.esperados ?? esperadosDeCalculo(s), esperadosDeCalculo({ ...s, calculo }), c.datos.pagos),
-    historial: [...s.historial, evento(admin.role, 'recalculada', `Mensualidad ${pesos(antes)} → ${pesos(calculo.montoMensual)}`)],
+  };
+  // 2026-10-12 - El cobro toma los montos nuevos (y si antes falló el registro, aquí se reintenta).
+  const cobro = await registrarEnCobro(recalculada, admin.role, 'recalcular');
+  const guardada = await getSepRepo().guardar({
+    ...recalculada,
+    cobro,
+    historial: [
+      ...s.historial,
+      evento(admin.role, 'recalculada', `Mensualidad ${pesos(antes)} → ${pesos(calculo.montoMensual)}. ${cobro.detalle}`),
+    ],
   });
   // 2026-10-09 - Solo se avisa a la familia si su mensualidad cambió (y no hay ajuste manual que la fije).
   if (guardada.ajusteManual || antes === calculo.montoMensual) return guardada;
@@ -447,19 +463,154 @@ export async function ajusteManualSep(admin: AdminSep, id: string, monto: unknow
   if (!quitar && tope != null && n > tope) throw new ErrorSep(`El monto no puede superar la colegiatura oficial (${pesos(tope)}).`);
   const ajusteManual = quitar ? null : { monto: Math.round(n * 100) / 100, motivo: texto.slice(0, 500), por: admin.role, fecha: ahora() };
   const pagos = await pagosActuales(s);
-  const guardada = await getSepRepo().guardar({
+  const ajustada: SolicitudSep = {
     ...s,
     ajusteManual,
     esperados: pagos
       ? actualizarEsperados(s.esperados ?? esperadosDeCalculo(s), esperadosDeCalculo({ ...s, ajusteManual }), pagos)
       : s.esperados,
+  };
+  // 2026-10-12 - El ajuste de Dirección General también llega al baucher.
+  const cobro = await registrarEnCobro(ajustada, admin.role, 'ajuste');
+  const guardada = await getSepRepo().guardar({
+    ...ajustada,
+    cobro,
     historial: [
       ...s.historial,
-      evento(admin.role, 'ajuste_manual', quitar ? `Se quitó el ajuste. ${texto}` : `Mensualidad ajustada a ${pesos(n)}. ${texto}`),
+      evento(
+        admin.role,
+        'ajuste_manual',
+        `${quitar ? `Se quitó el ajuste. ${texto}` : `Mensualidad ajustada a ${pesos(n)}. ${texto}`} ${cobro.detalle}`
+      ),
     ],
   });
   // 2026-10-09 - La familia recibe el desglose vigente y la constancia actualizada.
   return conEvento(guardada, await correoFamiliaSep('actualizada', guardada, { por: admin.role, actor: admin.role }));
+}
+
+// ---------------------------------------------------------------- Reversión (2026-10-12)
+
+export type CalculoReversionSep = NonNullable<ReversionSep['calculo']>;
+
+/**
+ * 2026-10-12 - Regreso a la beca del colegio con los pagos actuales: lo pagado con la SEP se compara contra
+ * el precio con su beca del colegio y la diferencia se reparte en los meses que faltan (core/reversion.ts).
+ */
+export async function calcularReversionSep(
+  s: SolicitudSep
+): Promise<{ ok: true; calculo: CalculoReversionSep } | { ok: false; error: string }> {
+  if (!s.calculo) return { ok: false, error: 'La beca no tiene cálculo guardado.' };
+  const pctBeca = s.becaSustituida?.porcentaje ?? s.calculo.entrada.porcentajeBecaActual ?? 0;
+  try {
+    const crudos = await datosAlumnoCiclo(s.alumnoRef, s.ciclo);
+    if (!crudos) return { ok: false, error: 'No se encontró al alumno en la base.' };
+    const datos = esRefPruebaSep(s.alumnoRef) ? completarDatosSimulacionPrueba(crudos) : crudos;
+    const ev = evaluarBeca(datos, {
+      porcentajeSep: pctBeca,
+      porcentajeBecaActual: 0,
+      planMeses: s.calculo.entrada.planMeses,
+      montoAprobado: montoVigente(s),
+    });
+    if (!ev.listo || !ev.planMeses || !ev.colegiaturaOficial) return { ok: false, error: 'Faltan plan o precios para calcular la reversión.' };
+    const r = calcularReversion({
+      colegiaturaOficial: ev.colegiaturaOficial,
+      planMeses: ev.planMeses,
+      porcentajeBeca: pctBeca,
+      pagosColegiatura: ev.meses.map((m) => ({ conceptoNo: m.concepto, neto: m.neto, cubierto: m.cubierto })),
+    });
+    return {
+      ok: true,
+      calculo: {
+        porcentajeBeca: pctBeca,
+        claseBeca: s.becaSustituida?.clase ?? null,
+        precioConBeca: r.precioConBeca,
+        excedente: r.excedente,
+        mensual: r.mensual,
+        saldoFavor: r.saldoFavor,
+        porPagar: r.porPagar,
+      },
+    };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'No se pudo leer InsForge.' };
+  }
+}
+
+function motivoReversion(motivo: unknown): string {
+  const texto = String(motivo ?? '').trim();
+  if (texto.length < 10) throw new ErrorSep('Escriba el motivo de la reversión (mínimo 10 caracteres).');
+  return texto.slice(0, 500);
+}
+
+/** 2026-10-12 - La coordinación pide revertir; Dirección General la autoriza o la rechaza. */
+export async function solicitarReversionSep(admin: AdminSep, id: string, motivo: unknown) {
+  const s = await obtenerSep(admin, id);
+  if (s.estado !== 'aplicada') throw new ErrorSep('Solo se revierten becas aplicadas.', 409);
+  if (s.reversion?.estado === 'solicitada') throw new ErrorSep('Ya hay una reversión esperando a Dirección General.', 409);
+  const texto = motivoReversion(motivo);
+  return getSepRepo().guardar({
+    ...s,
+    reversion: { estado: 'solicitada', motivo: texto, solicitadaPor: admin.role, solicitadaEn: ahora() },
+    historial: [...s.historial, evento(admin.role, 'reversion_solicitada', texto)],
+  });
+}
+
+/**
+ * 2026-10-12 - Dirección General autoriza la reversión (o la hace directo, con motivo, sin solicitud previa).
+ * La familia regresa a su beca del colegio desde el siguiente mes por pagar; el cobro queda 'cancelada' con
+ * los montos de regreso, Renovaciones deja de verla como "sustituida por SEP" y la familia recibe un correo.
+ */
+export async function autorizarReversionSep(admin: AdminSep, id: string, motivo: unknown) {
+  const s = await obtenerSep(admin, id);
+  if (s.estado !== 'aplicada') throw new ErrorSep('Solo se revierten becas aplicadas.', 409);
+  const pendiente = s.reversion?.estado === 'solicitada' ? s.reversion : null;
+  const texto = pendiente ? pendiente.motivo : motivoReversion(motivo);
+  const calc = await calcularReversionSep(s);
+  if (!calc.ok) throw new ErrorSep(calc.error, 502);
+  const regreso = calc.calculo.mensual == null ? {} : Object.fromEntries(calc.calculo.porPagar.map((x) => [x, calc.calculo.mensual!]));
+  const revertida: SolicitudSep = {
+    ...s,
+    estado: 'revertida',
+    // Los meses ya pagados conservan lo esperado con la SEP; los que faltan, el monto de regreso.
+    esperados: { ...(s.esperados ?? esperadosDeCalculo(s)), ...regreso },
+    reversion: {
+      estado: 'autorizada',
+      motivo: texto,
+      solicitadaPor: pendiente?.solicitadaPor ?? admin.role,
+      solicitadaEn: pendiente?.solicitadaEn ?? ahora(),
+      resueltaPor: admin.role,
+      resueltaEn: ahora(),
+      calculo: calc.calculo,
+    },
+  };
+  const cobro = await registrarEnCobro(revertida, admin.role, 'revertir');
+  const c = calc.calculo;
+  const guardada = await getSepRepo().guardar({
+    ...revertida,
+    cobro,
+    historial: [
+      ...s.historial,
+      evento(
+        admin.role,
+        'revertida',
+        `${texto} Regresa a ${c.porcentajeBeca > 0 ? `su beca ${c.claseBeca ?? 'del colegio'} del ${c.porcentajeBeca} %` : 'la colegiatura sin beca'}: ${pesos(
+          c.mensual
+        )} por mes. ${cobro.detalle}`
+      ),
+    ],
+  });
+  if (esRefPruebaSep(s.alumnoRef)) return guardada;
+  return conEvento(guardada, await correoFamiliaSep('revertida', guardada, { actor: admin.role }));
+}
+
+export async function rechazarReversionSep(admin: AdminSep, id: string, nota: unknown) {
+  const s = await obtenerSep(admin, id);
+  if (s.reversion?.estado !== 'solicitada') throw new ErrorSep('No hay una reversión pendiente.', 409);
+  const texto = String(nota ?? '').trim().slice(0, 500);
+  return getSepRepo().guardar({
+    ...s,
+    reversion: { ...s.reversion, estado: 'rechazada', resueltaPor: admin.role, resueltaEn: ahora(), nota: texto || undefined },
+    historial: [...s.historial, evento(admin.role, 'reversion_rechazada', texto || 'Sin nota.')],
+  });
 }
 
 // ---------------------------------------------------------------- Pagos después de aplicar
@@ -480,7 +631,8 @@ export type RevisionPagosSep = { ok: true; resumen: ResumenPagos } | { ok: false
 
 /** 2026-10-09 - Compara lo pagado desde que se aplicó la SEP contra la mensualidad esperada de cada mes. */
 export async function revisarPagosSep(s: SolicitudSep): Promise<RevisionPagosSep> {
-  if (s.estado !== 'aplicada' || !s.calculo) return { ok: false, error: 'La beca no está aplicada.' };
+  // 2026-10-12 - En revertidas se revisa contra los montos de regreso a la beca del colegio.
+  if ((s.estado !== 'aplicada' && s.estado !== 'revertida') || !s.calculo) return { ok: false, error: 'La beca no está aplicada.' };
   const pagos = await pagosActuales(s);
   if (!pagos) return { ok: false, error: 'No se pudieron leer los pagos de InsForge.' };
   return { ok: true, resumen: revisarPagos(s.esperados ?? esperadosDeCalculo(s), pagos) };

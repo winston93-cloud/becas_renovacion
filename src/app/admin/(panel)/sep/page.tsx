@@ -8,8 +8,21 @@ import { leerAdminSep } from '@/lib/sep/admin';
 import { cicloSep, listarSep, montoVigente, porcentajeEfectivo, requiereRevisionManual } from '@/lib/sep/servicio';
 import { resumenBeneficiosExternos } from '@/lib/sep/beneficiosExternos';
 import { siguienteRecordatorio, ultimosRecordatorios } from '@/lib/sep/recordatorioDocumento';
+import { comparativoBecaColegio, sepMasCara } from '@/lib/sep/core/reversion';
+import type { SolicitudSep } from '@/lib/sep/tipos';
 import { gradosDeNiveles, type FilaCuestionarioSep, type FilaTramiteSep, type ResumenBxPanel, type VistaTramite } from '@/lib/sep/panelLista';
 import { PanelSep } from './PanelSep';
+
+/** 2026-10-12 - Aviso interno: cuánto más paga al mes con la SEP que con su beca del colegio (solo aplicadas). */
+function masCaraPor(s: SolicitudSep): number | null {
+  if (s.estado !== 'aplicada' || !s.calculo) return null;
+  const c = comparativoBecaColegio({
+    colegiaturaOficial: s.calculo.entrada.colegiaturaOficial,
+    porcentajeColegio: s.becaSustituida?.porcentaje ?? s.calculo.entrada.porcentajeBecaActual,
+    mensualSep: montoVigente(s),
+  });
+  return sepMasCara(c) ? c.diferencia : null;
+}
 
 export default async function AdminSepPage({
   searchParams,
@@ -39,6 +52,8 @@ export default async function AdminSepPage({
     fecha: s.enviadaEn ?? s.aplicadaEn ?? s.actualizadaEn ?? s.creadaEn,
     revisionManual: s.estado === 'enviada' && requiereRevisionManual(s),
     motivoCorreccion: s.motivoCorreccion,
+    reversionPendiente: s.estado === 'aplicada' && s.reversion?.estado === 'solicitada',
+    sepMasCaraPor: masCaraPor(s),
   }));
 
   const cuestionario: FilaCuestionarioSep[] = (externos?.respuestas ?? []).map((f) => ({

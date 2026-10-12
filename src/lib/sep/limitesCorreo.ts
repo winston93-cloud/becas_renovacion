@@ -13,6 +13,8 @@ export const CORREOS_ACTIVOS: Record<TipoCorreoSep, boolean> = {
   aplicada: true,
   actualizada: true,
   pago: true,
+  // 2026-10-12 - Reversión autorizada por Dirección General (cambia lo que paga: siempre se avisa).
+  revertida: true,
 };
 
 /** Horas mínimas entre dos correos del mismo tipo para el mismo trámite. */
@@ -22,6 +24,7 @@ export const ESPERA_MISMO_TIPO_H: Record<TipoCorreoSep, number> = {
   aplicada: 1,
   actualizada: 24,
   pago: 24 * 7,
+  revertida: 1,
 };
 
 /** Máximo de correos por trámite en 24 h (la confirmación de beca aplicada no se bloquea por este tope). */
@@ -51,7 +54,8 @@ export function motivoNoEnviarCorreo(tipo: TipoCorreoSep, historial: EventoSep[]
       timeZone: 'America/Mexico_City',
     })}`;
   }
-  if (tipo !== 'aplicada') {
+  // 2026-10-12 - La reversión tampoco se bloquea por el tope diario: cambia la mensualidad.
+  if (tipo !== 'aplicada' && tipo !== 'revertida') {
     const ultimas24 = enviados(historial).filter((e) => ahora - Date.parse(e.fecha) < 24 * HORA).length;
     if (ultimas24 >= MAX_CORREOS_24H) return `la familia ya recibió ${ultimas24} correos en las últimas 24 horas`;
   }

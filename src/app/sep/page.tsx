@@ -35,7 +35,7 @@ type DocumentoVista = {
 
 type SolicitudVista = {
   id: string;
-  estado: 'borrador' | 'enviada' | 'correccion' | 'aplicada' | 'rechazada';
+  estado: 'borrador' | 'enviada' | 'correccion' | 'aplicada' | 'rechazada' | 'revertida';
   etiquetaEstado: string;
   intentosFallidos: number;
   maxIntentos: number;
@@ -297,7 +297,7 @@ function BecaSepInner() {
           ) : null}
         </Card>
 
-        {bloqueo && s?.estado !== 'aplicada' ? (
+        {bloqueo && s?.estado !== 'aplicada' && s?.estado !== 'revertida' ? (
           <Alert variant="warning" title="No puede tramitar la Beca SEP">
             {bloqueo}
           </Alert>
@@ -315,6 +315,14 @@ function BecaSepInner() {
             Control Escolar aplicó la beca SEP del <strong>{s.porcentajeAplicado} %</strong> el{' '}
             {fecha(s.aplicadaEn)}. El ajuste de sus mensualidades lo verá reflejado en Servicios
             Administrativos.
+          </Alert>
+        ) : null}
+
+        {/* 2026-10-12 - Dirección General revirtió la Beca SEP: regresa a su beca del colegio. */}
+        {s?.estado === 'revertida' ? (
+          <Alert variant="info" title="Regresó a su beca del colegio">
+            Por indicación de Dirección General ya no se aplica la Beca SEP este ciclo. Le enviamos por correo
+            su nueva mensualidad; el cambio lo verá en Servicios Administrativos.
           </Alert>
         ) : null}
 

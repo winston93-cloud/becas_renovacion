@@ -17,6 +17,7 @@ import { getSchoolCycleLabel } from '@/lib/ciclo-escolar';
 import { sendMail, type MailAttachment } from '@/lib/mailer';
 import { esModoLocalSoloLectura } from '@/lib/modo-local';
 import { buzonPruebaSep, correosSepSoloPrueba } from '@/lib/sep/activo';
+import { NOMBRE_CONCEPTO } from '@/lib/sep/core/ciclo';
 import { pesos } from '@/lib/sep/core/dinero';
 import { armarHojaCalculo } from '@/lib/sep/core/hojaCalculo';
 import { constanciaSepPdf, fechaLarga, folioSep, quienAplico } from '@/lib/sep/constancia';
@@ -174,6 +175,29 @@ ${desglose(s)}
 ${p && p.deMenos > 0 ? `<p>Queda pendiente un total de <strong>${pesos(p.deMenos)}</strong>.</p>` : ''}
 ${p && p.deMas > 0 ? `<p>Tiene <strong>${pesos(p.deMas)}</strong> pagados de más; Control Escolar le indicará cómo se aplicarán.</p>` : ''}
 <p>Si ya lo aclaró con Servicios Administrativos, puede ignorar este aviso.</p>`,
+      };
+    }
+    // 2026-10-12 - Dirección General autorizó regresar a la beca del colegio (o a la colegiatura sin beca).
+    case 'revertida': {
+      const c = s.reversion?.calculo;
+      const beca = c && c.porcentajeBeca > 0 ? `su beca ${esc(c.claseBeca ?? 'del colegio')} del ${c.porcentajeBeca} %` : 'la colegiatura sin beca';
+      const meses = c?.porPagar.map((x) => NOMBRE_CONCEPTO[x] ?? x) ?? [];
+      const periodo = meses.length ? (meses.length === 1 ? meses[0] : `${meses[0]} a ${meses[meses.length - 1]}`) : '—';
+      const filas = c
+        ? [
+            renglon('Precio con ' + (c.porcentajeBeca > 0 ? `beca del ${c.porcentajeBeca} %` : 'colegiatura completa'), pesos(c.precioConBeca)),
+            renglon(c.excedente >= 0 ? 'Saldo a su favor de lo ya pagado' : 'Saldo en contra de lo ya pagado', pesos(Math.abs(c.excedente))),
+            renglon('Meses por pagar', `${meses.length} (${esc(periodo)})`),
+            renglon('Nueva mensualidad', pesos(c.mensual), true),
+            c.saldoFavor > 0 ? renglon('Saldo a favor al terminar el ciclo', pesos(c.saldoFavor)) : '',
+          ].join('')
+        : '';
+      return {
+        asunto: `Beca SEP: regresa a su beca del colegio, ${nombre}`,
+        titulo: 'Se revirtió la Beca SEP',
+        cuerpo: `<p>Por indicación de Dirección General, a ${alumno} se le quitó la Beca SEP del ciclo ${esc(ciclo)} y regresa a ${beca}.</p>
+${filas ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #dce4f2;border-bottom:1px solid #dce4f2;margin:12px 0">${filas}</table>` : ''}
+<p style="color:#5e6c84;font-size:13px">Lo que ya pagó con la Beca SEP se comparó contra el precio con su beca del colegio; la diferencia se reparte en partes iguales en los meses que faltan. El cambio se verá reflejado en Servicios Administrativos.</p>`,
       };
     }
   }

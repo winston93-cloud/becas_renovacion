@@ -6,7 +6,8 @@ import type { Alerta } from '@/lib/sep/core/alertas';
 import type { EntradaHoja } from '@/lib/sep/core/hojaCalculo';
 import type { EstadoProrrateo } from '@/lib/sep/core/prorrateo';
 
-export type EstadoSep = 'borrador' | 'enviada' | 'correccion' | 'aplicada' | 'rechazada';
+// 2026-10-12 - 'revertida': Dirección General autorizó regresar a la beca del colegio.
+export type EstadoSep = 'borrador' | 'enviada' | 'correccion' | 'aplicada' | 'rechazada' | 'revertida';
 
 export const ETIQUETA_ESTADO_SEP: Record<EstadoSep, string> = {
   borrador: 'Sin enviar',
@@ -14,6 +15,7 @@ export const ETIQUETA_ESTADO_SEP: Record<EstadoSep, string> = {
   correccion: 'Corrección solicitada',
   aplicada: 'Beca aplicada',
   rechazada: 'Rechazada',
+  revertida: 'Beca SEP revertida',
 };
 
 /** Resultado de leer el documento de autorización SEP. */
@@ -67,13 +69,41 @@ export type EventoSep = {
     | 'recalculada'
     // 2026-10-09 - Correos a la familia y avisos de pagos distintos a la mensualidad aplicada.
     | 'correo_familia'
-    | 'aviso_pago';
+    | 'aviso_pago'
+    // 2026-10-12 - Registro en el cobro (alumno_beca_sep) y reversión en dos pasos.
+    | 'cobro'
+    | 'reversion_solicitada'
+    | 'reversion_rechazada'
+    | 'revertida';
   detalle?: string;
   /** 2026-10-09 - Solo en correos a la familia: tipo y si salió (para limitar la frecuencia y no parecer spam). */
   correo?: { tipo: TipoCorreoSep; enviado: boolean };
 };
 
-export type TipoCorreoSep = 'recibido' | 'correccion' | 'aplicada' | 'actualizada' | 'pago';
+export type TipoCorreoSep = 'recibido' | 'correccion' | 'aplicada' | 'actualizada' | 'pago' | 'revertida';
+
+/**
+ * 2026-10-12 - Reversión: la coordinación la solicita con motivo y Dirección General la autoriza (o la hace
+ * directo). Al autorizar se guarda el cálculo con el que la familia regresa a su beca del colegio.
+ */
+export type ReversionSep = {
+  estado: 'solicitada' | 'autorizada' | 'rechazada';
+  motivo: string;
+  solicitadaPor: ActorSep;
+  solicitadaEn: string;
+  resueltaPor?: ActorSep;
+  resueltaEn?: string;
+  nota?: string;
+  calculo?: {
+    porcentajeBeca: number;
+    claseBeca: string | null;
+    precioConBeca: number;
+    excedente: number;
+    mensual: number | null;
+    saldoFavor: number;
+    porPagar: string[];
+  };
+};
 
 /** 2026-10-09 - Beca del colegio que la familia pierde al aplicarse la SEP (movimiento para Renovaciones). */
 export type BecaSustituida = {
@@ -118,8 +148,13 @@ export type SolicitudSep = {
   aplicadaEn: string | null;
   calculo: CalculoGuardado | null;
   ajusteManual: { monto: number; motivo: string; por: ActorSep; fecha: string } | null;
-  /** Integración con cobro (servicios_admin). En local siempre queda pendiente. */
+  /**
+   * Integración con cobro (servicios_admin). En local siempre queda pendiente.
+   * 2026-10-12 - 'aplicado' = quedó registrada en alumno_beca_sep (lo que cobra el baucher).
+   */
   cobro: { estado: 'pendiente_integracion' | 'aplicado'; detalle: string; fecha: string } | null;
+  /** 2026-10-12 - Solicitud / autorización de reversión (opcional en trámites viejos). */
+  reversion?: ReversionSep | null;
   /** 2026-10-09 - Beca del colegio que se perdió al aplicar (null = no tenía). Opcional en trámites viejos. */
   becaSustituida?: BecaSustituida | null;
   /**

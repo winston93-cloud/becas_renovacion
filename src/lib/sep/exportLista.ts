@@ -36,7 +36,10 @@ export function filaExportSep(s: SolicitudSep): FilaExportSep {
   const [estado, tono]: [string, FilaExportSep['tono']] =
     s.estado === 'aplicada'
       ? ['Aplicada', 'ok']
-      : s.estado === 'enviada'
+      : // 2026-10-12 - Revertida: regresó a su beca del colegio.
+        s.estado === 'revertida'
+        ? ['Revertida', 'neutro']
+        : s.estado === 'enviada'
         ? manual
           ? ['Revisar a mano', 'aviso']
           : ['Por revisar', 'pendiente']
@@ -44,7 +47,7 @@ export function filaExportSep(s: SolicitudSep): FilaExportSep {
           ? ['Otro documento pedido', 'correccion']
           : ['Sin enviar', 'neutro'];
   const pct = porcentajeEfectivo(s);
-  const monto = s.estado === 'aplicada' ? montoVigente(s) : null;
+  const monto = s.estado === 'aplicada' || s.estado === 'revertida' ? montoVigente(s) : null;
   return {
     ref: s.alumnoRef,
     nombre: `${s.nombreAlumno}${esRefPruebaSep(s.alumnoRef) ? ' (prueba)' : ''}`,

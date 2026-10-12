@@ -49,7 +49,8 @@ function impactoDe(s: SolicitudSep): ImpactoAlumno | null {
 }
 
 export function armarTablero(filas: FilaReporte[], ahora = Date.now()): TableroSep {
-  const porEstado: Record<EstadoSep, number> = { borrador: 0, enviada: 0, correccion: 0, aplicada: 0, rechazada: 0 };
+  // 2026-10-12 - Se cuentan también las revertidas (regresaron a su beca del colegio).
+  const porEstado: Record<EstadoSep, number> = { borrador: 0, enviada: 0, correccion: 0, aplicada: 0, rechazada: 0, revertida: 0 };
   const niveles = new Map<number | null, { total: number; porRevisar: number; aplicadas: number }>();
   const impactos: ImpactoAlumno[] = [];
   const sustituidas = new Map<string, number[]>();

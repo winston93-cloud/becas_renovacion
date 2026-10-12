@@ -23,6 +23,10 @@ export type FilaTramiteSep = {
   fecha: string;
   revisionManual: boolean;
   motivoCorreccion: string | null;
+  /** 2026-10-12 - La coordinación pidió revertir y espera a Dirección General. */
+  reversionPendiente?: boolean;
+  /** 2026-10-12 - Aviso interno: pesos de más al mes que paga con la SEP contra su beca del colegio. */
+  sepMasCaraPor?: number | null;
 };
 
 export type ResumenBxPanel = {
@@ -52,7 +56,8 @@ export type FilaCuestionarioSep = {
 export const VISTAS_TRAMITE: { valor: VistaTramite; texto: string; estados: EstadoSep[]; vacio: string }[] = [
   { valor: 'revisar', texto: 'Por revisar', estados: ['enviada'], vacio: 'No hay documentos por revisar.' },
   { valor: 'familia', texto: 'Esperando a la familia', estados: ['correccion', 'borrador'], vacio: 'Ninguna familia tiene un documento pendiente.' },
-  { valor: 'aplicadas', texto: 'Aplicadas', vacio: 'Todavía no hay becas aplicadas en este ciclo.', estados: ['aplicada'] },
+  // 2026-10-12 - Las revertidas siguen a la vista aquí, con su insignia.
+  { valor: 'aplicadas', texto: 'Aplicadas', vacio: 'Todavía no hay becas aplicadas en este ciclo.', estados: ['aplicada', 'revertida'] },
 ];
 
 export function normalizarBusqueda(texto: string): string {

@@ -388,6 +388,9 @@ function EstadoTramite({ s, layout }: { s: FilaTramiteSep; layout: 'table' | 'ca
     );
   } else if (s.estado === 'aplicada') {
     badge = <span className="admin-badge-estado admin-badge-estado--activada">✓ Aplicada</span>;
+  } else if (s.estado === 'revertida') {
+    // 2026-10-12 - Regresó a su beca del colegio (autorizado por Dirección General).
+    badge = <span className="admin-badge-estado admin-badge-estado--borrador">Revertida</span>;
   } else if (s.estado === 'correccion') {
     badge = (
       <span className="admin-badge-estado admin-badge-estado--correccion" title={s.motivoCorreccion ?? undefined}>
@@ -400,8 +403,19 @@ function EstadoTramite({ s, layout }: { s: FilaTramiteSep; layout: 'table' | 'ca
 
   return (
     <div className={`admin-lista-estado admin-lista-estado--${layout}`}>
-      <div className="admin-lista-estado__badges">{badge}</div>
-      {s.estado === 'aplicada' && s.monto != null ? (
+      <div className="admin-lista-estado__badges">
+        {badge}
+        {/* 2026-10-12 - Solo para el personal: reversión pendiente y SEP más cara que su beca del colegio. */}
+        {s.reversionPendiente ? (
+          <span className="admin-badge-estado admin-badge-estado--espera-firma">Reversión por autorizar</span>
+        ) : null}
+        {s.sepMasCaraPor != null ? (
+          <span className="admin-badge-estado admin-badge-estado--correccion" title="Con su beca del colegio pagaba menos cada mes">
+            SEP más cara +{pesos(s.sepMasCaraPor)}/mes
+          </span>
+        ) : null}
+      </div>
+      {(s.estado === 'aplicada' || s.estado === 'revertida') && s.monto != null ? (
         <p className="admin-lista-estado__firmante">
           <span className="admin-lista-estado__firmante-label">Mensualidad:</span>{' '}
           <span className="admin-lista-estado__firmante-nombre tabular-nums">{pesos(s.monto)}</span>
