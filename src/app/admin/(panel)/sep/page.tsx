@@ -12,7 +12,9 @@ import { NOMBRE_NIVEL } from '@/lib/sep/core/ciclo';
 import { leerAdminSep } from '@/lib/sep/admin';
 import { cicloSep, listarSep, montoVigente, porcentajeEfectivo, requiereRevisionManual } from '@/lib/sep/servicio';
 import type { EstadoSep, SolicitudSep } from '@/lib/sep/tipos';
+import { resumenBeneficiosExternos } from '@/lib/sep/beneficiosExternos';
 import { AvisoListo } from './AvisoListo';
+import { ResumenBeneficiosExternos } from './ResumenBeneficiosExternos';
 
 const VISTAS = [
   { valor: 'revisar', texto: 'Por revisar', estados: ['enviada'] as EstadoSep[], vacio: 'No hay documentos por revisar. ¡Todo al día!' },
@@ -34,7 +36,8 @@ export default async function AdminSepPage({
   const admin = await leerAdminSep();
   if (!admin) redirect('/admin/login');
   const { vista, hecho, de } = await searchParams;
-  const todas = await listarSep(admin);
+  // 2026-10-12 - También el resumen del cuestionario de Beneficios externos (en paralelo).
+  const [todas, externos] = await Promise.all([listarSep(admin), resumenBeneficiosExternos(admin)]);
   const conteo = (estados: EstadoSep[]) => todas.filter((s) => estados.includes(s.estado)).length;
   const actual = VISTAS.find((v) => v.valor === vista) ?? VISTAS[0];
   const lista = todas
@@ -55,6 +58,8 @@ export default async function AdminSepPage({
       </div>
 
       <AvisoListo hecho={hecho} de={de} pendientes={conteo(['enviada'])} />
+
+      <ResumenBeneficiosExternos r={externos} />
 
       <nav className="flex flex-wrap items-center gap-2" aria-label="Trámites">
         {VISTAS.map((v) => {
