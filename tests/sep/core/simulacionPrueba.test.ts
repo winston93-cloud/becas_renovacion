@@ -1,5 +1,5 @@
 // 2026-10-12: simulación de prueba completa plan y precios faltantes.
-// 2026-10-12: además usa pagos de ejemplo (inscripción, cuota de padres, septiembre) y beca PEMEX 20 %,
+// 2026-10-12: además usa pagos de ejemplo (inscripción, cuota de inicio de curso, septiembre) y beca PEMEX 20 %,
 //             ignorando los pagos/beca reales que leyera de la base.
 import { describe, expect, test } from 'vitest'
 import {
@@ -31,7 +31,7 @@ describe('completarDatosSimulacionPrueba', () => {
     expect(sep?.recargo).toBe(0)
   })
 
-  test('con 50 % SEP: prorratea el excedente de septiembre e inscripción; la cuota de padres no cuenta', () => {
+  test('con 50 % SEP: prorratea el excedente de septiembre e inscripción; la cuota de inicio no cuenta', () => {
     const ev = evaluarBeca(completarDatosSimulacionPrueba(hueco()), { porcentajeSep: 50, porcentajeBecaActual: null, planMeses: null })
     expect(ev.bloqueada).toBe(false)
     expect(ev.becaActualPct).toBe(20)
