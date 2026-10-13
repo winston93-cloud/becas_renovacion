@@ -12,6 +12,7 @@ import {
   TODOS_DOCUMENTO_TIPOS,
 } from '@/lib/documentos-requeridos';
 import { REVISION_AL_REENVIAR, REVISION_AL_SUBIR } from '@/lib/doc-revision';
+import { MAX_PDF_BYTES, mensajePdfExcedido } from '@/lib/limite-pdf';
 
 export async function POST(request: NextRequest) {
   try {
@@ -36,8 +37,8 @@ export async function POST(request: NextRequest) {
     if (file.type !== 'application/pdf') {
       return NextResponse.json({ error: 'Solo se aceptan archivos PDF.' }, { status: 400 });
     }
-    if (file.size > 10 * 1024 * 1024) {
-      return NextResponse.json({ error: 'El PDF no puede superar 10 MB.' }, { status: 400 });
+    if (file.size > MAX_PDF_BYTES) {
+      return NextResponse.json({ error: mensajePdfExcedido(file.size) }, { status: 400 });
     }
 
     const admin = getInsforgeAdmin();

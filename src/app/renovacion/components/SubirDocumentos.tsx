@@ -13,6 +13,7 @@ import {
   labelDocRequerido,
 } from '@/lib/documentos-requeridos';
 import { fetchConAcceso, getAccesoToken } from '@/lib/acceso-session';
+import { MAX_PDF_BYTES, MAX_PDF_MB, mensajePdfExcedido } from '@/lib/limite-pdf';
 import { Alert, Badge, Button, Card } from '@/components/ui';
 
 type Props = {
@@ -151,6 +152,11 @@ export default function SubirDocumentos({
       return;
     }
 
+    if (file.size > MAX_PDF_BYTES) {
+      setError(mensajePdfExcedido(file.size));
+      return;
+    }
+
     setError(null);
     setUploading(tipo);
     setProgress((prev) => ({ ...prev, [tipo]: 2 }));
@@ -161,10 +167,11 @@ export default function SubirDocumentos({
       form.append('tipo', tipo);
       form.append('file', file);
 
-      const { ok, json } = await uploadWithProgress(form, (pct) => {
+      const { ok, status, json } = await uploadWithProgress(form, (pct) => {
         setProgress((prev) => ({ ...prev, [tipo]: pct }));
       });
 
+      if (status === 413) throw new Error(mensajePdfExcedido(file.size));
       if (!ok) {
         throw new Error((json.error as string) || 'Error al subir documento.');
       }
@@ -203,7 +210,8 @@ export default function SubirDocumentos({
         <p className="mt-1 text-sm text-text-secondary">
           {modoCorreccion
             ? 'Su renovación ya está registrada. Suba únicamente los documentos marcados como incorrectos. Los verificados no se modifican. Aunque el periodo general haya cerrado, esta corrección sí está permitida.'
-            : `Sube los ${docsList.length} PDFs requeridos para completar la renovación.`}
+            : `Sube los ${docsList.length} PDFs requeridos para completar la renovación.`}{' '}
+          Cada PDF puede pesar máximo {MAX_PDF_MB} MB.
         </p>
         {modoCorreccion && pendientesCorregir > 0 ? (
           <Alert variant="warning" className="mt-3" title="Documentos por corregir">

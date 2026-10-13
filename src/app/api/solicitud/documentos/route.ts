@@ -15,6 +15,7 @@ import {
 } from '@/lib/documentos-requeridos';
 import { buildSolicitudDocsContext } from '@/lib/solicitud-docs-context';
 import { REVISION_AL_REENVIAR, REVISION_AL_SUBIR } from '@/lib/doc-revision';
+import { MAX_PDF_BYTES, mensajePdfExcedido } from '@/lib/limite-pdf';
 
 export async function POST(request: NextRequest) {
   try {
@@ -49,9 +50,9 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    if (file.size > 10 * 1024 * 1024) {
+    if (file.size > MAX_PDF_BYTES) {
       return NextResponse.json(
-        { error: 'El PDF no puede superar 10 MB.' },
+        { error: mensajePdfExcedido(file.size) },
         { status: 400 }
       );
     }
